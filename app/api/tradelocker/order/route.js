@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { tlFetch, accountId } from "../../../../lib/tradelocker";
 import { buildRiskPreview } from "../../../../lib/risk";
+import {
+  assertExpectedAccount,
+  findDuplicateStrategy,
+  makeStrategyId
+} from "../../../../lib/tradeGuard";
 
 export async function POST(req) {
   try {
@@ -13,7 +18,27 @@ export async function POST(req) {
     }
 
     const body = await req.json();
-    const preview = await buildRiskPreview(body);
+    const idempotencyKey = body.idempotencyKey || body.clientOrderId || null;
+    const idempotencyRequired =
+      String(process.env.IDEMPOTENCY_REQUIRED || "true").toLowerCase() === "true";
+
+    if (idempotencyRequired && !idempotencyKey) {
+      return NextResponse.json(
+        { ok: false, error: "idempotencyKey is required" },
+        { status: 400 }
+      );
+    }
+
+    const strategyId = idempotencyKey
+      ? makeStrategyId(idempotencyKey)
+      : String(body.strategyId || "chatgpt-gateway").slice(0, 31);
+
+    const account = await assertExpectedAccount();
+
+    const preview = await buildRiskPreview({
+      ...body,
+      strategyId
+    });
 
     if (!preview.ok) {
       return NextResponse.json(
@@ -21,9 +46,30 @@ export async function POST(req) {
           ok: false,
           dryRun: process.env.TRADING_ENABLED !== "true",
           error: "Risk engine rejected order",
+          account,
+          strategyId,
           preview
         },
         { status: 400 }
+      );
+    }
+
+    const duplicate = await findDuplicateStrategy(
+      strategyId,
+      preview.instrument?.tradableInstrumentId
+    );
+
+    if (duplicate.duplicate) {
+      return NextResponse.json(
+        {
+          ok: false,
+          dryRun: process.env.TRADING_ENABLED !== "true",
+          error: "Duplicate order blocked",
+          account,
+          duplicate,
+          strategyId
+        },
+        { status: 409 }
       );
     }
 
@@ -31,7 +77,10 @@ export async function POST(req) {
       return NextResponse.json({
         ok: true,
         dryRun: true,
-        message: "Risk checks passed. TRADING_ENABLED is false, so no live order was submitted.",
+        message: "Risk and duplicate checks passed. TRADING_ENABLED=false, so no live order was submitted.",
+        account,
+        duplicate,
+        strategyId,
         preview,
         order: preview.order
       });
@@ -44,6 +93,25 @@ export async function POST(req) {
       );
     }
 
+    // Check again immediately before submission to reduce retry/race duplicates.
+    const finalDuplicateCheck = await findDuplicateStrategy(
+      strategyId,
+      preview.instrument?.tradableInstrumentId
+    );
+
+    if (finalDuplicateCheck.duplicate) {
+      return NextResponse.json(
+        {
+          ok: false,
+          dryRun: false,
+          error: "Duplicate order blocked immediately before execution",
+          duplicate: finalDuplicateCheck,
+          strategyId
+        },
+        { status: 409 }
+      );
+    }
+
     const data = await tlFetch(`/trade/accounts/${accountId()}/orders`, {
       method: "POST",
       body: JSON.stringify(preview.order)
@@ -52,6 +120,8 @@ export async function POST(req) {
     return NextResponse.json({
       ok: true,
       dryRun: false,
+      account,
+      strategyId,
       preview,
       order: preview.order,
       data
