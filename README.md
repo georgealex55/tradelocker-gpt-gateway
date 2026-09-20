@@ -65,3 +65,15 @@ Expose this gateway through a ChatGPT custom app/action or MCP server. Keep the 
 - duplicate-order protection
 - kill switch
 - audit log
+
+## Instrument details
+
+Defaults to the USDCHF IDs discovered for this account:
+
+`GET /api/tradelocker/instrument-details`
+
+You can also query another instrument:
+
+`GET /api/tradelocker/instrument-details?tradableInstrumentId=7876&routeId=540005&symbol=USDCHF`
+
+This endpoint is read-only and is used to retrieve lot size, lot step, quoting currency, and other instrument settings before order sizing.
