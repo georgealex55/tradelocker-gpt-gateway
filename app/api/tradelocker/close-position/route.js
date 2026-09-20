@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { tlFetch } from "../../../../lib/tradelocker";
 import {
   assertExpectedAccount,
-  makeStrategyId
+  makeStrategyId,
+  killSwitchEnabled
 } from "../../../../lib/tradeGuard";
 
 export async function POST(req) {
@@ -15,9 +16,9 @@ export async function POST(req) {
       );
     }
 
-    if (process.env.KILL_SWITCH === "true") {
+    if (killSwitchEnabled()) {
       return NextResponse.json(
-        { ok: false, error: "KILL_SWITCH=true" },
+        { ok: false, error: "KILL_SWITCH is enabled or unset" },
         { status: 403 }
       );
     }
