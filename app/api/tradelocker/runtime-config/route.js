@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import {
+  killSwitchEnabled,
+  killSwitchRawState
+} from "../../../../lib/tradeGuard";
 
 function maskAccountId(value) {
   if (!value) return null;
@@ -12,7 +16,8 @@ export async function GET() {
     ok: true,
     runtime: {
       tradingEnabled: String(process.env.TRADING_ENABLED || "false").toLowerCase() === "true",
-      killSwitch: String(process.env.KILL_SWITCH || "false").toLowerCase() === "true",
+      killSwitch: killSwitchEnabled(),
+      killSwitchRawState: killSwitchRawState(),
       expectedAccountId: maskAccountId(
         process.env.EXPECTED_ACCOUNT_ID || process.env.TRADELOCKER_ACCOUNT_ID
       ),
