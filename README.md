@@ -228,3 +228,150 @@ infoRouteId          = 540002
 ```
 
 These remain defaults only. Strategy selection and dynamic instrument discovery will be handled in the next phase.
+
+## Indicator engine
+
+The gateway now uses the pinned `trading-signals@8.3.0` package behind our own adapter in:
+
+```text
+lib/indicators.js
+```
+
+The library never talks directly to TradeLocker and does not control execution.
+
+Default indicator set:
+
+```text
+EMA 20
+EMA 50
+EMA 200
+RSI 14
+ATR 14
+ADX 14 (+DI / -DI)
+MACD 12 / 26 / 9
+```
+
+The periods are configurable. The adapter normalizes candles first, then exposes one serializable snapshot format for both live strategy evaluation and historical backtests.
+
+Protected calculation endpoint:
+
+```text
+POST /api/trading/indicators
+x-trade-approval-key: YOUR_SECRET
+```
+
+Body:
+
+```json
+{
+  "candles": [
+    {
+      "time": 1,
+      "open": 0.8100,
+      "high": 0.8110,
+      "low": 0.8095,
+      "close": 0.8107
+    }
+  ],
+  "indicatorConfig": {
+    "emaPeriods": [20, 50, 200],
+    "rsiPeriod": 14,
+    "atrPeriod": 14,
+    "adxPeriod": 14,
+    "macd": {
+      "fast": 12,
+      "slow": 26,
+      "signal": 9
+    }
+  }
+}
+```
+
+## Thin backtesting engine
+
+The strategy-neutral replay engine lives in:
+
+```text
+lib/backtest.js
+```
+
+It deliberately does not contain Strategy V1 rules. A strategy function receives the normalized candle, the same indicator snapshot used by live logic, current simulated position state, equity, and previous trades.
+
+Backtest protections:
+
+- signals execute at the **next candle open** to reduce look-ahead bias
+- every entry requires a stop loss and take profit
+- one simulated position is open at a time
+- risk is modeled as a percentage of current simulated equity
+- spread and slippage can be deducted in pips
+- if stop and target are both touched in one candle, the default is **stop-first**
+- final open positions close at the end of the dataset
+- metrics include win rate, R multiples, expectancy, profit factor, return, and max drawdown
+
+Protected strategy-neutral replay endpoint:
+
+```text
+POST /api/trading/backtest
+x-trade-approval-key: YOUR_SECRET
+```
+
+For infrastructure tests, the endpoint accepts explicit signals instead of embedding a strategy:
+
+```json
+{
+  "candles": [
+    {
+      "time": 1,
+      "open": 0.8100,
+      "high": 0.8110,
+      "low": 0.8095,
+      "close": 0.8107
+    },
+    {
+      "time": 2,
+      "open": 0.8108,
+      "high": 0.8130,
+      "low": 0.8105,
+      "close": 0.8125
+    }
+  ],
+  "signals": [
+    {
+      "index": 0,
+      "action": "BUY",
+      "stopLoss": 0.8098,
+      "takeProfit": 0.8128
+    }
+  ],
+  "options": {
+    "startingBalance": 10000,
+    "riskPercent": 1,
+    "pipSize": 0.0001,
+    "spreadPips": 1.5,
+    "slippagePips": 0.2
+  }
+}
+```
+
+Those explicit signals are only for validating the replay engine. Strategy V1 will later replace them with a strategy function that evaluates the same indicator snapshots.
+
+### Intended Strategy V1 flow
+
+```text
+TradeLocker historical/live candles
+        ↓
+lib/indicators.js
+        ↓
+Strategy V1 (next phase)
+        ↓
+      ┌───────────────┐
+      ↓               ↓
+lib/backtest.js   existing risk engine
+ historical           ↓
+ simulation       state machine
+                      ↓
+                  TradeLocker
+```
+
+This keeps indicator calculations and strategy rules shared between testing and live execution while leaving TradeLocker as the only live execution platform.
+
