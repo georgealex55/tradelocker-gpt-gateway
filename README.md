@@ -1,79 +1,230 @@
 # TradeLocker ↔ ChatGPT Gateway
 
-A minimal private Next.js gateway for TradeLocker REST execution.
+A private Next.js gateway for TradeLocker REST execution with deterministic risk controls and durable trade lifecycle tracking.
 
-## 1. Deploy
-Import this project into Vercel.
+## Current architecture
 
-## 2. Add Vercel environment variables
+```text
+Market / strategy input
+        ↓
+Risk engine
+        ↓
+Trade state machine
+        ↓
+Execution guard
+        ↓
+TradeLocker REST API
+        ↓
+Broker verification / reconciliation
+        ↓
+Neon/Postgres event history
+```
+
+The strategy layer is intentionally not implemented yet. The gateway currently accepts a structured order request and decides whether that request is safe to execute.
+
+## Existing execution protection
+
+The gateway currently includes:
+
+- explicit TradeLocker account lock
+- fail-closed kill switch
+- `TRADING_ENABLED` dry-run switch
+- approval-key protection
+- symbol allow-list
+- lot and unit caps
+- broker min/max lot and lot-step validation
+- required stop-loss and take-profit checks
+- minimum risk/reward
+- account-risk percentage cap
+- spread guard
+- stale-market-data guard
+- maximum open positions
+- maximum pending orders
+- maximum daily trades
+- idempotency key requirement
+- TradeLocker strategy ID deduplication
+- post-trade broker verification
+
+## Durable trade state
+
+The `trade-state-v1` layer adds a Postgres-backed lifecycle for every order.
+
+Primary states include:
+
+```text
+SIGNAL_CREATED
+  ↓
+SIGNAL_VALIDATED
+  ↓
+RISK_APPROVED ───────────────→ DRY_RUN_COMPLETE
+  ↓
+ORDER_SUBMITTED
+  ↓
+ORDER_ACCEPTED
+  ↓
+ORDER_FILLED
+  ↓
+POSITION_OPEN
+  ↓
+POSITION_MANAGED
+  ↓
+CLOSE_REQUESTED
+  ↓
+POSITION_CLOSED
+  ↓
+RECONCILED
+```
+
+Failure/reconciliation states include:
+
+```text
+SIGNAL_REJECTED
+RISK_REJECTED
+ORDER_REJECTED
+ORDER_TIMEOUT
+PARTIAL_FILL
+EXECUTION_UNKNOWN
+POSITION_MISMATCH
+EMERGENCY_CLOSE
+```
+
+The state machine rejects invalid transitions. An idempotency key is also persisted with a request fingerprint so the same key cannot be reused with different trade parameters.
+
+## Database objects
+
+Apply:
+
+```text
+db/migrations/001_trade_state.sql
+```
+
+It creates:
+
+- `trade_runs` — canonical trade lifecycle record
+- `trade_events` — append-only lifecycle/event history
+- `account_snapshots` — account/risk snapshot captured during preview
+- `trading_system_state` — reserved system/circuit-breaker state
+
+The migration is additive and does not drop or alter existing tables.
+
+## Environment variables
+
 Copy the keys from `.env.example`.
 
-Do not put your TradeLocker password into source code or chat messages.
+TradeLocker:
 
-Start with:
-- `TRADELOCKER_ENV=demo` (or `live` only when ready)
-- `TRADING_ENABLED=false`
+```text
+TRADELOCKER_ENV=demo
+TRADELOCKER_EMAIL=
+TRADELOCKER_PASSWORD=
+TRADELOCKER_SERVER=
+TRADELOCKER_ACCOUNT_ID=
+TRADELOCKER_ACC_NUM=
+EXPECTED_ACCOUNT_ID=
+```
 
-## 3. Required TradeLocker values
-- Email
-- Password
-- Server
-- Account ID
-- Account number (`accNum`)
+Database:
 
-The account ID is the number shown after `#` in TradeLocker's account switcher.
+```text
+DATABASE_URL=
+TRADE_STATE_DB_ENABLED=true
+```
 
-## 4. Test the connection
-GET:
-`/api/tradelocker/account`
+Execution starts disabled:
 
-## 5. Dry-run an order
-POST `/api/tradelocker/order`
+```text
+TRADING_ENABLED=false
+```
 
-Header:
-`x-trade-approval-key: YOUR_SECRET`
+Keep the TradeLocker credentials, approval key, and database URL server-side.
 
-JSON:
+## Database activation sequence
+
+1. Create/select the Neon Postgres project.
+2. Apply `db/migrations/001_trade_state.sql`.
+3. Add the Neon connection string as `DATABASE_URL` in Vercel.
+4. Keep `TRADE_STATE_DB_ENABLED=true`.
+5. Call `GET /api/trading/db-health` with the approval header.
+6. Keep `TRADING_ENABLED=false` while testing lifecycle persistence.
+7. Submit a dry-run order with a unique `idempotencyKey`.
+8. Query `GET /api/trading/trades?idempotencyKey=...` and confirm the final state is `DRY_RUN_COMPLETE`.
+
+If `DATABASE_URL` is absent, the current TradeLocker behavior remains available and database tracking is skipped. Once the database is configured, state persistence becomes part of the pre-execution safety path.
+
+## Important endpoints
+
+Read-only TradeLocker endpoints:
+
+- `GET /api/tradelocker/account`
+- `GET /api/tradelocker/account-readable`
+- `GET /api/tradelocker/config`
+- `GET /api/tradelocker/instruments`
+- `GET /api/tradelocker/instrument-details`
+- `GET /api/tradelocker/quote`
+- `GET /api/tradelocker/positions`
+- `GET /api/tradelocker/orders`
+- `GET /api/tradelocker/verify-trade`
+
+Risk / execution:
+
+- `POST /api/tradelocker/risk-preview`
+- `POST /api/tradelocker/order`
+- `POST /api/tradelocker/close-position`
+
+Durable state:
+
+- `GET /api/trading/db-health`
+- `GET /api/trading/trades`
+
+The durable-state endpoints require:
+
+```text
+x-trade-approval-key: YOUR_SECRET
+```
+
+## Dry-run order
+
+POST:
+
+```text
+/api/tradelocker/order
+```
+
+Example body:
+
 ```json
 {
+  "idempotencyKey": "usdchf-manual-test-001",
+  "source": "manual",
+  "symbol": "USDCHF",
   "side": "buy",
-  "qty": 0.01,
-  "routeId": 1,
-  "tradableInstrumentId": 123,
-  "stopLoss": 1.0800,
-  "takeProfit": 1.0900
+  "lots": 0.01,
+  "tradableInstrumentId": 7876,
+  "tradeRouteId": 540005,
+  "infoRouteId": 540002,
+  "stopLoss": 0.8100,
+  "takeProfit": 0.8140
 }
 ```
 
-While `TRADING_ENABLED=false`, the gateway validates the request but does not submit it.
+While `TRADING_ENABLED=false`, the request can run the risk checks and persist its state without submitting a live order.
 
-## 6. Enable execution
-After the connection and dry-run work:
-`TRADING_ENABLED=true`
+## Execution semantics
 
-The approval header is still required.
+Before live submission, the state record must successfully reach `ORDER_SUBMITTED` when durable state is enabled. This prevents an order from being sent when the system cannot persist its pre-submit state.
 
-## ChatGPT integration
-Expose this gateway through a ChatGPT custom app/action or MCP server. Keep the approval key and TradeLocker credentials server-side.
+After TradeLocker returns a successful response, a database write failure is reported as `trackingWarning` rather than turning the broker success into an apparent failed request. This avoids encouraging an unsafe duplicate retry.
 
-## Next safety additions
-- risk as % of equity
-- max daily loss
-- max concurrent positions
-- symbol allow-list
-- spread/slippage guard
-- duplicate-order protection
-- kill switch
-- audit log
+If the broker request itself errors after submission begins, the tracked state moves to `EXECUTION_UNKNOWN`. The next action should be broker verification/reconciliation, not blind resubmission.
 
-## Instrument details
+## Instrument defaults
 
-Defaults to the USDCHF IDs discovered for this account:
+The current USDCHF defaults discovered for this account are:
 
-`GET /api/tradelocker/instrument-details`
+```text
+tradableInstrumentId = 7876
+tradeRouteId         = 540005
+infoRouteId          = 540002
+```
 
-You can also query another instrument:
-
-`GET /api/tradelocker/instrument-details?tradableInstrumentId=7876&routeId=540005&symbol=USDCHF`
-
-This endpoint is read-only and is used to retrieve lot size, lot step, quoting currency, and other instrument settings before order sizing.
+These remain defaults only. Strategy selection and dynamic instrument discovery will be handled in the next phase.
