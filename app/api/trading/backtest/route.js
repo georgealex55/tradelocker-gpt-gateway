@@ -4,6 +4,12 @@ import {
   strategyFromSignals
 } from "../../../../lib/backtest";
 import {
+  createForexStrategyV1
+} from "../../../../lib/forexStrategyV1";
+import {
+  FOREX_STRATEGY_V1_CONFIG
+} from "../../../../lib/forexStrategyV1Config";
+import {
   fetchTradeLockerHistory,
   fetchTradeLockerInstrumentSizing
 } from "../../../../lib/marketData";
@@ -83,18 +89,53 @@ export async function POST(req) {
         : {})
     };
 
+    const strategyMode =
+      body.strategyMode === "forex-v1"
+        ? "forex-v1"
+        : "explicit-signals";
+
+    const strategy =
+      strategyMode === "forex-v1"
+        ? createForexStrategyV1({
+            symbol:
+              body.marketData?.symbol ||
+              body.symbol ||
+              "USDCHF",
+            config: FOREX_STRATEGY_V1_CONFIG
+          })
+        : strategyFromSignals(signals);
+
     const result = await runBacktest({
       candles,
-      strategy: strategyFromSignals(signals),
-      indicatorConfig: body.indicatorConfig || {},
-      higherTimeframe: body.higherTimeframe || null,
+      strategy:
+        strategyMode === "forex-v1"
+          ? context =>
+              strategy({
+                ...context,
+                spreadPips:
+                  backtestOptions.spreadPips ?? null
+              })
+          : strategy,
+      indicatorConfig:
+        strategyMode === "forex-v1"
+          ? FOREX_STRATEGY_V1_CONFIG.indicators.entry
+          : body.indicatorConfig || {},
+      higherTimeframe:
+        strategyMode === "forex-v1"
+          ? {
+              resolution:
+                FOREX_STRATEGY_V1_CONFIG.timeframes.regime,
+              indicatorConfig:
+                FOREX_STRATEGY_V1_CONFIG.indicators.regime
+            }
+          : body.higherTimeframe || null,
       options: backtestOptions
     });
 
     return NextResponse.json({
       ok: true,
       simulated: true,
-      strategyMode: "explicit-signals",
+      strategyMode,
       candleSource: marketData ? "tradelocker" : "request",
       brokerSizing,
       marketData: marketData
