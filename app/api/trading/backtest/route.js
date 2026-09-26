@@ -3,7 +3,10 @@ import {
   runBacktest,
   strategyFromSignals
 } from "../../../../lib/backtest";
-import { fetchTradeLockerHistory } from "../../../../lib/marketData";
+import {
+  fetchTradeLockerHistory,
+  fetchTradeLockerInstrumentSizing
+} from "../../../../lib/marketData";
 
 function approved(req) {
   const key = req.headers.get("x-trade-approval-key");
@@ -27,10 +30,28 @@ export async function POST(req) {
 
     let candles = Array.isArray(body.candles) ? body.candles : [];
     let marketData = null;
+    let brokerSizing = body.options?.sizing || null;
 
     if (candles.length < 2 && body.marketData) {
       marketData = await fetchTradeLockerHistory(body.marketData);
       candles = marketData.candles;
+    }
+
+    if (
+      !brokerSizing &&
+      body.marketData?.tradableInstrumentId &&
+      body.marketData?.tradeRouteId
+    ) {
+      brokerSizing = await fetchTradeLockerInstrumentSizing({
+        tradableInstrumentId:
+          body.marketData.tradableInstrumentId,
+        tradeRouteId: body.marketData.tradeRouteId,
+        accountCurrency:
+          body.marketData.accountCurrency || "USD",
+        maxLots:
+          body.marketData.maxLots ||
+          Number(process.env.MAX_LOTS_PER_TRADE || 0.01)
+      });
     }
 
     if (candles.length < 2) {
@@ -51,12 +72,23 @@ export async function POST(req) {
       );
     }
 
+    const backtestOptions = {
+      ...(body.options || {}),
+      ...(brokerSizing
+        ? {
+            sizing: brokerSizing,
+            pipSize:
+              body.options?.pipSize ?? brokerSizing.pipSize
+          }
+        : {})
+    };
+
     const result = await runBacktest({
       candles,
       strategy: strategyFromSignals(signals),
       indicatorConfig: body.indicatorConfig || {},
       higherTimeframe: body.higherTimeframe || null,
-      options: body.options || {}
+      options: backtestOptions
     });
 
     return NextResponse.json({
@@ -64,6 +96,7 @@ export async function POST(req) {
       simulated: true,
       strategyMode: "explicit-signals",
       candleSource: marketData ? "tradelocker" : "request",
+      brokerSizing,
       marketData: marketData
         ? {
             symbol: marketData.symbol,
