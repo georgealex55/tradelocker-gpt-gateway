@@ -389,6 +389,23 @@ export default async function Home() {
         </>
       )}
 
+      <div style={{ marginTop: 24 }}>
+        <a
+          href="/backtests"
+          style={{
+            display: "inline-block",
+            padding: "10px 14px",
+            borderRadius: 10,
+            background: "#1d4ed8",
+            color: "#fff",
+            textDecoration: "none",
+            fontWeight: 700
+          }}
+        >
+          Open Strategy V1 Backtest Report
+        </a>
+      </div>
+
       <section style={{
         marginTop: 30,
         padding: 18,
