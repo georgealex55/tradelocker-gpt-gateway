@@ -55,6 +55,7 @@ export async function POST(req) {
       candles,
       strategy: strategyFromSignals(signals),
       indicatorConfig: body.indicatorConfig || {},
+      higherTimeframe: body.higherTimeframe || null,
       options: body.options || {}
     });
 
