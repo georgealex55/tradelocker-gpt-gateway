@@ -122,26 +122,40 @@ No trade when the 1H regime is mixed.
 
 ### M15 setup
 
-For a long candidate:
+Baseline long rules are fixed before testing:
 
 1. M15 EMA20 > EMA50.
-2. Price pulls back toward the EMA20/EMA50 zone.
-3. RSI14 resets without becoming extremely stretched.
-4. MACD histogram turns back positive.
-5. A completed M15 candle closes above the previous candle high.
+2. During the previous 3 completed bars, price comes within 0.25 ATR of the
+   EMA20/EMA50 pullback zone without closing through the trend structure.
+3. RSI14 resets into the 40-55 range during the pullback, then finishes back
+   above 50.
+4. MACD histogram crosses from zero-or-negative to positive.
+5. The confirmation candle closes above the previous completed candle high.
 6. Entry is the next M15 candle open.
 
-Short setup is the mirror image.
+Baseline short rules are the mirror:
+- EMA20 < EMA50
+- 3-bar pullback within 0.25 ATR
+- RSI reset in the 45-60 range, then below 50
+- MACD histogram crosses from zero-or-positive to negative
+- confirmation closes below the previous candle low
+- entry next candle open
 
-The exact pullback-distance and RSI thresholds should be optimized only after
-baseline tests; they should not be guessed to maximize one historical sample.
+These are baseline parameters, not claims that they are optimal. Changes are
+allowed only after development/out-of-sample comparison.
+
+### Session
+
+Baseline entries are allowed from 07:00 through 16:00 UTC, Monday through
+Friday. V1 uses a fixed UTC window specifically to avoid DST/session bugs.
+Session logic can be refined after the baseline has been measured.
 
 ### Stop
 
 Use structure first:
 
 - recent 5-bar swing low/high
-- plus a small ATR buffer
+- plus a 0.20 ATR buffer
 
 Reject a setup when the resulting 0.01-lot loss exceeds the account risk cap.
 
