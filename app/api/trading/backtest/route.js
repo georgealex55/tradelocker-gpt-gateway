@@ -3,6 +3,7 @@ import {
   runBacktest,
   strategyFromSignals
 } from "../../../../lib/backtest";
+import { fetchTradeLockerHistory } from "../../../../lib/marketData";
 
 function approved(req) {
   const key = req.headers.get("x-trade-approval-key");
@@ -22,19 +23,30 @@ export async function POST(req) {
     }
 
     const body = await req.json();
-    const candles = Array.isArray(body.candles) ? body.candles : [];
     const signals = Array.isArray(body.signals) ? body.signals : [];
+
+    let candles = Array.isArray(body.candles) ? body.candles : [];
+    let marketData = null;
+
+    if (candles.length < 2 && body.marketData) {
+      marketData = await fetchTradeLockerHistory(body.marketData);
+      candles = marketData.candles;
+    }
 
     if (candles.length < 2) {
       return NextResponse.json(
-        { ok: false, error: "At least 2 candles are required" },
+        {
+          ok: false,
+          error:
+            "Provide at least 2 candles or a marketData request that returns at least 2 TradeLocker bars"
+        },
         { status: 400 }
       );
     }
 
-    if (candles.length > 50000) {
+    if (candles.length > 100000) {
       return NextResponse.json(
-        { ok: false, error: "Maximum 50000 candles per request" },
+        { ok: false, error: "Maximum 100000 candles per backtest" },
         { status: 400 }
       );
     }
@@ -50,6 +62,20 @@ export async function POST(req) {
       ok: true,
       simulated: true,
       strategyMode: "explicit-signals",
+      candleSource: marketData ? "tradelocker" : "request",
+      marketData: marketData
+        ? {
+            symbol: marketData.symbol,
+            tradableInstrumentId: marketData.tradableInstrumentId,
+            infoRouteId: marketData.infoRouteId,
+            resolution: marketData.resolution,
+            from: marketData.from,
+            to: marketData.to,
+            returnedBars: marketData.returnedBars,
+            truncated: marketData.truncated,
+            chunks: marketData.chunks
+          }
+        : null,
       result
     });
   } catch (error) {
