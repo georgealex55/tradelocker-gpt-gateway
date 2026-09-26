@@ -20,6 +20,14 @@ export default function Home() {
         <li><code>GET /api/tradelocker/verify-trade</code> — verify and reconcile order/position state</li>
         <li><code>GET /api/trading/trades</code> — protected durable trade-state query</li>
         <li><code>GET /api/trading/db-health</code> — protected database health check</li>
+        <li><code>GET /api/trading/forex-universe</code> — protected TradeLocker FOREX universe + INFO/TRADE routes</li>
+      </ul>
+
+      <h2>Market data / testing</h2>
+      <ul>
+        <li><code>POST /api/trading/history</code> — protected TradeLocker historical bars</li>
+        <li><code>POST /api/trading/indicators</code> — protected indicator calculations</li>
+        <li><code>POST /api/trading/backtest</code> — protected broker-constrained replay backtest</li>
       </ul>
 
       <h2>Risk / execution</h2>
