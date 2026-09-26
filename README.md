@@ -375,3 +375,96 @@ lib/backtest.js   existing risk engine
 
 This keeps indicator calculations and strategy rules shared between testing and live execution while leaving TradeLocker as the only live execution platform.
 
+## Forex historical data and broker-constrained backtests
+
+The branch now connects the backtester directly to TradeLocker historical bars.
+
+Protected endpoints:
+
+```text
+GET  /api/trading/forex-universe
+POST /api/trading/history
+POST /api/trading/backtest
+```
+
+`/api/trading/forex-universe` filters the connected TradeLocker account to
+`FOREX` instruments and returns each symbol's tradable instrument ID plus its
+INFO and TRADE route IDs.
+
+`/api/trading/history` calls TradeLocker's `/trade/history` endpoint and
+normalizes OHLCV bars. Supported resolutions are:
+
+```text
+1m 5m 15m 30m 1H 4H 1D 1W 1M
+```
+
+The adapter chunks large requests below TradeLocker's 20,000-bar per-request
+limit and de-duplicates timestamps.
+
+The backtest endpoint can now receive a `marketData` object instead of a
+pre-built candle array:
+
+```json
+{
+  "marketData": {
+    "symbol": "USDCHF",
+    "tradableInstrumentId": 7876,
+    "infoRouteId": 540002,
+    "tradeRouteId": 540005,
+    "resolution": "15m",
+    "from": "2026-01-01T00:00:00Z",
+    "to": "2026-09-01T00:00:00Z",
+    "accountCurrency": "USD",
+    "maxLots": 0.01
+  },
+  "higherTimeframe": {
+    "resolution": "1H"
+  },
+  "options": {
+    "startingBalance": 150,
+    "riskPercent": 1,
+    "spreadPips": 1.8,
+    "slippagePips": 0.2
+  }
+}
+```
+
+When `tradeRouteId` is provided, the backtester also loads the broker's
+`lotSize`, `minLot`, `lotStep`, currencies, and pip size. If the broker's
+minimum tradable lot would exceed the configured dollar risk, the simulator
+records the setup under `skippedSignals` instead of pretending a smaller
+position could be traded.
+
+Higher-timeframe filters are generated from completed lower-timeframe candles.
+For example, a 15-minute backtest with a 1-hour regime filter does not expose
+the current unfinished 1-hour candle to the strategy.
+
+## Forex Strategy V1 decision
+
+The selected first architecture is documented in:
+
+```text
+docs/FOREX_STRATEGY_V1.md
+```
+
+Configuration lives in:
+
+```text
+lib/forexStrategyV1Config.js
+```
+
+The initial design is a completed-1H trend filter with 15-minute
+pullback/continuation entries, one position at a time, fixed-risk stops and a
+1.8R target. It is designed for roughly $150 starting capital and enforces the
+broker's 0.01-lot floor.
+
+Event-risk helpers live in:
+
+```text
+lib/eventRisk.js
+```
+
+They support scheduled no-trade windows and abnormal spread/ATR/candle-range
+shutdown rules. Strategy direction is never based on predicting a political
+event.
+
