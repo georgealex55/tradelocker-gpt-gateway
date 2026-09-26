@@ -5,6 +5,10 @@ import {
   decodeTradeTable,
   matchRows
 } from "../../../../lib/tables";
+import {
+  syncTradeFromVerification,
+  publicTradeView
+} from "../../../../lib/tradeState";
 
 export async function GET(req) {
   try {
@@ -61,12 +65,14 @@ export async function GET(req) {
     const mappedPositionIds = new Set(
       historyMatches
         .map(row => row.positionId)
-        .filter(v => v != null)
-        .map(v => String(v))
+        .filter(value => value != null)
+        .map(value => String(value))
     );
+
     if (positionId) mappedPositionIds.add(String(positionId));
 
     let positionMatches = matchRows(positions, query);
+
     if (mappedPositionIds.size) {
       positionMatches = positions.filter(row =>
         mappedPositionIds.has(String(row.positionId ?? row.id ?? ""))
@@ -77,10 +83,28 @@ export async function GET(req) {
     const openPosition = positionMatches[0] || null;
     const pendingOrder = pendingMatches[0] || null;
 
+    let trackedTrade = null;
+    let trackingWarning = null;
+
+    try {
+      trackedTrade = await syncTradeFromVerification({
+        orderId,
+        positionId,
+        strategyId,
+        pendingOrder,
+        finalOrder,
+        openPosition
+      });
+    } catch (error) {
+      trackingWarning = error.message;
+    }
+
     return NextResponse.json({
       ok: true,
       account,
       query,
+      trackedTrade: publicTradeView(trackedTrade),
+      trackingWarning,
       verified: {
         finalOrderFound: Boolean(finalOrder),
         pendingOrderFound: Boolean(pendingOrder),
@@ -110,9 +134,9 @@ export async function GET(req) {
         positions: positionMatches
       }
     });
-  } catch (e) {
+  } catch (error) {
     return NextResponse.json(
-      { ok: false, error: e.message },
+      { ok: false, error: error.message },
       { status: 500 }
     );
   }
