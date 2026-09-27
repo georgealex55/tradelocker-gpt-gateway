@@ -23,12 +23,15 @@ function iso(ms) {
   return ms == null ? null : new Date(ms).toISOString();
 }
 
-export async function GET() {
+export async function GET(req) {
   try {
     const safety = safeRuntime();
     const instruments = await listForexInstruments();
+    const params = new URL(req.url).searchParams;
+    const requestedDays = Number(params.get("days") || 7);
+    const days = Number.isFinite(requestedDays) ? Math.min(30, Math.max(1, Math.floor(requestedDays))) : 7;
     const to = Date.now();
-    const from = to - 7 * 24 * 60 * 60 * 1000;
+    const from = to - days * 24 * 60 * 60 * 1000;
     const pairs = {};
     const timesBySymbol = {};
 
@@ -45,7 +48,7 @@ export async function GET() {
         resolution: "15m",
         from,
         to,
-        maxBars: 1000
+        maxBars: 3000
       });
 
       timesBySymbol[symbol] = history.candles.map(candle => candle.time);
@@ -78,7 +81,7 @@ export async function GET() {
       readOnly: true,
       purpose: "portfolio-144-history-smoke-test",
       safety,
-      requested: { resolution: "15m", from, to, fromIso: iso(from), toIso: iso(to) },
+      requested: { resolution: "15m", days, from, to, fromIso: iso(from), toIso: iso(to) },
       unionBars: union.length,
       pairs,
       alignment
