@@ -1,6 +1,9 @@
 import {
   scanPreferredForexSignals
 } from "../lib/forexSignals";
+import {
+  FOREX_STRATEGY_V1_CONFIG
+} from "../lib/forexStrategyV1Config";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -317,7 +320,7 @@ export default async function Home() {
           <div style={{ color: "#9ca3af", fontSize: 12 }}>
             Baseline capital
           </div>
-          <strong>$150</strong>
+          <strong>{money(FOREX_STRATEGY_V1_CONFIG.capital.startingBalanceUsd)}</strong>
         </div>
         <div style={{
           padding: 14,
