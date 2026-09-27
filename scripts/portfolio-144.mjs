@@ -3,7 +3,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { SYMBOLS, combinations, ENGINE_VERSION, COSTS, REQUIRED_EVENTS } from '../lib/research/policies.mjs';
 import { validateDataset, preparePair, fitSchedule, evaluateCombo, fingerprint } from '../lib/research/prepare.mjs';
-import { historicalMacroBlackouts } from '../lib/historicalMacroEvents.js';
+import { historicalMacroBlackouts, historicalMacroCalendar } from '../lib/historicalMacroEvents.js';
 
 const args = process.argv.slice(2);
 const flag = (name, fallback) => { const i = args.indexOf(`--${name}`); return i < 0 ? fallback : args[i + 1]; };
@@ -65,9 +65,9 @@ async function collect() {
     console.log(JSON.stringify({ stage: 'collected', symbol, bars: bars.size }));
   }
   const calendarFile = flag('calendar');
-  dataset.calendar = calendarFile ? JSON.parse(await fs.readFile(calendarFile, 'utf8')) : null;
+  dataset.calendar = calendarFile ? JSON.parse(await fs.readFile(calendarFile, 'utf8')) : historicalMacroCalendar();
   await writeJson('dataset.json', dataset);
-  console.log('Dataset saved. Validation and verified calendar coverage are required before running.');
+  console.log('Dataset saved with official-source macro calendar; validation is required before running.');
 }
 async function run() {
   const input = JSON.parse(await fs.readFile(flag('input', path.join(directory, 'dataset.json')), 'utf8'));
