@@ -507,3 +507,5 @@ does not enable live trading; `TRADING_ENABLED=false` and the kill switch
 remain authoritative.
 
 <!-- preview-env-refresh: 2026-09-27 -->
+
+<!-- neon-preview-db-refresh: 2026-09-26T19:57-05:00 -->
