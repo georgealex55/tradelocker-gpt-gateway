@@ -25,12 +25,8 @@ was independently read back. Collection resolves IDs again, never uses this tabl
 
 ### Remaining access/data blockers
 
-- `/api/trading/history` requires the existing `TRADE_APPROVAL_KEY`. It is configured
-  in the gateway but was not available in the execution workspace. No authentication
-  bypass or new unauthenticated data endpoint was introduced.
-- The Neon connector is unscoped and requires a project ID. No project ID was available
-  from the repository or connector discovery. The migration has not been applied or
-  tested against Neon. `tradelocker_gateway` is a database name, not a project ID.
+- Preview automation authorization is enabled and the read-only TradeLocker history smoke test now succeeds server-side for USDCHF, EURUSD and GBPUSD with execution disabled and the kill switch enabled.
+- Neon project `morning-heart-59905376` and the `tradelocker_gateway` research tables have been verified; migration 002 tables already exist on the default branch database.
 - The inherited macro calendar lacks US GDP, ECB and BOE releases. Its existing dates
   and revised schedules also need source verification over the actual common data window.
   The runner refuses incomplete coverage. Coverage declarations are reviewer attestations,
@@ -117,9 +113,8 @@ local checkpoint, manifest and dashboard. Local data/output is git-ignored.
   COOLDOWN retains those windows and additionally requires the entire three-bar
   pullback/reset lookback to start after the last applicable blackout ends. No setup
   recycling from before the event. Fixed election blackout is retained.
-- Reject duplicated, unordered, malformed or unfinished candles, truncated history,
-  mismatched three-pair timestamps and incomplete H1 buckets. No forward-filling.
-  Require 250 full H1 warmup bars and at least 180 common calendar days afterward.
+- Reject duplicated, unordered, malformed or unfinished candles and truncated history. No forward-filling.
+  **Protocol amendment recorded 2026-09-27 before any historical portfolio outcomes were observed:** if any pair is missing any M15 candle within an H1 hour, drop that entire H1 hour from all three pairs, record it in `droppedIncompleteHours`, and evaluate only the remaining identical complete-H1 timeline. This was added after the read-only 30-day data-quality probe found one isolated USDCHF gap at 2026-09-24 21:15 UTC while EURUSD/GBPUSD were present. Require 250 full H1 warmup bars and at least 180 common calendar days afterward.
   Calendar gaps common to all pairs are reported but cannot automatically be distinguished
   from exchange closures; investigate them before interpreting results.
 
