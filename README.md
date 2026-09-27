@@ -505,3 +505,5 @@ trade-state migration has been applied. Preview deployments should provide
 `DATABASE_URL` and keep `TRADE_STATE_DB_ENABLED=true`. Database activation
 does not enable live trading; `TRADING_ENABLED=false` and the kill switch
 remain authoritative.
+
+<!-- preview-env-refresh: 2026-09-27 -->
