@@ -3,6 +3,7 @@ import { listForexInstruments } from "../../../../lib/forexUniverse";
 import { fetchTradeLockerHistory, fetchTradeLockerInstrumentSizing } from "../../../../lib/marketData";
 import { killSwitchEnabled } from "../../../../lib/tradeGuard";
 import { historicalMacroCalendar } from "../../../../lib/historicalMacroEvents";
+import { tradeStateDbConfigured, tradeStateDbEnabled } from "../../../../lib/db";
 import {
   ensureHistoryCollection,
   loadHistoryCollection,
@@ -34,13 +35,17 @@ function safety() {
 
 export async function GET(req) {
   const action = new URL(req.url).searchParams.get("action") || "status";
+  let stage = "start";
   try {
+    stage = "safety";
     const safe = safety();
     if (action === "status") {
-      return json({ ok: true, readOnlyTrading: true, safety: safe, ...(await loadHistoryCollection()) });
+      stage = "status:load";
+      return json({ ok: true, readOnlyTrading: true, safety: safe, db: { configured: tradeStateDbConfigured(), enabled: tradeStateDbEnabled() }, ...(await loadHistoryCollection()) });
     }
     if (action !== "step") return json({ ok: false, error: "INVALID_ACTION" }, 400);
 
+    stage = "collection:ensure";
     let collection = await ensureHistoryCollection({
       requestedFrom: REQUESTED_FROM,
       requestedTo: REQUESTED_TO,
@@ -149,6 +154,6 @@ export async function GET(req) {
       message.startsWith("MISSING_INSTRUMENT_")
         ? message
         : "RESEARCH_COLLECTION_STEP_FAILED";
-    return json({ ok: false, readOnlyTrading: true, error: safeError }, 500);
+    return json({ ok: false, readOnlyTrading: true, stage, db: { configured: tradeStateDbConfigured(), enabled: tradeStateDbEnabled() }, error: safeError }, 500);
   }
 }
