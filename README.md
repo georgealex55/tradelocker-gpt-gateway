@@ -20,7 +20,7 @@ Broker verification / reconciliation
 Neon/Postgres event history
 ```
 
-The strategy layer is intentionally not implemented yet. The gateway currently accepts a structured order request and decides whether that request is safe to execute.
+Strategy V1 is implemented as a read-only signal and backtest layer. It is currently restricted to USDCHF. The existing risk engine, state machine, kill switch, and TradeLocker execution path remain authoritative, and live autonomous execution is still disabled.
 
 ## Existing execution protection
 
@@ -468,3 +468,31 @@ They support scheduled no-trade windows and abnormal spread/ATR/candle-range
 shutdown rules. Strategy direction is never based on predicting a political
 event.
 
+
+
+## Current USDCHF-only research scope
+
+Strategy V1 is currently restricted to:
+
+```text
+USDCHF
+```
+
+The live/default research configuration remains:
+
+```text
+Starting capital: $150
+Default risk ceiling: 1%
+Maximum size: 0.01 lot
+Entry timeframe: M15
+Regime timeframe: H1
+Target: 1.8R
+```
+
+The robustness research page at `/backtests` evaluates the unchanged Strategy
+V1 rules from 2024-01-01 through 2026-09-25 with warm-up data beginning
+2023-12-15. It compares 1%, 1.5%, and 2% risk ceilings strictly as research
+scenarios. The live/default risk setting remains 1%.
+
+The research report includes long/short performance, month, UTC entry hour,
+stop-distance statistics, broker minimum-lot skips, and risk-guard skips.
