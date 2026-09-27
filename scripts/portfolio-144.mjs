@@ -52,7 +52,7 @@ async function collect() {
     const metadata = { ...instrument, lotSize: Number(m.lotSize), minLot: Number(m.minLot), maxLot: Number(m.maxLot), lotStep: Number(m.lotStep), tickSize,
       // All three requested majors quote to 4-decimal pips; tick precision is distinct.
       pipSize: 0.0001, pipConvention: 'USDCHF/EURUSD/GBPUSD standard pip 0.0001; tickSize independently broker verified',
-      baseCurrency: m.baseCurrency, quotingCurrency: m.quotingCurrency, verifiedAt: dataset.collectedAt, source: 'TradeLocker instrument-details via authenticated gateway' };
+      baseCurrency: m.baseCurrency, quotingCurrency: m.quotingCurrency, barSource: String(m.barSource || instrument.barSource || '').toUpperCase(), verifiedAt: dataset.collectedAt, source: 'TradeLocker instrument-details + instrument list via authenticated gateway' };
     const bars = new Map();
     for (let cursor = warmup; cursor < Date.parse(to); cursor += 14 * 86400000) {
       const end = Math.min(cursor + 14 * 86400000 - 1, Date.parse(to) - 1);
