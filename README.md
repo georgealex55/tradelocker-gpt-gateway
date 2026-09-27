@@ -496,3 +496,12 @@ scenarios. The live/default risk setting remains 1%.
 
 The research report includes long/short performance, month, UTC entry hour,
 stop-distance statistics, broker minimum-lot skips, and risk-guard skips.
+
+
+## Neon durable persistence status
+
+The dedicated Neon database `tradelocker_gateway` is provisioned and the
+trade-state migration has been applied. Preview deployments should provide
+`DATABASE_URL` and keep `TRADE_STATE_DB_ENABLED=true`. Database activation
+does not enable live trading; `TRADING_ENABLED=false` and the kill switch
+remain authoritative.
