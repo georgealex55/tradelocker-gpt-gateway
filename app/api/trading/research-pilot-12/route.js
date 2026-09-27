@@ -22,9 +22,12 @@ function safety() {
 }
 
 export async function GET() {
+  let stage = "start";
   try {
+    stage = "safety";
     const safe = safety();
     const collectedAt = new Date().toISOString();
+    stage = "instruments";
     const instruments = await listForexInstruments();
     const dataset = {
       source: "tradelocker",
@@ -37,6 +40,7 @@ export async function GET() {
     };
 
     for (const symbol of SYMBOLS) {
+      stage = `collect:${symbol}`;
       const instrument = instruments.find(i => i.symbol === symbol);
       if (!instrument?.tradableInstrumentId || !instrument?.infoRouteId || !instrument?.tradeRouteId) {
         throw new Error(`MISSING_INSTRUMENT_${symbol}`);
@@ -81,9 +85,13 @@ export async function GET() {
       };
     }
 
+    stage = "validate";
     const prepared = validateDataset(dataset);
+    stage = "prepare";
     for (const symbol of SYMBOLS) prepared.pairs[symbol] = preparePair(prepared.pairs[symbol]);
+    stage = "fit";
     const schedule = fitSchedule(prepared);
+    stage = "evaluate";
     const results = combinations().slice(0, 12).map(combo => evaluateCombo(prepared, combo, schedule));
 
     return NextResponse.json({
@@ -118,6 +126,7 @@ export async function GET() {
     return NextResponse.json({
       ok: false,
       readOnly: true,
+      stage,
       error: String(error?.message || "").startsWith("CALENDAR_") ? error.message : String(error?.message || "").startsWith("RESEARCH_") ? error.message : "RESEARCH_PILOT_FAILED"
     }, { status: 500, headers: { "Cache-Control": "no-store" } });
   }
