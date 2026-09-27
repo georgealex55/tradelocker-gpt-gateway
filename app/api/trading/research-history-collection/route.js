@@ -62,12 +62,12 @@ export async function GET(req) {
     let cursor = Number(collection.next_from || WARMUP_FROM);
     let processed = 0;
     const requestedEnd = REQUESTED_TO - 1;
+    const instruments = await listForexInstruments();
 
     while (processed < MAX_CHUNKS_PER_STEP && symbol) {
       const symbolIndex = SYMBOLS.indexOf(symbol);
       if (symbolIndex < 0) throw new Error("INVALID_RESEARCH_SYMBOL");
 
-      const instruments = await listForexInstruments();
       const instrument = instruments.find(i => i.symbol === symbol);
       if (!instrument?.tradableInstrumentId || !instrument?.infoRouteId || !instrument?.tradeRouteId) {
         throw new Error(`MISSING_INSTRUMENT_${symbol}`);
@@ -100,15 +100,44 @@ export async function GET(req) {
       }
 
       const end = Math.min(cursor + CHUNK_MS - 1, requestedEnd);
-      const history = await fetchTradeLockerHistory({
-        symbol,
-        tradableInstrumentId: instrument.tradableInstrumentId,
-        infoRouteId: instrument.infoRouteId,
-        resolution: "15m",
-        from: cursor,
-        to: end,
-        maxBars: 2000
-      });
+      let history;
+      try {
+        history = await fetchTradeLockerHistory({
+          symbol,
+          tradableInstrumentId: instrument.tradableInstrumentId,
+          infoRouteId: instrument.infoRouteId,
+          resolution: "15m",
+          from: cursor,
+          to: end,
+          maxBars: 2000
+        });
+      } catch {
+        const midpoint = Math.min(cursor + 7 * 86400000 - 1, end);
+        const left = await fetchTradeLockerHistory({
+          symbol,
+          tradableInstrumentId: instrument.tradableInstrumentId,
+          infoRouteId: instrument.infoRouteId,
+          resolution: "15m",
+          from: cursor,
+          to: midpoint,
+          maxBars: 1000
+        });
+        const right = midpoint < end ? await fetchTradeLockerHistory({
+          symbol,
+          tradableInstrumentId: instrument.tradableInstrumentId,
+          infoRouteId: instrument.infoRouteId,
+          resolution: "15m",
+          from: midpoint + 1,
+          to: end,
+          maxBars: 1000
+        }) : { candles: [], chunks: [], truncated: false };
+        const merged = new Map([...left.candles, ...right.candles].map(c => [c.time, c]));
+        history = {
+          candles: [...merged.values()].sort((a,b) => a.time-b.time),
+          chunks: [...left.chunks, ...right.chunks],
+          truncated: left.truncated || right.truncated
+        };
+      }
       if (history.truncated || history.chunks.some(c => !["ok","no_data","no-data"].includes(c.status))) {
         throw new Error(`HISTORY_INCOMPLETE_${symbol}`);
       }
