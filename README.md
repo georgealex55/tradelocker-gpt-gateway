@@ -227,7 +227,7 @@ tradeRouteId         = 540005
 infoRouteId          = 540002
 ```
 
-These remain defaults only. Strategy selection and dynamic instrument discovery will be handled in the next phase.
+These remain defaults only. Strategy V1 now uses dynamic TradeLocker instrument discovery and is currently restricted to USDCHF.
 
 ## Indicator engine
 
@@ -353,7 +353,7 @@ For infrastructure tests, the endpoint accepts explicit signals instead of embed
 }
 ```
 
-Those explicit signals are only for validating the replay engine. Strategy V1 will later replace them with a strategy function that evaluates the same indicator snapshots.
+Those explicit signals are only for validating the replay engine. Strategy V1 now uses a strategy function that evaluates the same indicator snapshots.
 
 ### Intended Strategy V1 flow
 
@@ -362,7 +362,7 @@ TradeLocker historical/live candles
         ↓
 lib/indicators.js
         ↓
-Strategy V1 (next phase)
+Strategy V1
         ↓
       ┌───────────────┐
       ↓               ↓
