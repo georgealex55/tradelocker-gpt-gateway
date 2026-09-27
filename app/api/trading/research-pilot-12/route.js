@@ -52,18 +52,26 @@ export async function GET() {
         maxLots: 0.01
       });
       stage = `history:${symbol}`;
-      const history = await fetchTradeLockerHistory({
-        symbol,
-        tradableInstrumentId: instrument.tradableInstrumentId,
-        infoRouteId: instrument.infoRouteId,
-        resolution: "15m",
-        from: WARMUP_FROM,
-        to: Date.parse(REQUESTED_TO) - 1,
-        maxBars: 100000
-      });
-      stage = `history-check:${symbol}`;
-      if (history.truncated || history.chunks.some(c => !["ok","no_data","no-data"].includes(c.status))) {
-        throw new Error(`HISTORY_INCOMPLETE_${symbol}`);
+      const bars = new Map();
+      const chunkDiagnostics = [];
+      const requestedEnd = Date.parse(REQUESTED_TO) - 1;
+      for (let cursor = WARMUP_FROM; cursor <= requestedEnd; cursor += 14 * 86400000) {
+        const end = Math.min(cursor + 14 * 86400000 - 1, requestedEnd);
+        stage = `history:${symbol}:${new Date(cursor).toISOString().slice(0,10)}`;
+        const chunk = await fetchTradeLockerHistory({
+          symbol,
+          tradableInstrumentId: instrument.tradableInstrumentId,
+          infoRouteId: instrument.infoRouteId,
+          resolution: "15m",
+          from: cursor,
+          to: end,
+          maxBars: 2000
+        });
+        if (chunk.truncated || chunk.chunks.some(c => !["ok","no_data","no-data"].includes(c.status))) {
+          throw new Error(`HISTORY_INCOMPLETE_${symbol}`);
+        }
+        for (const candle of chunk.candles) bars.set(candle.time, candle);
+        chunkDiagnostics.push({ from: cursor, to: end, bars: chunk.returnedBars });
       }
       stage = `dataset:${symbol}`;
       dataset.pairs[symbol] = {
@@ -84,7 +92,7 @@ export async function GET() {
           verifiedAt: collectedAt,
           source: "TradeLocker instrument list + instrument details + history"
         },
-        candles: history.candles,
+        candles: [...bars.values()].sort((a, b) => a.time - b.time),
         truncated: false
       };
     }
