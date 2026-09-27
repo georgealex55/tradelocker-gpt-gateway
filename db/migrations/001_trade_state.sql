@@ -79,3 +79,42 @@ create table if not exists trading_system_state (
   value_json jsonb not null,
   updated_at timestamptz not null default now()
 );
+
+
+-- One row per completed-candle Strategy V1 observation.
+-- Re-scanning the same strategy/symbol/candle updates the row rather than
+-- creating duplicate history.
+create table if not exists signal_observations (
+  id bigserial primary key,
+  strategy text not null,
+  strategy_version text not null,
+  symbol text not null,
+  candle_time bigint not null,
+  status text not null,
+  action text not null,
+  side text,
+  reference_entry numeric(24, 12),
+  stop_loss numeric(24, 12),
+  take_profit numeric(24, 12),
+  target_r numeric(20, 8),
+  spread_pips numeric(20, 8),
+  regime_bias text,
+  risk_budget numeric(24, 8),
+  min_lot_risk numeric(24, 8),
+  min_lot_risk_percent numeric(20, 8),
+  tradeable_within_budget boolean,
+  execution_status text,
+  execution_reason text,
+  checks_json jsonb,
+  blocks_json jsonb,
+  signal_json jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (strategy, strategy_version, symbol, candle_time)
+);
+
+create index if not exists signal_observations_symbol_time_idx
+  on signal_observations (symbol, candle_time desc);
+
+create index if not exists signal_observations_status_time_idx
+  on signal_observations (status, candle_time desc);
