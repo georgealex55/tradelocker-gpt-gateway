@@ -37,6 +37,75 @@ function Metric({ label, value }) {
   );
 }
 
+function ProfileComparison({ profiles }) {
+  return (
+    <div style={{
+      background: "#0f172a",
+      border: "1px solid #374151",
+      borderRadius: 14,
+      padding: 16,
+      marginBottom: 20,
+      overflowX: "auto"
+    }}>
+      <h2 style={{ marginTop: 0 }}>Capital / risk comparison</h2>
+      <p style={{ color: "#9ca3af", fontSize: 13 }}>
+        Targets are recalculated from the actual next-M15-open entry so
+        gross target distance equals the configured 1.8R before costs.
+      </p>
+      <table style={{
+        width: "100%",
+        borderCollapse: "collapse",
+        fontSize: 12
+      }}>
+        <thead>
+          <tr style={{ color: "#9ca3af", textAlign: "left" }}>
+            <th>Profile</th>
+            <th>Start</th>
+            <th>Risk</th>
+            <th>Budget</th>
+            <th>Trades</th>
+            <th>Min-lot skips</th>
+            <th>Win%</th>
+            <th>PF</th>
+            <th>Exp.</th>
+            <th>Total R</th>
+            <th>Return</th>
+            <th>Max DD</th>
+            <th>Long R</th>
+            <th>Short R</th>
+          </tr>
+        </thead>
+        <tbody>
+          {(profiles || []).map(profile => {
+            const s = profile.baseline?.summary || {};
+            return (
+              <tr
+                key={profile.id}
+                style={{ borderTop: "1px solid #1f2937" }}
+              >
+                <td><strong>{profile.label}</strong></td>
+                <td>{money(profile.startingBalance)}</td>
+                <td>{pct(profile.riskPercent)}</td>
+                <td>{money(profile.riskBudgetAtStart)}</td>
+                <td>{s.trades ?? "—"}</td>
+                <td>{s.minLotRiskSkips ?? "—"}</td>
+                <td>{pct(s.winRate)}</td>
+                <td>{n(s.profitFactor)}</td>
+                <td>{n(s.expectancyR)}R</td>
+                <td>{n(s.totalR)}R</td>
+                <td>{pct(s.returnPercent)}</td>
+                <td>{pct(s.maxDrawdownPercent)}</td>
+                <td>{n(s.long?.totalR)}R</td>
+                <td>{n(s.short?.totalR)}R</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function BreakdownTable({ title, rows }) {
   return (
     <div style={{
@@ -273,6 +342,8 @@ export default async function BacktestsPage() {
             />
           </section>
 
+          <ProfileComparison profiles={report?.profiles} />
+
           <section style={{
             padding: 18,
             borderRadius: 14,
@@ -281,7 +352,7 @@ export default async function BacktestsPage() {
             marginBottom: 20
           }}>
             <h2 style={{ marginTop: 0 }}>
-              Macro-filter impact
+              Macro-filter impact · configured profile
             </h2>
 
             <div style={{
