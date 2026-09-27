@@ -74,18 +74,13 @@ Weaknesses:
 
 Start with Architecture A: completed H1 trend + M15 pullback/continuation.
 
-### Initial universe
+### Current universe
 
-Use only TradeLocker instruments whose type is FOREX. Begin testing with USD
-majors available on the connected account:
+Strategy V1 is restricted to **USDCHF only** based on the initial 2026
+cross-pair validation. EURUSD, GBPUSD, and USDJPY are not active Strategy V1
+instruments.
 
-- EURUSD
-- GBPUSD
-- USDJPY
-- USDCHF
-
-Only one position may be open at a time. This also prevents the small account
-from accidentally stacking correlated USD exposure.
+Only one position may be open at a time.
 
 ### Capital and sizing
 
@@ -196,3 +191,17 @@ before reopening entries.
 6. Include conservative spread and slippage.
 7. Split results into development and out-of-sample periods.
 8. Forward-test on demo before any live enablement.
+
+
+## Extended robustness phase
+
+The current research phase keeps the entry rules unchanged and evaluates
+USDCHF from 2024-01-01 through 2026-09-25, with warm-up data beginning
+2023-12-15.
+
+Research scenarios compare 1%, 1.5%, and 2% risk ceilings only to measure the
+effect of TradeLocker's 0.01-lot minimum on trade availability and performance.
+The live/default risk setting remains 1%.
+
+No conclusion from the higher-risk scenarios automatically changes the live
+risk configuration.
