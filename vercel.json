@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/trading/m15-scan",
+      "schedule": "2,17,32,47 * * * *"
+    }
+  ]
+}
