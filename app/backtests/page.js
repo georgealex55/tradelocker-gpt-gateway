@@ -215,14 +215,14 @@ export default async function BacktestsPage() {
         ← Signal Console
       </a>
 
-      <h1>USDCHF V1.1 Macro Validation</h1>
+      <h1>USDCHF Capital + Macro Validation</h1>
 
       <p style={{
         color: "#9ca3af",
         lineHeight: 1.6,
         maxWidth: 900
       }}>
-        The 1% USDCHF baseline is locked. This rerun keeps every
+        The USDCHF strategy keeps the 1% risk ceiling while testing the configured capital profile. This rerun keeps every
         strategy, sizing, spread, slippage, stop and target rule
         unchanged and adds only historical no-entry windows around
         official U.S. CPI, U.S. Employment Situation, FOMC policy
@@ -256,7 +256,7 @@ export default async function BacktestsPage() {
               label="Bars downloaded"
               value={report?.barsDownloaded ?? "—"}
             />
-            <Metric label="Starting capital" value="$150" />
+            <Metric label="Starting capital" value={money(report?.assumptions?.startingBalance)} />
             <Metric label="Locked risk" value="1%" />
             <Metric label="Target" value="1.8R" />
             <Metric
