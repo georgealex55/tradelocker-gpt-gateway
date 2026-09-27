@@ -49,6 +49,10 @@ secure process environment as `TRADE_APPROVAL_KEY`; no Vercel variable edits are
 3. Deploy this research branch to a Vercel preview. Its existing gateway approval key,
    database settings and broker read credentials must be available. Confirm the preview
    runtime also reports execution disabled and kill switch on. Do not enable execution.
+   If Vercel protects the preview, supply its existing authorized automation bypass
+   credential to the runner process as `VERCEL_AUTOMATION_BYPASS_SECRET`. This is a
+   separate Vercel access check; the gateway approval key is still required. Do not
+   disable preview protection or change production variables to work around it.
 4. `npm run research:portfolio -- calendar-template` creates an explicitly incomplete
    starting file under ignored `research-output/`. Fill it from verified official release
    archives; retain actual revised release times and timezone/DST conversions. For each

@@ -15,7 +15,9 @@ const origin = new URL(gateway);
 if (origin.protocol !== 'https:' && origin.hostname !== 'localhost') throw new Error('HTTPS gateway required');
 async function request(route, body) {
   if (!key) throw new Error('TRADE_APPROVAL_KEY must be available in this process environment');
-  const response = await fetch(new URL(route, origin), { method: body ? 'POST' : 'GET', redirect: 'error', signal: AbortSignal.timeout(120000), headers: { 'x-trade-approval-key': key, ...(body ? { 'content-type': 'application/json' } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
+  const response = await fetch(new URL(route, origin), { method: body ? 'POST' : 'GET', redirect: 'error', signal: AbortSignal.timeout(120000), headers: { 'x-trade-approval-key': key,
+    ...(process.env.VERCEL_AUTOMATION_BYPASS_SECRET ? { 'x-vercel-protection-bypass': process.env.VERCEL_AUTOMATION_BYPASS_SECRET } : {}),
+    ...(body ? { 'content-type': 'application/json' } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
   if (!response.ok) throw new Error(`GATEWAY_HTTP_${response.status}`);
   const data = await response.json();
   if (data.ok === false || data.error) throw new Error('GATEWAY_REQUEST_FAILED');
