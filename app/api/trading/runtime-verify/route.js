@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import {
   dbHealth,
   listRecentSignalObservations
-} from "../../../../../lib/db";
+} from "../../../../lib/db";
 import {
   scanPreferredForexSignals
-} from "../../../../../lib/forexSignals";
+} from "../../../../lib/forexSignals";
 
 export const dynamic = "force-dynamic";
 
