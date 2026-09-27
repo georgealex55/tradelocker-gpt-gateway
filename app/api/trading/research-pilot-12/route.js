@@ -45,11 +45,13 @@ export async function GET() {
       if (!instrument?.tradableInstrumentId || !instrument?.infoRouteId || !instrument?.tradeRouteId) {
         throw new Error(`MISSING_INSTRUMENT_${symbol}`);
       }
+      stage = `sizing:${symbol}`;
       const sizing = await fetchTradeLockerInstrumentSizing({
         tradableInstrumentId: instrument.tradableInstrumentId,
         tradeRouteId: instrument.tradeRouteId,
         maxLots: 0.01
       });
+      stage = `history:${symbol}`;
       const history = await fetchTradeLockerHistory({
         symbol,
         tradableInstrumentId: instrument.tradableInstrumentId,
@@ -59,9 +61,11 @@ export async function GET() {
         to: Date.parse(REQUESTED_TO) - 1,
         maxBars: 100000
       });
+      stage = `history-check:${symbol}`;
       if (history.truncated || history.chunks.some(c => !["ok","no_data","no-data"].includes(c.status))) {
         throw new Error(`HISTORY_INCOMPLETE_${symbol}`);
       }
+      stage = `dataset:${symbol}`;
       dataset.pairs[symbol] = {
         metadata: {
           symbol,
