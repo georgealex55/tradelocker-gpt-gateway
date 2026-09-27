@@ -19,6 +19,10 @@ function safeRuntime() {
   return { tradingEnabled, killSwitch };
 }
 
+function iso(ms) {
+  return ms == null ? null : new Date(ms).toISOString();
+}
+
 export async function GET() {
   try {
     const safety = safeRuntime();
@@ -26,6 +30,7 @@ export async function GET() {
     const to = Date.now();
     const from = to - 7 * 24 * 60 * 60 * 1000;
     const pairs = {};
+    const timesBySymbol = {};
 
     for (const symbol of SYMBOLS) {
       const instrument = instruments.find(i => i.symbol === symbol);
@@ -43,14 +48,28 @@ export async function GET() {
         maxBars: 1000
       });
 
+      timesBySymbol[symbol] = history.candles.map(candle => candle.time);
       pairs[symbol] = {
         tradableInstrumentId: instrument.tradableInstrumentId,
         infoRouteId: instrument.infoRouteId,
         returnedBars: history.returnedBars,
         truncated: history.truncated,
         firstBar: history.candles[0]?.time ?? null,
+        firstBarIso: iso(history.candles[0]?.time),
         lastBar: history.candles.at(-1)?.time ?? null,
+        lastBarIso: iso(history.candles.at(-1)?.time),
         chunks: history.chunks
+      };
+    }
+
+    const union = [...new Set(SYMBOLS.flatMap(symbol => timesBySymbol[symbol]))].sort((a, b) => a - b);
+    const alignment = {};
+    for (const symbol of SYMBOLS) {
+      const own = new Set(timesBySymbol[symbol]);
+      const missing = union.filter(time => !own.has(time));
+      alignment[symbol] = {
+        missingCount: missing.length,
+        missingTimestamps: missing.slice(0, 20).map(time => ({ time, iso: iso(time) }))
       };
     }
 
@@ -59,8 +78,10 @@ export async function GET() {
       readOnly: true,
       purpose: "portfolio-144-history-smoke-test",
       safety,
-      requested: { resolution: "15m", from, to },
-      pairs
+      requested: { resolution: "15m", from, to, fromIso: iso(from), toIso: iso(to) },
+      unionBars: union.length,
+      pairs,
+      alignment
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     const safe = [
