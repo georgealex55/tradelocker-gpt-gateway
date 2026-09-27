@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test:research": "node --loader ./scripts/research-loader.mjs --test tests/portfolio-144.test.mjs",
+    "research:portfolio": "node --loader ./scripts/research-loader.mjs scripts/portfolio-144.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.0",
