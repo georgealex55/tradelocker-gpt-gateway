@@ -5,11 +5,26 @@ import {
   makeStrategyId,
   killSwitchEnabled
 } from "../../../../lib/tradeGuard";
+import {
+  TRADE_STATES,
+  getTradeByBrokerPositionId,
+  transitionTradeState,
+  recordTradeEvent,
+  updateTradeBrokerResponse,
+  publicTradeView,
+  markTradeError
+} from "../../../../lib/tradeState";
 
 export async function POST(req) {
+  let trackedTrade = null;
+  let trackingWarning = null;
+
   try {
     const approval = req.headers.get("x-trade-approval-key");
-    if (!process.env.TRADE_APPROVAL_KEY || approval !== process.env.TRADE_APPROVAL_KEY) {
+    if (
+      !process.env.TRADE_APPROVAL_KEY ||
+      approval !== process.env.TRADE_APPROVAL_KEY
+    ) {
       return NextResponse.json(
         { ok: false, error: "Approval key missing or invalid" },
         { status: 403 }
@@ -36,7 +51,11 @@ export async function POST(req) {
 
     if (!Number.isFinite(qty) || qty < 0) {
       return NextResponse.json(
-        { ok: false, error: "qty must be 0 for full close or a positive lot quantity for partial close" },
+        {
+          ok: false,
+          error:
+            "qty must be 0 for full close or a positive lot quantity for partial close"
+        },
         { status: 400 }
       );
     }
@@ -51,14 +70,39 @@ export async function POST(req) {
     const path =
       `/trade/positions/${positionId}?strategyId=${encodeURIComponent(strategyId)}`;
 
+    try {
+      trackedTrade = await getTradeByBrokerPositionId(positionId);
+    } catch (error) {
+      trackingWarning = error.message;
+    }
+
     if (process.env.TRADING_ENABLED !== "true") {
+      if (trackedTrade) {
+        try {
+          await recordTradeEvent(trackedTrade.id, "CLOSE_DRY_RUN", {
+            fromState: trackedTrade.state,
+            toState: trackedTrade.state,
+            payload: {
+              positionId,
+              qty,
+              strategyId
+            }
+          });
+        } catch (error) {
+          trackingWarning = error.message;
+        }
+      }
+
       return NextResponse.json({
         ok: true,
         dryRun: true,
-        message: "Close request validated. TRADING_ENABLED=false, so the position was not closed.",
+        message:
+          "Close request validated. TRADING_ENABLED=false, so the position was not closed.",
         account,
         positionId,
         strategyId,
+        trade: publicTradeView(trackedTrade),
+        trackingWarning,
         request: {
           method: "DELETE",
           path,
@@ -67,10 +111,76 @@ export async function POST(req) {
       });
     }
 
-    const data = await tlFetch(path, {
-      method: "DELETE",
-      body: JSON.stringify(payload)
-    });
+    if (trackedTrade) {
+      try {
+        if (qty === 0) {
+          trackedTrade = await transitionTradeState(
+            trackedTrade.id,
+            TRADE_STATES.CLOSE_REQUESTED,
+            {
+              eventType: "FULL_CLOSE_REQUESTED",
+              payload: {
+                positionId,
+                strategyId
+              }
+            }
+          );
+        } else {
+          await recordTradeEvent(trackedTrade.id, "PARTIAL_CLOSE_REQUESTED", {
+            fromState: trackedTrade.state,
+            toState: trackedTrade.state,
+            payload: {
+              positionId,
+              qty,
+              strategyId
+            }
+          });
+        }
+      } catch (error) {
+        trackingWarning = error.message;
+      }
+    }
+
+    let data;
+
+    try {
+      data = await tlFetch(path, {
+        method: "DELETE",
+        body: JSON.stringify(payload)
+      });
+    } catch (error) {
+      if (trackedTrade) {
+        await markTradeError(
+          trackedTrade.id,
+          error,
+          TRADE_STATES.EXECUTION_UNKNOWN
+        ).catch(() => null);
+      }
+      throw error;
+    }
+
+    if (trackedTrade) {
+      try {
+        trackedTrade = await updateTradeBrokerResponse(
+          trackedTrade.id,
+          { closeResponse: data },
+          { positionId }
+        );
+
+        await recordTradeEvent(trackedTrade.id, "CLOSE_SUBMITTED", {
+          fromState: trackedTrade.state,
+          toState: trackedTrade.state,
+          payload: {
+            positionId,
+            qty,
+            strategyId,
+            brokerResponse: data
+          }
+        });
+      } catch (error) {
+        trackingWarning = error.message;
+      }
+    }
 
     return NextResponse.json({
       ok: true,
@@ -78,11 +188,18 @@ export async function POST(req) {
       account,
       positionId,
       strategyId,
+      trade: publicTradeView(trackedTrade),
+      trackingWarning,
       data
     });
-  } catch (e) {
+  } catch (error) {
     return NextResponse.json(
-      { ok: false, error: e.message },
+      {
+        ok: false,
+        error: error.message,
+        trade: publicTradeView(trackedTrade),
+        trackingWarning
+      },
       { status: 400 }
     );
   }

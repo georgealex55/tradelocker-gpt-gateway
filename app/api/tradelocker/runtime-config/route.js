@@ -3,6 +3,10 @@ import {
   killSwitchEnabled,
   killSwitchRawState
 } from "../../../../lib/tradeGuard";
+import {
+  tradeStateDbConfigured,
+  tradeStateDbEnabled
+} from "../../../../lib/db";
 
 function maskAccountId(value) {
   if (!value) return null;
@@ -15,7 +19,8 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     runtime: {
-      tradingEnabled: String(process.env.TRADING_ENABLED || "false").toLowerCase() === "true",
+      tradingEnabled:
+        String(process.env.TRADING_ENABLED || "false").toLowerCase() === "true",
       killSwitch: killSwitchEnabled(),
       killSwitchRawState: killSwitchRawState(),
       expectedAccountId: maskAccountId(
@@ -29,6 +34,8 @@ export async function GET() {
         String(process.env.STALE_QUOTE_GUARD || "true").toLowerCase() === "true",
       idempotencyRequired:
         String(process.env.IDEMPOTENCY_REQUIRED || "true").toLowerCase() === "true",
+      tradeStateDbConfigured: tradeStateDbConfigured(),
+      tradeStateDbEnabled: tradeStateDbEnabled(),
       vercelEnv: process.env.VERCEL_ENV || null,
       vercelGitCommitSha: process.env.VERCEL_GIT_COMMIT_SHA || null,
       vercelGitCommitRef: process.env.VERCEL_GIT_COMMIT_REF || null
