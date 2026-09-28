@@ -5,6 +5,7 @@ import { FOREX_STRATEGY_V1_CONFIG } from "../../../../lib/forexStrategyV1Config"
 import { USDCHF_V2_CANDIDATE as V2 } from "../../../../lib/research/usdchfV2Candidate.mjs";
 import { killSwitchEnabled } from "../../../../lib/tradeGuard";
 import { recordSignalObservation } from "../../../../lib/db";
+import { upcomingUsdChfMacroCalendar } from "../../../../lib/research/upcomingUsdChfMacroCalendar.mjs";
 
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -103,7 +104,13 @@ export async function GET(){
     if(!instrument) throw new Error("USDCHF_NOT_FOUND");
 
     const asOf=Date.now();
-    const raw=await scanForexSignal({instrument,config:SHADOW_CONFIG,asOf});
+    const macroCalendar=upcomingUsdChfMacroCalendar(asOf);
+    const raw=await scanForexSignal({
+      instrument,
+      config:SHADOW_CONFIG,
+      asOf,
+      scheduledBlackouts:macroCalendar.events
+    });
     const result=v2Overlay({ok:true,...raw});
     const shadowSignal={
       ...(raw.signal||{}),
@@ -156,7 +163,13 @@ export async function GET(){
         executionBlockReason:result.execution?.reason||null,
         v2ObservationPersisted:Boolean(saved)
       },
-      caveat:"Scheduled macro-calendar injection is not added by this shadow endpoint; fixed/shock event-risk logic from the scanner remains active."
+      macroCalendar:{
+        reviewedAt:macroCalendar.reviewedAt,
+        coverageThrough:macroCalendar.coverageThrough,
+        nextEvent:macroCalendar.nextEvent,
+        remainingEvents:macroCalendar.events.length
+      },
+      caveat:"Official USD/CHF high-impact dates are encoded through 2026-12-23 and must be refreshed for reschedules or 2027 dates."
     },{headers:{"Cache-Control":"no-store"}});
   }catch(error){
     return NextResponse.json({
