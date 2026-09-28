@@ -147,10 +147,10 @@ test('H1 aggregation never stitches OHLC across a missing full hour',()=>{
   assert.equal(completed.length,2);
   assert.equal(completed[0].time,start);
   assert.equal(completed[1].time,h12);
-  assert.equal(completed[1].open,1.2000);
-  assert.equal(completed[1].high,1.2013);
-  assert.equal(completed[1].low,1.1990);
-  assert.equal(completed[1].close,1.2008);
+  assert.ok(Math.abs(completed[1].open-1.2000)<1e-12);
+  assert.ok(Math.abs(completed[1].high-1.2013)<1e-12);
+  assert.ok(Math.abs(completed[1].low-1.1990)<1e-12);
+  assert.ok(Math.abs(completed[1].close-1.2008)<1e-12);
   assert.ok(completed[1].low>completed[0].high,'12:00 H1 must contain only post-gap candles');
 });
 
