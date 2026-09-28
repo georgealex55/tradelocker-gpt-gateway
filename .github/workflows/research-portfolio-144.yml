@@ -1,0 +1,63 @@
+name: Portfolio 144 - Collect Historical Data
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - research/portfolio-144
+    paths:
+      - ".github/workflows/research-portfolio-144.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  collect:
+    name: Collect 3-pair M15 dataset
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      TRADE_APPROVAL_KEY: ${{ secrets.TRADE_APPROVAL_KEY }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+      RESEARCH_GATEWAY: https://tradelocker-gpt-gateway-bjw5d3ir8-georgealex1925-2750s-projects.vercel.app
+
+    steps:
+      - name: Checkout research branch
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify required research secrets are present
+        shell: bash
+        run: |
+          test -n "$TRADE_APPROVAL_KEY" || { echo "TRADE_APPROVAL_KEY secret is missing"; exit 1; }
+          test -n "$VERCEL_AUTOMATION_BYPASS_SECRET" || { echo "VERCEL_AUTOMATION_BYPASS_SECRET secret is missing"; exit 1; }
+
+      - name: Run research engineering tests
+        run: npm run test:research
+
+      - name: Collect full historical M15 dataset
+        run: |
+          npm run research:portfolio -- collect \
+            --gateway "$RESEARCH_GATEWAY" \
+            --from "2024-01-01T00:00:00.000Z" \
+            --to "2026-09-25T21:00:00.000Z" \
+            --output research-output
+
+      - name: Upload research dataset
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: portfolio-144-dataset
+          path: |
+            research-output/dataset.json
+            research-output/dataset.partial.json
+          if-no-files-found: error
+          retention-days: 14
