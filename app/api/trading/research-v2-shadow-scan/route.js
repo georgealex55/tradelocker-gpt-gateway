@@ -4,6 +4,7 @@ import { scanForexSignal } from "../../../../lib/forexSignals";
 import { FOREX_STRATEGY_V1_CONFIG } from "../../../../lib/forexStrategyV1Config";
 import { USDCHF_V2_CANDIDATE as V2 } from "../../../../lib/research/usdchfV2Candidate.mjs";
 import { killSwitchEnabled } from "../../../../lib/tradeGuard";
+import { recordSignalObservation } from "../../../../lib/db";
 
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -104,6 +105,29 @@ export async function GET(){
     const asOf=Date.now();
     const raw=await scanForexSignal({instrument,config:SHADOW_CONFIG,asOf});
     const result=v2Overlay({ok:true,...raw});
+    const shadowSignal={
+      ...(raw.signal||{}),
+      status:result.status,
+      action:result.action,
+      blocks:result.blocks,
+      checks:{
+        ...(raw.signal?.checks||{}),
+        v2EmaGapPassed:result.h1.emaGatePassed
+      },
+      regime:{
+        ...(raw.signal?.regime||{}),
+        checks:{
+          ...(raw.signal?.regime?.checks||{}),
+          emaGapPips:result.h1.emaGapPips,
+          maxEmaGapPips:V2.maxEma50Ema200GapPips
+        }
+      }
+    };
+    const saved=await recordSignalObservation({
+      signal:shadowSignal,
+      riskEstimate:raw.riskEstimate,
+      execution:raw.execution
+    });
 
     return NextResponse.json({
       ok:true,
@@ -129,7 +153,8 @@ export async function GET(){
         h1IndicatorsReady:result.h1.emaGapPips!=null&&Number.isFinite(Number(result.h1.adx)),
         v2GateEvaluated:result.h1.emaGapPips!=null,
         executionBlocked:result.execution?.status==="BLOCKED",
-        executionBlockReason:result.execution?.reason||null
+        executionBlockReason:result.execution?.reason||null,
+        v2ObservationPersisted:Boolean(saved)
       },
       caveat:"Scheduled macro-calendar injection is not added by this shadow endpoint; fixed/shock event-risk logic from the scanner remains active."
     },{headers:{"Cache-Control":"no-store"}});
