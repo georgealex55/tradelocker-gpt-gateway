@@ -61,3 +61,5 @@ jobs:
             research-output/dataset.partial.json
           if-no-files-found: error
           retention-days: 14
+
+# trigger: historical-collection
