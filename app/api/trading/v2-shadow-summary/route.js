@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { dbQuery, tradeStateDbEnabled } from "../../../../lib/db";
+import { shadowOutcomeSummary } from "../../../../lib/shadowVirtualTrades";
 
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -41,6 +42,12 @@ export async function GET(){
     const s=summaryRows?.[0]||{};
     const observations=Number(s.observations||0);
     const distinctCandles=Number(s.distinct_candles||0);
+    const virtual=await shadowOutcomeSummary();
+    const v=virtual.summary||{};
+    const grossWinR=Number(v.gross_win_r||0);
+    const grossLossR=Math.abs(Number(v.gross_loss_r||0));
+    const virtualClosed=Number(v.closed||0);
+    const virtualTargets=Number(v.targets||0);
 
     return NextResponse.json({
       ok:true,
@@ -60,6 +67,23 @@ export async function GET(){
         BLOCKED:Number(s.blocked||0)
       },
       actionable:Number(s.actionable||0),
+      virtualTrades:{
+        total:Number(v.total||0),
+        pending:Number(v.pending||0),
+        open:Number(v.open||0),
+        closed:virtualClosed,
+        skipped:Number(v.skipped||0),
+        targets:virtualTargets,
+        stops:Number(v.stops||0),
+        winRate:virtualClosed>0?virtualTargets/virtualClosed:null,
+        totalR:Number(v.total_r||0),
+        expectancyR:Number(v.expectancy_r||0),
+        profitFactor:grossLossR>0?grossWinR/grossLossR:(grossWinR>0?null:0),
+        pnlUsd:Number(v.pnl_usd||0),
+        maxMaePips:Number(v.max_mae_pips||0),
+        maxMfePips:Number(v.max_mfe_pips||0),
+        latest:virtual.latest||[]
+      },
       latest
     },{headers:{"Cache-Control":"no-store"}});
   }catch(error){
