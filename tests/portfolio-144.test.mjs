@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { combinations, riskPercent, newsBlocked, M15, COSTS, REQUIRED_EVENTS } from '../lib/research/policies.mjs';
 import { sizePosition, exitAt, simulate, summarize } from '../lib/research/engine.mjs';
 import { validateDataset, preparePair, fitSchedule } from '../lib/research/prepare.mjs';
+import { createCompletedTimeframeAggregator } from '../lib/timeframes.js';
 
 const metadata = { symbol:'EURUSD', pipSize:0.0001,lotSize:100000,minLot:0.01,lotStep:0.01,maxLot:50,baseCurrency:'EUR',quotingCurrency:'USD' };
 const t = Date.parse('2025-02-03T08:00:00Z');
@@ -117,4 +118,51 @@ test('all 144 combinations execute on fixtures without scoring duplicates changi
   const schedule=[{from:t,to:p.to,selected:{USDCHF:20,EURUSD:20,GBPUSD:20}}];
   const rows=combinations().map(c=>evaluateCombo(p,c,schedule));assert.equal(rows.length,144);
   for(let i=0;i<144;i+=3){assert.deepEqual(rows[i].validation,rows[i+1].validation);assert.deepEqual(rows[i].validation,rows[i+2].validation);assert.equal(rows[i].eligible,false);}
+});
+
+
+test('H1 aggregation never stitches OHLC across a missing full hour',()=>{
+  const agg=createCompletedTimeframeAggregator('1H');
+  const start=Date.parse('2025-01-06T10:00:00Z');
+  const make=(time,open,high,low,close)=>({time,open,high,low,close});
+  const completed=[];
+
+  // Complete 10:00-10:59.
+  for(let i=0;i<4;i++){
+    const out=agg.add(make(start+i*M15,1.1000+i*0.0001,1.1010+i*0.0001,1.0990+i*0.0001,1.1005+i*0.0001));
+    if(out) completed.push(out);
+  }
+
+  // Intentionally omit the entire 11:00 hour.
+  const h12=start+2*60*60*1000;
+  for(let i=0;i<4;i++){
+    const out=agg.add(make(h12+i*M15,1.2000+i*0.0001,1.2010+i*0.0001,1.1990+i*0.0001,1.2005+i*0.0001));
+    if(out) completed.push(out);
+  }
+
+  // Opening 13:00 completes the 12:00 bucket.
+  const out=agg.add(make(start+3*60*60*1000,1.3000,1.3010,1.2990,1.3005));
+  if(out) completed.push(out);
+
+  assert.equal(completed.length,2);
+  assert.equal(completed[0].time,start);
+  assert.equal(completed[1].time,h12);
+  assert.equal(completed[1].open,1.2000);
+  assert.equal(completed[1].high,1.2013);
+  assert.equal(completed[1].low,1.1990);
+  assert.equal(completed[1].close,1.2008);
+  assert.ok(completed[1].low>completed[0].high,'12:00 H1 must contain only post-gap candles');
+});
+
+test('preparePair accepts a full-hour gap without creating an incomplete H1 bucket',()=>{
+  const start=Date.parse('2025-01-06T00:00:00Z');
+  const candles=[];
+  for(let i=0;i<1200;i++){
+    const time=start+i*M15;
+    const hour=Math.floor((time-start)/(60*60*1000));
+    if(hour===150) continue; // remove all four M15 bars from one full hour
+    const v=1.1+Math.sin(i/30)*0.001+i*0.0000005;
+    candles.push({time,open:v,close:v+0.00001,high:v+0.0001,low:v-0.0001});
+  }
+  assert.doesNotThrow(()=>preparePair({metadata,candles}));
 });
