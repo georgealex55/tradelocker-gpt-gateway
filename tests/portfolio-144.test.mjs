@@ -166,3 +166,23 @@ test('preparePair accepts a full-hour gap without creating an incomplete H1 buck
   }
   assert.doesNotThrow(()=>preparePair({metadata,candles}));
 });
+
+
+test('research execution controls default to zero and one-bar delay moves entry exactly one M15',()=>{
+  const p=fixture();
+  // Add the same setup one bar earlier so delayed execution has a valid signal.
+  p.pairs.EURUSD.tapes[20][t]={action:'BUY',stopLoss:1.0988,regime:{checks:{adx:35,pdi:30,mdi:10}}};
+  p.pairs.EURUSD.candles.push({
+    time:t+3*M15,open:1.1,close:1.1,high:1.104,low:1.099
+  });
+  p.pairs.EURUSD.candles.sort((a,b)=>a.time-b.time);
+
+  const common={prepared:p,combo,costs:COSTS.BASE,from:t,to:t+4*M15,symbols:['EURUSD'],startingBalance:200};
+  const a=simulate(common);
+  const b=simulate({...common,entryDelayBars:0,adverseFillPips:0});
+  assert.deepEqual(a,b);
+
+  const delayed=simulate({...common,entryDelayBars:1});
+  assert.equal(delayed.trades[0].signalTime,t);
+  assert.equal(delayed.trades[0].entryTime,t+2*M15);
+});
