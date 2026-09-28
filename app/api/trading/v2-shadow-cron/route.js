@@ -6,6 +6,7 @@ import { USDCHF_V2_CANDIDATE as V2 } from "../../../../lib/research/usdchfV2Cand
 import { upcomingUsdChfMacroCalendar } from "../../../../lib/research/upcomingUsdChfMacroCalendar.mjs";
 import { killSwitchEnabled } from "../../../../lib/tradeGuard";
 import { recordSignalObservation } from "../../../../lib/db";
+import { captureVirtualSignal, reconcileVirtualTrades } from "../../../../lib/shadowVirtualTrades";
 
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -100,6 +101,18 @@ export async function GET(request){
       execution:raw.execution
     });
 
+    const virtualReconcile=await reconcileVirtualTrades({
+      instrument,
+      sizing:raw.sizing,
+      throughTime:raw.latestBar?.time
+    });
+
+    const virtualCapture=await captureVirtualSignal({
+      signal:overlay.signal,
+      riskEstimate:raw.riskEstimate,
+      sizing:raw.sizing
+    });
+
     return NextResponse.json({
       ok:true,
       mode:process.env.VERCEL_ENV==="production"?"V2_SHADOW_CRON":"V2_SHADOW_CRON_PREVIEW",
@@ -118,6 +131,15 @@ export async function GET(request){
       nextMacroEvent:calendar.nextEvent,
       execution:raw.execution,
       observationPersisted:Boolean(saved),
+      virtualTrade:{
+        reconcile:virtualReconcile,
+        capture:{
+          created:Boolean(virtualCapture?.created),
+          reason:virtualCapture?.reason||null,
+          id:virtualCapture?.trade?.id||null,
+          state:virtualCapture?.trade?.state||null
+        }
+      },
       safety:{tradingEnabled,killSwitch}
     },{headers:{"Cache-Control":"no-store"}});
   }catch(error){
