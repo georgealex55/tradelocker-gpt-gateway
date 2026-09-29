@@ -24,8 +24,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: npm
-      - run: npm ci
+      - run: npm install --no-audit --no-fund
       - name: Structure A2 regression tests
         run: npm run test:structure-a2
       - name: Production build
