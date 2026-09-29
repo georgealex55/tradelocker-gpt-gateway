@@ -7,6 +7,7 @@ import {
   tradeStateDbConfigured,
   tradeStateDbEnabled
 } from "../../../../lib/db";
+import { effectiveMaxRiskPercent } from "../../../../lib/liveRiskPolicy";
 
 function maskAccountId(value) {
   if (!value) return null;
@@ -26,7 +27,9 @@ export async function GET() {
       expectedAccountId: maskAccountId(
         process.env.EXPECTED_ACCOUNT_ID || process.env.TRADELOCKER_ACCOUNT_ID
       ),
-      maxRiskPercent: process.env.MAX_RISK_PERCENT || "1",
+      maxRiskPercent: String(effectiveMaxRiskPercent()),
+      configuredMaxRiskPercent: process.env.MAX_RISK_PERCENT || null,
+      maxRiskPercentSource: "code-locked-live-test-profile",
       maxSpreadPips: process.env.MAX_SPREAD_PIPS || "3",
       maxLotsPerTrade: process.env.MAX_LOTS_PER_TRADE || "0.01",
       maxOrderUnits: process.env.MAX_ORDER_UNITS || "1000",
