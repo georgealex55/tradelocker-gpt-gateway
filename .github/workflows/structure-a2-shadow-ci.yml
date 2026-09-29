@@ -1,0 +1,32 @@
+name: Structure A2 Shadow CI
+
+on:
+  push:
+    branches: [feat/structure-a2-live-shadow]
+  pull_request:
+    paths:
+      - "lib/structureA2Core.mjs"
+      - "lib/structureA2Shadow.js"
+      - "app/api/trading/structure-a2-shadow/route.js"
+      - "scripts/test-structure-a2-core.mjs"
+      - "vercel.json"
+      - "package.json"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Structure A2 regression tests
+        run: npm run test:structure-a2
+      - name: Production build
+        run: npm run build
