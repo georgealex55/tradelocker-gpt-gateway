@@ -174,3 +174,19 @@ This feasibility diagnostic does not change entries, stops, or primary results.
 Offline research only. No broker order client, live execution path, Vercel
 environment variable, production scanner, kill switch, or trading-enabled
 setting is modified by this experiment.
+
+
+## Administrative comparison correction — 2026-09-29
+
+The first completed workflow run also reran the original three-pair Price Breakout
+V1 portfolio for context. Because Market Structure V1 is explicitly USDCHF-only,
+that portfolio result is not the primary apples-to-apples baseline.
+
+Before drawing a strategy comparison, add a USDCHF-only Breakout V1 baseline
+using the exact same USDCHF candles, 20-H1 channel entry, 2×H1 ATR stop,
+10-H1 channel exit, $200/1% sizing, 0.01-lot cap, session/news/loss/spread
+controls, costs, and held-forward boundary used by this experiment.
+
+This is a reporting-scope correction only. No Market Structure A/B/C rule,
+threshold, pivot definition, retest window, stop, exit, cost, or eligibility
+gate is changed after viewing the first run.
