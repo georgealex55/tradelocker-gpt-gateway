@@ -1,0 +1,68 @@
+name: Market Structure V1 - Frozen Historical Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [research/market-structure-v1]
+    paths:
+      - ".github/workflows/research-market-structure-v1.yml"
+      - "scripts/market-structure-v1.mjs"
+      - "lib/research/marketStructure.mjs"
+      - "tests/market-structure.test.mjs"
+      - "docs/MARKET_STRUCTURE_V1_PROTOCOL.md"
+      - "package.json"
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: market-structure-v1
+  cancel-in-progress: false
+
+jobs:
+  evaluate:
+    if: github.ref == 'refs/heads/research/market-structure-v1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run research engineering tests
+        run: npm run test:research
+
+      - name: Download corrected frozen research archive
+        uses: actions/download-artifact@v4
+        with:
+          name: portfolio-144-evaluation
+          path: research-output
+          run-id: 36506041404
+          github-token: ${{ github.token }}
+
+      - name: Re-run frozen Breakout V1 baseline
+        run: |
+          node --loader ./scripts/research-loader.mjs scripts/price-breakout-v1.mjs             research-output research-output/baseline-price-breakout-v1
+
+      - name: Run Market Structure V1 variants
+        run: |
+          node --loader ./scripts/research-loader.mjs scripts/market-structure-v1.mjs             research-output             research-output/market-structure-v1             research-output/baseline-price-breakout-v1/results.json
+
+      - name: Upload Market Structure V1 results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: market-structure-v1-results
+          path: |
+            research-output/market-structure-v1/results.json
+            research-output/market-structure-v1/summary.csv
+            research-output/baseline-price-breakout-v1/results.json
+          if-no-files-found: warn
+          retention-days: 30
