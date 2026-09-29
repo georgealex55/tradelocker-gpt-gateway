@@ -42,10 +42,12 @@ A swing uses a 5-H1-bar pivot with two completed H1 bars on each side.
 Each newly confirmed swing high is labeled:
 - HH if above the prior confirmed swing high.
 - LH if below the prior confirmed swing high.
+- EQH if exactly equal to the prior confirmed swing high; EQH leaves trend neutral.
 
 Each newly confirmed swing low is labeled:
 - HL if above the prior confirmed swing low.
 - LL if below the prior confirmed swing low.
+- EQL if exactly equal to the prior confirmed swing low; EQL leaves trend neutral.
 
 The first confirmed high/low is labeled FIRST_HIGH/FIRST_LOW and does not by
 itself establish trend.
