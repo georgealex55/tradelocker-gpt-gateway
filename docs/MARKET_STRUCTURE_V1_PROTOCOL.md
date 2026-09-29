@@ -100,6 +100,7 @@ For variants requiring a retest:
   level invalidates that setup.
 - A setup expires after 8 M15 bars.
 - No penetration tolerance or discretionary zone is used.
+- If multiple valid setups target the same M15 entry open, the oldest BOS signal is evaluated first; later same-open setups are subject to the one-position/capacity rules.
 
 ## Frozen variants
 
