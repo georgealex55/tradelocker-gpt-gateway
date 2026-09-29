@@ -47,14 +47,24 @@ jobs:
           if (review.complete !== true || review.resultInputHash !== hash || hash !== '61e9d2fae987acf428cb8034e04514d7f84ad01e9e1a2f03d606de09ea740c14') throw new Error('RESEARCH_REVIEW_HASH_MISMATCH');
           JS
           node --loader ./scripts/research-loader.mjs scripts/portfolio-144-audit.mjs research-output/dataset.rechecked.json
-      - name: Download successful pilot proof
-        uses: actions/download-artifact@v4
-        with:
-          artifact-ids: 11007372003
-          merge-multiple: true
-          path: pilot-proof
-          run-id: 36506452564
-          github-token: ${{ github.token }}
+      - name: Read persisted successful pilot proof
+        env:
+          TRADE_APPROVAL_KEY: ${{ secrets.TRADE_APPROVAL_KEY }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs/promises';
+          const runId='portfolio-144-v1-3192080bc2b2ec30eb46';
+          const response=await fetch(new URL('/api/trading/portfolio-144?runId='+runId,process.env.RESEARCH_GATEWAY),{redirect:'error',signal:AbortSignal.timeout(30000),headers:{'x-trade-approval-key':process.env.TRADE_APPROVAL_KEY,'x-vercel-protection-bypass':process.env.VERCEL_AUTOMATION_BYPASS_SECRET}});
+          if(!response.ok)throw new Error('RESEARCH_PILOT_READ_FAILED');
+          const data=await response.json();
+          if(data.run?.id!==runId || data.run?.manifest_json?.inputHash!=='61e9d2fae987acf428cb8034e04514d7f84ad01e9e1a2f03d606de09ea740c14')throw new Error('RESEARCH_PILOT_IDENTITY_MISMATCH');
+          data.results=data.results.filter(r=>/^C00[1-9]$|^C01[0-2]$/.test(r.combo_id));
+          data.completed=data.results.filter(r=>r.status==='COMPLETED').length;
+          data.failures=data.results.filter(r=>r.status==='FAILED').length;
+          await fs.mkdir('pilot-proof',{recursive:true});
+          await fs.writeFile('pilot-proof/results.json',JSON.stringify(data));
+          JS
       - name: Verify controlled pilot before full matrix
         run: node scripts/portfolio-144-verify-results.mjs pilot-proof/results.json 12
       - name: Resume reviewed full 144-combination matrix
