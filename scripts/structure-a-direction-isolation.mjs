@@ -632,6 +632,20 @@ for (const mode of MODES) {
     costs: COSTS.BASE
   });
 
+  const training = simulate({
+    mode,
+    from: prepared.from,
+    to: validationFrom,
+    costs: COSTS.BASE
+  });
+
+  const trainingStress = simulate({
+    mode,
+    from: prepared.from,
+    to: validationFrom,
+    costs: COSTS.STRESS
+  });
+
   const validation = simulate({
     mode,
     from: validationFrom,
@@ -653,6 +667,8 @@ for (const mode of MODES) {
     mode: mode.id,
     lotCap: mode.maxLots,
     descriptive,
+    training,
+    trainingStress,
     validation,
     stress,
     windows: summarizeWindows(validation)
@@ -702,8 +718,10 @@ const output = {
     MODES.map(mode => [
       mode.id,
       {
-        base: byEntryHour(results[mode.id].validation.trades),
-        stress: byEntryHour(results[mode.id].stress.trades)
+        trainingBase: byEntryHour(results[mode.id].training.trades),
+        trainingStress: byEntryHour(results[mode.id].trainingStress.trades),
+        heldForwardBase: byEntryHour(results[mode.id].validation.trades),
+        heldForwardStress: byEntryHour(results[mode.id].stress.trades)
       }
     ])
   ),
