@@ -1,0 +1,64 @@
+name: Structure A - $500 Min-Lot 20% Ceiling
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [research/structure-a-500-minlot-20cap]
+    paths:
+      - ".github/workflows/research-structure-a-500-minlot-20cap.yml"
+      - "scripts/structure-a-500-minlot-20cap.mjs"
+      - "docs/STRUCTURE_A_500_MINLOT_20CAP_PROTOCOL.md"
+      - "lib/research/marketStructure.mjs"
+      - "tests/market-structure.test.mjs"
+      - "package.json"
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: structure-a-500-minlot-20cap
+  cancel-in-progress: false
+
+jobs:
+  evaluate:
+    if: github.ref == 'refs/heads/research/structure-a-500-minlot-20cap'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run research engineering tests
+        run: npm run test:research
+
+      - name: Download corrected frozen research archive
+        uses: actions/download-artifact@v4
+        with:
+          name: portfolio-144-evaluation
+          path: research-output
+          run-id: 36506041404
+          github-token: ${{ github.token }}
+
+      - name: Run Structure A min-lot / 20% ceiling replay
+        run: |
+          node --loader ./scripts/research-loader.mjs scripts/structure-a-500-minlot-20cap.mjs \
+            research-output research-output/structure-a-500-minlot-20cap
+
+      - name: Upload Structure A min-lot ceiling results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: structure-a-500-minlot-20cap-results
+          path: |
+            research-output/structure-a-500-minlot-20cap/results.json
+            research-output/structure-a-500-minlot-20cap/summary.csv
+          if-no-files-found: warn
+          retention-days: 30
