@@ -7,12 +7,18 @@ on:
       - research/portfolio-144
     paths:
       - ".github/workflows/research-portfolio-144.yml"
+      - "scripts/portfolio-144.mjs"
+
+concurrency:
+  group: portfolio-144-history
+  cancel-in-progress: false
 
 permissions:
   contents: read
 
 jobs:
   collect:
+    if: github.ref == 'refs/heads/research/portfolio-144'
     name: Collect 3-pair M15 dataset
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -52,14 +58,14 @@ jobs:
             --output research-output
 
       - name: Upload research dataset
-        if: success()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: portfolio-144-dataset
           path: |
             research-output/dataset.json
             research-output/dataset.partial.json
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 14
 
 # trigger: historical-collection

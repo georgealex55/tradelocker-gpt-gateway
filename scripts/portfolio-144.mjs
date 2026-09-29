@@ -39,6 +39,7 @@ function csv(rows) {
 }
 async function collect() {
   const safety = await safeRuntime();
+  console.log(JSON.stringify({ stage: 'safety', ...safety }));
   const from = flag('from', '2024-01-01T00:00:00.000Z'), to = flag('to', '2026-09-25T21:00:00.000Z');
   const warmup = Date.parse(from) - 30 * 86400000;
   const instruments = (await request('/api/trading/forex-universe')).instruments;
@@ -64,12 +65,16 @@ async function collect() {
         } catch (error) {
           const retryable = ['GATEWAY_HTTP_400','GATEWAY_HTTP_429','GATEWAY_HTTP_500','GATEWAY_HTTP_502','GATEWAY_HTTP_503','GATEWAY_HTTP_504'].includes(error.message);
           if (!retryable || attempt === 3) throw error;
+          console.log(JSON.stringify({ stage: 'history-retry', symbol, from: new Date(cursor).toISOString(), attempt: attempt + 1, code: error.message }));
           await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
         }
       }
       if (chunk.truncated || chunk.chunks?.some(c => !['ok','no_data','no-data'].includes(c.status))) throw new Error(`HISTORY_CHUNK_INCOMPLETE_${symbol}`);
       await new Promise(resolve => setTimeout(resolve, 350));
       for (const candle of chunk.candles) bars.set(candle.time, candle);
+      dataset.pairs[symbol] = { metadata, candles: [...bars.values()].sort((a, b) => a.time - b.time), truncated: true, collectedThrough: end };
+      await writeJson('dataset.partial.json', dataset);
+      console.log(JSON.stringify({ stage: 'history-chunk', symbol, from: new Date(cursor).toISOString(), to: new Date(end).toISOString(), bars: chunk.candles.length, totalBars: bars.size }));
     }
     dataset.pairs[symbol] = { metadata, candles: [...bars.values()].sort((a, b) => a.time - b.time), truncated: false };
     await writeJson('dataset.partial.json', dataset);
