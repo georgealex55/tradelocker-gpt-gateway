@@ -83,6 +83,7 @@ jobs:
               stage:'sizing-probe',
               side,
               previewOk:p.ok,
+              error:p.error||null,
               account:x.account ? {id:x.account.id,type:x.account.type,currency:x.account.currency,balance:x.account.balance,projectedBalance:x.account.projectedBalance}:null,
               sizing:x.sizing,
               quote:x.quote,
