@@ -659,6 +659,35 @@ for (const mode of MODES) {
   };
 }
 
+
+function byEntryHour(trades) {
+  const rows = {};
+  for (let hour = CONFIG.entryHourUtcStart; hour < CONFIG.entryHourUtcEndExclusive; hour++) {
+    const bucket = trades.filter(t => new Date(t.entryTime).getUTCHours() === hour);
+    const wins = bucket.filter(t => t.pnl > 0);
+    const losses = bucket.filter(t => t.pnl < 0);
+    const grossWin = wins.reduce((n, t) => n + t.pnl, 0);
+    const grossLoss = -losses.reduce((n, t) => n + t.pnl, 0);
+    rows[String(hour).padStart(2, "0") + ":00"] = {
+      trades: bucket.length,
+      wins: wins.length,
+      losses: losses.length,
+      pnl: bucket.reduce((n, t) => n + t.pnl, 0),
+      totalR: bucket.reduce((n, t) => n + t.rMultiple, 0),
+      expectancyR: bucket.length
+        ? bucket.reduce((n, t) => n + t.rMultiple, 0) / bucket.length
+        : 0,
+      profitFactor:
+        grossLoss > 0
+          ? grossWin / grossLoss
+          : grossWin > 0
+            ? null
+            : 0
+    };
+  }
+  return rows;
+}
+
 const output = {
   experiment: CONFIG.id,
   protocol: "docs/STRUCTURE_A_DIRECTION_ISOLATION_PROTOCOL.md",
@@ -669,6 +698,15 @@ const output = {
   config: CONFIG,
   setupDiagnostics: setup.diagnostics,
   results,
+  exploratoryHourDiagnostics: Object.fromEntries(
+    MODES.map(mode => [
+      mode.id,
+      {
+        base: byEntryHour(results[mode.id].validation.trades),
+        stress: byEntryHour(results[mode.id].stress.trades)
+      }
+    ])
+  ),
   safety: {
     offlineOnly: true,
     productionModified: false,
@@ -751,6 +789,7 @@ console.log(JSON.stringify({
   experiment: CONFIG.id,
   inputHash: prepared.inputHash,
   setupDiagnostics: setup.diagnostics,
+  exploratoryHourDiagnostics: output.exploratoryHourDiagnostics,
   results: Object.fromEntries(
     MODES.map(mode => {
       const row = results[mode.id];
