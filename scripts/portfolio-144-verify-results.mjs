@@ -5,6 +5,13 @@ import { combinations, COSTS, M15 } from '../lib/research/policies.mjs';
 const file=process.argv[2] || 'research-output/results.json';
 const expected=Number(process.argv[3] || 12);
 const data=JSON.parse(await fs.readFile(file,'utf8'));
+// A resumed run can already contain more than the initial controlled subset.
+if(process.argv[4]==='pilot') {
+  const ids=new Set(combinations().slice(0,expected).map(c=>c.id));
+  data.results=data.results.filter(r=>ids.has(r.combo_id));
+  data.completed=data.results.filter(r=>r.status==='COMPLETED').length;
+  data.failures=data.results.filter(r=>r.status==='FAILED').length;
+}
 assert.equal(data.completed,expected);
 assert.equal(data.failures,0);
 const rows=data.results.filter(r=>r.status==='COMPLETED');

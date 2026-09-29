@@ -47,26 +47,28 @@ jobs:
           if (review.complete !== true || review.resultInputHash !== hash || hash !== '61e9d2fae987acf428cb8034e04514d7f84ad01e9e1a2f03d606de09ea740c14') throw new Error('RESEARCH_REVIEW_HASH_MISMATCH');
           JS
           node --loader ./scripts/research-loader.mjs scripts/portfolio-144-audit.mjs research-output/dataset.rechecked.json
-      - name: Read persisted successful pilot proof
+      - name: Run corrected 12-combination pilot
         env:
           TRADE_APPROVAL_KEY: ${{ secrets.TRADE_APPROVAL_KEY }}
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: npm run research:portfolio -- run --gateway "$RESEARCH_GATEWAY" --input research-output/dataset.rechecked.json --limit 12 --output research-output
+      - name: Verify corrected pilot
+        run: node scripts/portfolio-144-verify-results.mjs research-output/results.json 12 pilot
+      - name: Exercise corrected adaptive risk on real history
         run: |
-          node --input-type=module <<'JS'
-          import fs from 'node:fs/promises';
-          const runId='portfolio-144-v1-3192080bc2b2ec30eb46';
-          const response=await fetch(new URL('/api/trading/portfolio-144?runId='+runId,process.env.RESEARCH_GATEWAY),{redirect:'error',signal:AbortSignal.timeout(30000),headers:{'x-trade-approval-key':process.env.TRADE_APPROVAL_KEY,'x-vercel-protection-bypass':process.env.VERCEL_AUTOMATION_BYPASS_SECRET}});
-          if(!response.ok)throw new Error('RESEARCH_PILOT_READ_FAILED');
-          const data=await response.json();
-          if(data.run?.id!==runId || data.run?.manifest_json?.inputHash!=='61e9d2fae987acf428cb8034e04514d7f84ad01e9e1a2f03d606de09ea740c14')throw new Error('RESEARCH_PILOT_IDENTITY_MISMATCH');
-          data.results=data.results.filter(r=>/^C00[1-9]$|^C01[0-2]$/.test(r.combo_id));
-          data.completed=data.results.filter(r=>r.status==='COMPLETED').length;
-          data.failures=data.results.filter(r=>r.status==='FAILED').length;
-          await fs.mkdir('pilot-proof',{recursive:true});
-          await fs.writeFile('pilot-proof/results.json',JSON.stringify(data));
+          node --loader ./scripts/research-loader.mjs --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import { validateDataset, preparePair, fitSchedule, evaluateCombo } from './lib/research/prepare.mjs';
+          import { combinations } from './lib/research/policies.mjs';
+          const prepared=validateDataset(JSON.parse(fs.readFileSync('research-output/dataset.rechecked.json')));
+          for(const symbol of Object.keys(prepared.pairs))prepared.pairs[symbol]=preparePair(prepared.pairs[symbol]);
+          const result=evaluateCombo(prepared,combinations().find(c=>c.id==='C097'),fitSchedule(prepared));
+          const raised=result.validation.trades.filter(t=>t.riskPolicyPercent===1).length;
+          if(!raised)throw new Error('RESEARCH_ADAPTIVE_RISK_NOT_EXERCISED');
+          fs.writeFileSync('research-output/adaptive-pilot.json',JSON.stringify({completed:1,failures:0,results:[{combo_id:'C097',status:'COMPLETED',result_json:result}]}));
+          console.log(JSON.stringify({stage:'adaptive-pilot',combo:'C097',raisedRiskTrades:raised,validationTrades:result.validation.trades.length}));
           JS
-      - name: Verify controlled pilot before full matrix
-        run: node scripts/portfolio-144-verify-results.mjs pilot-proof/results.json 12
+          node scripts/portfolio-144-verify-results.mjs research-output/adaptive-pilot.json 1
       - name: Resume reviewed full 144-combination matrix
         env:
           TRADE_APPROVAL_KEY: ${{ secrets.TRADE_APPROVAL_KEY }}
@@ -88,5 +90,6 @@ jobs:
             research-output/results.csv
             research-output/progress.json
             research-output/ledger-verification.json
+            research-output/adaptive-pilot.json
           if-no-files-found: warn
           retention-days: 30

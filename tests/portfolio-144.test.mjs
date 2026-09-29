@@ -13,7 +13,7 @@ function fixture(symbols = ['EURUSD'], opts={}) {
   for(const s of symbols) {
     const m={ ...metadata,symbol:s,baseCurrency:s.slice(0,3),quotingCurrency:s.slice(3) };
     const price=s==='USDCHF'?0.9:1.1;
-    pairs[s]={metadata:m,candles:[{time:t,open:price,close:price,high:price+0.0002,low:price-0.0002},{time:t+M15,open:price,close:price,high:price+0.004,low:price-0.004},{time:t+2*M15,open:price,close:price,high:price+0.001,low:price-0.001}],tapes:{20:{[t]:{action:'BUY',stopLoss:price-0.0012,regime:{checks:{adx:35,pdi:30,mdi:10}}}}}};
+    pairs[s]={metadata:m,candles:[{time:t,open:price,close:price,high:price+0.0002,low:price-0.0002},{time:t+M15,open:price,close:price,high:price+0.004,low:price-0.004},{time:t+2*M15,open:price,close:price,high:price+0.001,low:price-0.001}],tapes:{20:{[t]:{action:'BUY',stopLoss:price-0.0012,regime:{checks:{adx:35,pdi:.30,mdi:.10}}}}}};
   }
   return {pairs,blackouts:[],...opts};
 }
@@ -22,9 +22,24 @@ test('144 unique IDs and exactly 48 trade-policy combinations',()=>{
   assert.equal(new Set(rows.map(({risk,positions,daily,news,parameters})=>JSON.stringify([risk,positions,daily,news,parameters]))).size,48);
 });
 test('adaptive uses only explicit completed regime conditions',()=>{
-  assert.equal(riskPercent('ADAPTIVE',{regime:{checks:{adx:30,pdi:25,mdi:15}}}),1);
-  assert.equal(riskPercent('ADAPTIVE',{regime:{checks:{adx:29,pdi:50,mdi:10}}}),0.75);
+  assert.equal(riskPercent('ADAPTIVE',{regime:{checks:{adx:30,pdi:.25,mdi:.15}}}),1);
+  assert.equal(riskPercent('ADAPTIVE',{regime:{checks:{adx:29,pdi:.5,mdi:.1}}}),0.75);
+  assert.equal(riskPercent('ADAPTIVE',{regime:{checks:{adx:35,pdi:.249,mdi:.15}}}),0.75);
+  assert.equal(riskPercent('ADAPTIVE',{regime:{checks:{adx:35,pdi:null,mdi:.15}}}),0.75);
+  assert.equal(riskPercent('ADAPTIVE',{regime:{checks:{adx:35,pdi:25,mdi:15}}}),0.75);
   assert.equal(riskPercent('ADAPTIVE',{}),0.75);
+});
+test('adaptive risk accepts real indicator DI fractions on strong completed H1 trends',async()=>{
+  const {createIndicatorEngine}=await import('../lib/indicators.js');
+  const engine=createIndicatorEngine();let snapshot;
+  for(let i=0;i<260;i++){
+    const open=1+i*.001;
+    snapshot=engine.update({time:Date.parse('2024-01-01')+i*3600000,open,high:open+.002,low:open-.0001,close:open+.001});
+  }
+  const {adx,adxPlusDi:pdi,adxMinusDi:mdi}=snapshot.values;
+  assert.ok(pdi>0&&pdi<=1&&mdi>=0&&mdi<=1);
+  assert.ok(adx>=30&&Math.abs(pdi-mdi)*100>=10);
+  assert.equal(riskPercent('ADAPTIVE',{regime:{checks:{adx,pdi,mdi}}}),1);
 });
 test('minimum lots include transaction costs and never round up',()=>{
   const a=sizePosition({entry:1.1,stop:1.0985,metadata,equity:200,percent:0.75,committedRisk:0,costPrice:0.00024,maxPositions:1});assert.equal(a.skip,'MIN_LOT_RISK_SKIP');
@@ -184,7 +199,7 @@ test('preparePair accepts a full-hour gap without creating an incomplete H1 buck
 test('research execution controls default to zero and one-bar delay moves entry exactly one M15',()=>{
   const p=fixture();
   // Add the same setup one bar earlier so delayed execution has a valid signal.
-  p.pairs.EURUSD.tapes[20][t]={action:'BUY',stopLoss:1.0988,regime:{checks:{adx:35,pdi:30,mdi:10}}};
+  p.pairs.EURUSD.tapes[20][t]={action:'BUY',stopLoss:1.0988,regime:{checks:{adx:35,pdi:.30,mdi:.10}}};
   p.pairs.EURUSD.candles.push({
     time:t+3*M15,open:1.1,close:1.1,high:1.104,low:1.099
   });
