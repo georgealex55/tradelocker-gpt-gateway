@@ -32,19 +32,26 @@ jobs:
       - name: Download frozen dataset
         uses: actions/download-artifact@v4
         with:
-          name: portfolio-144-dataset
+          name: portfolio-144-evaluation
           path: research-output
-          run-id: 36505438266
+          run-id: 36506041404
           github-token: ${{ github.token }}
-      - name: Validate frozen dataset
-        run: node --loader ./scripts/research-loader.mjs scripts/portfolio-144-audit.mjs research-output/dataset.json
-      - name: Recheck missing history using one-day requests
+      - name: Verify gap review and validate frozen dataset
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import { createHash } from 'node:crypto';
+          const data = JSON.parse(fs.readFileSync('research-output/dataset.rechecked.json'));
+          const review = JSON.parse(fs.readFileSync('research-output/recheck.json'));
+          const hash = createHash('sha256').update(JSON.stringify(data)).digest('hex');
+          if (review.complete !== true || review.resultInputHash !== hash || hash !== '61e9d2fae987acf428cb8034e04514d7f84ad01e9e1a2f03d606de09ea740c14') throw new Error('RESEARCH_REVIEW_HASH_MISMATCH');
+          JS
+          node --loader ./scripts/research-loader.mjs scripts/portfolio-144-audit.mjs research-output/dataset.rechecked.json
+      - name: Run controlled 12-combination subset
         env:
           TRADE_APPROVAL_KEY: ${{ secrets.TRADE_APPROVAL_KEY }}
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
-        run: node --loader ./scripts/research-loader.mjs scripts/portfolio-144-recheck.mjs
-      - name: Audit rechecked history
-        run: node --loader ./scripts/research-loader.mjs scripts/portfolio-144-audit.mjs research-output/dataset.rechecked.json
+        run: npm run research:portfolio -- run --gateway "$RESEARCH_GATEWAY" --input research-output/dataset.rechecked.json --limit 12 --output research-output
       - name: Upload research outputs
         if: always()
         uses: actions/upload-artifact@v4

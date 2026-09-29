@@ -79,6 +79,19 @@ test('drawdown includes starting balance peak',()=>{
   const m=summarize([{pnl:-2,rMultiple:-1,stopPips:10,side:'BUY'}]);assert.equal(m.maxDrawdownDollars,2);assert.equal(m.maxDrawdownPercent,1);
 });
 test('invalid broker dataset is rejected before evaluation',()=>{assert.throws(()=>validateDataset({source:'synthetic'}),/TradeLocker/);});
+test('dataset audit reports whole hours missing from one pair without changing harmonization',async()=>{
+  const {historicalMacroCalendar}=await import('../lib/historicalMacroEvents.js');
+  const start=Date.parse('2023-12-02T00:00:00Z'),end=Date.parse('2024-08-01T00:00:00Z');
+  const missing=Date.parse('2024-03-05T08:00:00Z');
+  const candles=Array.from({length:(end-start)/M15},(_,i)=>({time:start+i*M15,open:1,high:1.01,low:.99,close:1}));
+  const pairs=Object.fromEntries(['USDCHF','EURUSD','GBPUSD'].map(symbol=>[symbol,{
+    metadata:{...metadata,symbol,baseCurrency:symbol.slice(0,3),quotingCurrency:symbol.slice(3),tradableInstrumentId:1,tradeRouteId:1,infoRouteId:1,verifiedAt:'2026-09-29T00:00:00Z',source:'engineering fixture',barSource:'BID'},
+    candles:symbol==='GBPUSD'?candles.filter(c=>c.time<missing||c.time>=missing+3600000):candles,truncated:false
+  }]));
+  const prepared=validateDataset({source:'tradelocker',requestedFrom:'2024-01-01T00:00:00Z',requestedTo:new Date(end).toISOString(),calendar:historicalMacroCalendar(),pairs});
+  assert.deepEqual(prepared.droppedIncompleteHours,[{hour:missing,commonBars:0}]);
+  for(const pair of Object.values(prepared.pairs))assert.equal(pair.candles.length,candles.length-4);
+});
 test('production strategy config remains 1.2.0 $500; research is isolated',async()=>{
   const {FOREX_STRATEGY_V1_CONFIG:c}=await import('../lib/forexStrategyV1Config.js');assert.equal(c.version,'1.2.0');assert.equal(c.capital.startingBalanceUsd,500);assert.deepEqual(c.universe.preferredSymbols,['USDCHF']);
 });
