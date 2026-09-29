@@ -392,7 +392,26 @@ export default async function Home() {
         </>
       )}
 
-      <div style={{ marginTop: 24 }}>
+      <div style={{
+        marginTop: 24,
+        display: "flex",
+        gap: 10,
+        flexWrap: "wrap"
+      }}>
+        <a
+          href="/structure-a2-console"
+          style={{
+            display: "inline-block",
+            padding: "10px 14px",
+            borderRadius: 10,
+            background: "#16a34a",
+            color: "#fff",
+            textDecoration: "none",
+            fontWeight: 700
+          }}
+        >
+          Open Structure A2 Live Panel
+        </a>
         <a
           href="/backtests"
           style={{

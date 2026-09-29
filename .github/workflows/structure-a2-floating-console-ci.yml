@@ -1,0 +1,25 @@
+name: Structure A2 Floating Console CI
+
+on:
+  push:
+    branches: [feat/structure-a2-floating-console]
+  pull_request:
+    paths:
+      - "app/structure-a2-console/page.js"
+      - "app/api/public/structure-a2-status/route.js"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install --no-audit --no-fund
+      - name: Production build
+        run: npm run build
