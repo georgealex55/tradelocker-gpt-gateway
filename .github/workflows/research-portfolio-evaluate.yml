@@ -47,11 +47,23 @@ jobs:
           if (review.complete !== true || review.resultInputHash !== hash || hash !== '61e9d2fae987acf428cb8034e04514d7f84ad01e9e1a2f03d606de09ea740c14') throw new Error('RESEARCH_REVIEW_HASH_MISMATCH');
           JS
           node --loader ./scripts/research-loader.mjs scripts/portfolio-144-audit.mjs research-output/dataset.rechecked.json
-      - name: Run controlled 12-combination subset
+      - name: Download successful pilot proof
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: 11007372003
+          merge-multiple: true
+          path: pilot-proof
+          run-id: 36506452564
+          github-token: ${{ github.token }}
+      - name: Verify controlled pilot before full matrix
+        run: node scripts/portfolio-144-verify-results.mjs pilot-proof/results.json 12
+      - name: Resume reviewed full 144-combination matrix
         env:
           TRADE_APPROVAL_KEY: ${{ secrets.TRADE_APPROVAL_KEY }}
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
-        run: npm run research:portfolio -- run --gateway "$RESEARCH_GATEWAY" --input research-output/dataset.rechecked.json --limit 12 --output research-output
+        run: npm run research:portfolio -- run --gateway "$RESEARCH_GATEWAY" --input research-output/dataset.rechecked.json --limit 144 --output research-output
+      - name: Verify full matrix ledgers
+        run: node scripts/portfolio-144-verify-results.mjs research-output/results.json 144 | tee research-output/ledger-verification.json
       - name: Upload research outputs
         if: always()
         uses: actions/upload-artifact@v4
@@ -65,5 +77,6 @@ jobs:
             research-output/results.json
             research-output/results.csv
             research-output/progress.json
+            research-output/ledger-verification.json
           if-no-files-found: warn
           retention-days: 30
