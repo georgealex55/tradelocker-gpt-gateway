@@ -63,3 +63,5 @@ jobs:
           retention-days: 14
 
 # trigger: historical-collection
+
+# trigger: historical-collection-rerun
