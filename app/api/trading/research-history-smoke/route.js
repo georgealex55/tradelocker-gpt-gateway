@@ -30,8 +30,10 @@ export async function GET(req) {
     const params = new URL(req.url).searchParams;
     const requestedDays = Number(params.get("days") || 7);
     const days = Number.isFinite(requestedDays) ? Math.min(30, Math.max(1, Math.floor(requestedDays))) : 7;
-    const to = Date.now();
-    const from = to - days * 24 * 60 * 60 * 1000;
+    const requestedFrom = params.get("from");
+    const parsedFrom = requestedFrom ? Date.parse(requestedFrom) : NaN;
+    const from = Number.isFinite(parsedFrom) ? parsedFrom : Date.now() - days * 24 * 60 * 60 * 1000;
+    const to = from + days * 24 * 60 * 60 * 1000;
     const pairs = {};
     const timesBySymbol = {};
 
