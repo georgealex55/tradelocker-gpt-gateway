@@ -1,0 +1,62 @@
+name: Portfolio 144 - Data Recheck and Evaluation
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [research/portfolio-144]
+    paths: [".github/workflows/research-portfolio-evaluate.yml"]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: portfolio-144-evaluation
+  cancel-in-progress: false
+
+jobs:
+  evaluate:
+    if: github.ref == 'refs/heads/research/portfolio-144'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      RESEARCH_GATEWAY: https://tradelocker-gpt-gateway-fnpid8533-georgealex1925-2750s-projects.vercel.app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run test:research
+      - name: Download frozen dataset
+        uses: actions/download-artifact@v4
+        with:
+          name: portfolio-144-dataset
+          path: research-output
+          run-id: 36505438266
+          github-token: ${{ github.token }}
+      - name: Validate frozen dataset
+        run: node --loader ./scripts/research-loader.mjs scripts/portfolio-144-audit.mjs research-output/dataset.json
+      - name: Recheck missing history using one-day requests
+        env:
+          TRADE_APPROVAL_KEY: ${{ secrets.TRADE_APPROVAL_KEY }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: node --loader ./scripts/research-loader.mjs scripts/portfolio-144-recheck.mjs
+      - name: Audit rechecked history
+        run: node --loader ./scripts/research-loader.mjs scripts/portfolio-144-audit.mjs research-output/dataset.rechecked.json
+      - name: Upload research outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: portfolio-144-evaluation
+          path: |
+            research-output/dataset.rechecked.json
+            research-output/dataset.rechecked.audit.json
+            research-output/recheck.json
+            research-output/dataset.audit.json
+            research-output/results.json
+            research-output/results.csv
+            research-output/progress.json
+          if-no-files-found: warn
+          retention-days: 30
