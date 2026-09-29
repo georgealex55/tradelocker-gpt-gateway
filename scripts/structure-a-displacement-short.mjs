@@ -824,6 +824,10 @@ console.log(JSON.stringify({
       return [
         mode.id,
         {
+          training: row.training.metrics,
+          trainingSizing: row.training.sizingDiagnostics,
+          trainingStress: row.trainingStress.metrics,
+          trainingStressSizing: row.trainingStress.sizingDiagnostics,
           validation: row.validation.metrics,
           validationSizing: row.validation.sizingDiagnostics,
           stress: row.stress.metrics,
