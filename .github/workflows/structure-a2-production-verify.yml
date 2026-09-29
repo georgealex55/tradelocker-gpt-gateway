@@ -1,0 +1,68 @@
+name: Structure A2 Production Verify
+
+on:
+  push:
+    branches: [feat/structure-a2-live-shadow]
+    paths:
+      - ".github/workflows/structure-a2-production-verify.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verify production commit
+        shell: bash
+        run: |
+          curl --fail --silent --show-error             https://tradelocker-gpt-gateway.vercel.app/api/tradelocker/runtime-config             -o runtime.json
+          node -e '
+            const fs=require("fs");
+            const x=JSON.parse(fs.readFileSync("runtime.json","utf8"));
+            const sha=x?.runtime?.vercelGitCommitSha || x?.vercelGitCommitSha;
+            if (sha !== "743d15f9ab17a61cb67f259b1eb188817c724ae6") {
+              console.error(JSON.stringify(x));
+              throw new Error("PRODUCTION_COMMIT_MISMATCH: "+sha);
+            }
+            console.log("Production commit verified:", sha);
+          '
+
+      - name: Invoke protected Structure A2 shadow
+        shell: bash
+        env:
+          TRADE_APPROVAL_KEY: ${{ secrets.TRADE_APPROVAL_KEY }}
+        run: |
+          curl --fail --silent --show-error             -H "x-trade-approval-key: $TRADE_APPROVAL_KEY"             https://tradelocker-gpt-gateway.vercel.app/api/trading/structure-a2-shadow             -o a2.json
+          node -e '
+            const fs=require("fs");
+            const x=JSON.parse(fs.readFileSync("a2.json","utf8"));
+            if (x.ok !== true) throw new Error("A2_NOT_OK: "+JSON.stringify(x));
+            if (x.mode !== "STRUCTURE_A2_SHADOW") throw new Error("WRONG_MODE");
+            if (x.strategy !== "structure-a2-displacement-short-shadow") throw new Error("WRONG_STRATEGY");
+            if (x.readOnlyTrading !== true) throw new Error("NOT_READ_ONLY");
+            if (x.liveExecutionPossible !== false) throw new Error("LIVE_EXECUTION_FLAG");
+            if (x?.safety?.tradingEnabled !== false) throw new Error("TRADING_ENABLED");
+            if (x?.safety?.killSwitch !== true) throw new Error("KILL_SWITCH_OFF");
+            if (x?.safety?.brokerOrderSubmitted !== false) throw new Error("ORDER_SUBMITTED");
+            if (x?.riskPolicy?.riskCeilingPercent !== 20) throw new Error("WRONG_RISK_CEILING");
+            if (x?.executionCostPolicy?.maxSpreadPips !== 2) throw new Error("WRONG_SPREAD_GATE");
+            console.log(JSON.stringify({
+              ok:x.ok,
+              mode:x.mode,
+              strategy:x.strategy,
+              status:x.status,
+              action:x.action,
+              side:x.side,
+              candidateStage:x.candidateStage,
+              structureTrend:x.structureTrend,
+              spreadPips:x.spreadPips,
+              observationPersisted:x.observationPersisted,
+              readOnlyTrading:x.readOnlyTrading,
+              liveExecutionPossible:x.liveExecutionPossible,
+              safety:x.safety,
+              riskPolicy:x.riskPolicy,
+              executionCostPolicy:x.executionCostPolicy
+            }));
+          '
