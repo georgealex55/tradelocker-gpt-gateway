@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test:research": "node --loader ./scripts/research-loader.mjs --test tests/portfolio-144.test.mjs",
+    "test:research": "node --loader ./scripts/research-loader.mjs --test tests/portfolio-144.test.mjs tests/market-structure.test.mjs",
     "research:portfolio": "node --loader ./scripts/research-loader.mjs scripts/portfolio-144.mjs"
   },
   "dependencies": {
