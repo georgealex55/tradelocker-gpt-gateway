@@ -56,8 +56,19 @@ async function collect() {
     const bars = new Map();
     for (let cursor = warmup; cursor < Date.parse(to); cursor += 14 * 86400000) {
       const end = Math.min(cursor + 14 * 86400000 - 1, Date.parse(to) - 1);
-      const chunk = (await request('/api/trading/history', { symbol, tradableInstrumentId: instrument.tradableInstrumentId, infoRouteId: instrument.infoRouteId, resolution: '15m', from: cursor, to: end, maxBars: 2000 })).result;
+      let chunk;
+      for (let attempt = 0; attempt < 4; attempt++) {
+        try {
+          chunk = (await request('/api/trading/history', { symbol, tradableInstrumentId: instrument.tradableInstrumentId, infoRouteId: instrument.infoRouteId, resolution: '15m', from: cursor, to: end, maxBars: 2000 })).result;
+          break;
+        } catch (error) {
+          const retryable = ['GATEWAY_HTTP_400','GATEWAY_HTTP_429','GATEWAY_HTTP_500','GATEWAY_HTTP_502','GATEWAY_HTTP_503','GATEWAY_HTTP_504'].includes(error.message);
+          if (!retryable || attempt === 3) throw error;
+          await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+        }
+      }
       if (chunk.truncated || chunk.chunks?.some(c => !['ok','no_data','no-data'].includes(c.status))) throw new Error(`HISTORY_CHUNK_INCOMPLETE_${symbol}`);
+      await new Promise(resolve => setTimeout(resolve, 350));
       for (const candle of chunk.candles) bars.set(candle.time, candle);
     }
     dataset.pairs[symbol] = { metadata, candles: [...bars.values()].sort((a, b) => a.time - b.time), truncated: false };
