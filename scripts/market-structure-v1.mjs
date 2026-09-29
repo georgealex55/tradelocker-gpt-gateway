@@ -38,10 +38,15 @@ const CONFIG = Object.freeze({
   newsPolicy: "STRICT_BLACKOUT"
 });
 
+const BASELINE_VARIANT = "BREAKOUT_BASELINE_USDCHF";
 const VARIANTS = Object.freeze([
   "STRUCTURE_A",
   "STRUCTURE_B",
   "STRUCTURE_C"
+]);
+const ALL_VARIANTS = Object.freeze([
+  BASELINE_VARIANT,
+  ...VARIANTS
 ]);
 
 const source = process.argv[2] || "research-output";
@@ -190,6 +195,39 @@ function sameDirectionBos(snapshot, action) {
   );
 }
 
+function setupBaseline() {
+  const candidates = [];
+
+  for (const [signalTimeRaw, breakout] of Object.entries(
+    channel.entries
+  )) {
+    const signalTime = Number(signalTimeRaw);
+    const snapshot = h1BySignalTime.get(signalTime);
+    if (!(snapshot?.atr > 0)) continue;
+
+    candidates.push({
+      variant: BASELINE_VARIANT,
+      side: breakout.action,
+      signalTime,
+      h1Time: breakout.h1Time,
+      entryTime: signalTime + M15,
+      atr: snapshot.atr,
+      structuralLevel: null,
+      channelTrigger: breakout.trigger,
+      retestTime: null,
+      structureEvent: null
+    });
+  }
+
+  return {
+    candidates,
+    diagnostics: {
+      channelBreakouts: candidates.length,
+      rawCandidates: candidates.length
+    }
+  };
+}
+
 function setupA() {
   const candidates = [];
   let channelBreakouts = 0;
@@ -298,6 +336,7 @@ function setupC() {
 }
 
 const setups = {
+  [BASELINE_VARIANT]: setupBaseline(),
   STRUCTURE_A: setupA(),
   STRUCTURE_B: setupB(),
   STRUCTURE_C: setupC()
@@ -796,7 +835,10 @@ function verify(result) {
       "ENTRY_MUST_FOLLOW_SIGNAL"
     );
 
-    if (trade.variant === "STRUCTURE_A") {
+    if (
+      trade.variant === BASELINE_VARIANT ||
+      trade.variant === "STRUCTURE_A"
+    ) {
       assert.equal(
         trade.entryTime,
         trade.signalTime + M15,
@@ -842,7 +884,7 @@ function verify(result) {
 
 const results = {};
 
-for (const variant of VARIANTS) {
+for (const variant of ALL_VARIANTS) {
   const descriptive = simulateVariant({
     variant,
     from: prepared.from,
@@ -939,7 +981,8 @@ const output = {
       )
     }
   },
-  baselinePriceBreakoutV1: baseline,
+  baselinePriceBreakoutV1PortfolioContext: baseline,
+  baselineUsdChf: results[BASELINE_VARIANT],
   results,
   safety: {
     offlineOnly: true,
@@ -976,7 +1019,7 @@ const summaryRows = [
   ]
 ];
 
-for (const variant of VARIANTS) {
+for (const variant of ALL_VARIANTS) {
   const row = results[variant];
   summaryRows.push([
     variant,
@@ -1012,6 +1055,24 @@ console.log(
     inputHash: prepared.inputHash,
     structureDiagnostics: output.structureDiagnostics,
     baseline,
+    usdchfBaseline: {
+      validation: results[BASELINE_VARIANT].validation.metrics,
+      stress: results[BASELINE_VARIANT].stress.metrics,
+      positiveWindows: results[BASELINE_VARIANT].windows.filter(
+        x => x.totalR > 0
+      ).length,
+      live12Risk27Feasibility: {
+        candidates:
+          results[BASELINE_VARIANT]
+            .live12Risk27Feasibility.candidates,
+        fits27:
+          results[BASELINE_VARIANT]
+            .live12Risk27Feasibility.fits27,
+        fitPercent:
+          results[BASELINE_VARIANT]
+            .live12Risk27Feasibility.fitPercent
+      }
+    },
     variants: Object.fromEntries(
       VARIANTS.map(variant => [
         variant,
