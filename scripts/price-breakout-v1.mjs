@@ -29,13 +29,17 @@ const STRATEGY = Object.freeze({
 const source = process.argv[2] || 'research-output';
 const out = process.argv[3] || 'research-output/price-breakout-v1';
 const dataset = JSON.parse(await fs.readFile(path.join(source, 'dataset.rechecked.json'), 'utf8'));
-const archived = JSON.parse(await fs.readFile(path.join(source, 'results.json'), 'utf8'));
 const prepared = validateDataset(dataset);
 assert.equal(prepared.inputHash, VALIDATED_INPUT_HASH, 'FROZEN_DATASET_HASH_MISMATCH');
-const schedule = archived?.run?.manifest_json?.schedule;
-assert.ok(Array.isArray(schedule) && schedule.length === 3, 'ARCHIVED_VALIDATION_SCHEDULE_MISSING');
-const validationFrom = Number(schedule[0].from);
-assert.ok(Number.isFinite(validationFrom) && validationFrom >= prepared.from && validationFrom < prepared.to);
+// The original portfolio-144 held-forward boundary is deterministic: first half
+// trains, and the second half is split into three equal chronological windows.
+const validationFrom = Math.ceil((prepared.from + (prepared.to - prepared.from) / 2) / M15) * M15;
+assert.equal(validationFrom, Date.parse('2025-05-14T10:30:00.000Z'), 'VALIDATION_BOUNDARY_DRIFT');
+const validationWidth = (prepared.to - validationFrom) / 3;
+const schedule = Array.from({ length: 3 }, (_, i) => ({
+  from: Math.ceil((validationFrom + i * validationWidth) / M15) * M15,
+  to: i === 2 ? prepared.to : Math.ceil((validationFrom + (i + 1) * validationWidth) / M15) * M15
+}));
 
 const sum = (rows, fn) => rows.reduce((n, row) => n + fn(row), 0);
 const dayKey = t => new Date(t).toISOString().slice(0, 10);
