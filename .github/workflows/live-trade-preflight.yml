@@ -56,6 +56,42 @@ jobs:
           }));
           fs.writeFileSync('selected.json',JSON.stringify(row));
           JS
+      - name: Manual live-account sizing probe
+        run: |
+          curl -sS "$GATEWAY/api/tradelocker/quote?symbol=USDCHF&tradableInstrumentId=7876&routeId=540002" -o quote.json
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const q=JSON.parse(fs.readFileSync('quote.json','utf8')).quote || {};
+          if(!(q.bid>0) || !(q.ask>0)) throw new Error('LIVE_QUOTE_UNAVAILABLE');
+          const pip=0.0001;
+          const probes=[
+            {name:'buy', body:{symbol:'USDCHF',tradableInstrumentId:7876,tradeRouteId:540005,infoRouteId:540002,side:'buy',type:'market',lots:0.01,qty:1000,stopLoss:q.ask-10*pip,takeProfit:q.ask+18*pip}},
+            {name:'sell',body:{symbol:'USDCHF',tradableInstrumentId:7876,tradeRouteId:540005,infoRouteId:540002,side:'sell',type:'market',lots:0.01,qty:1000,stopLoss:q.bid+10*pip,takeProfit:q.bid-18*pip}}
+          ];
+          for(const p of probes) fs.writeFileSync('probe-'+p.name+'.json',JSON.stringify(p.body));
+          console.log(JSON.stringify({stage:'quote',bid:q.bid,ask:q.ask,spread:q.spread}));
+          JS
+          for side in buy sell; do
+            curl -sS -o "probe-$side-result.json" -X POST "$GATEWAY/api/tradelocker/risk-preview" -H "content-type: application/json" --data-binary @"probe-$side.json"
+          done
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          for(const side of ['buy','sell']){
+            const p=JSON.parse(fs.readFileSync('probe-'+side+'-result.json','utf8'));
+            const x=p.preview||{};
+            console.log(JSON.stringify({
+              stage:'sizing-probe',
+              side,
+              previewOk:p.ok,
+              account:x.account ? {id:x.account.id,type:x.account.type,currency:x.account.currency,balance:x.account.balance,projectedBalance:x.account.projectedBalance}:null,
+              sizing:x.sizing,
+              quote:x.quote,
+              exposure:x.exposure,
+              failedChecks:(x.checks||[]).filter(z=>!z.ok).map(z=>({name:z.name,detail:z.detail}))
+            }));
+          }
+          JS
+
       - name: Live risk preview only when strategy has an actionable signal
         run: |
           node --input-type=module <<'JS'
