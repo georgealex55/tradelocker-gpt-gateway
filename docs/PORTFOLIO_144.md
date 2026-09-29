@@ -1,10 +1,12 @@
 # $200 portfolio experiment — implementation and pre-registered protocol
 
-## Status at 2026-09-27
+## Status at 2026-09-28 (Chicago)
 
-**No historical experiment has run. No configurations are recommended yet.**
-The research runner, additive schema and authenticated dashboard are implemented.
-Synthetic tests are engineering checks, not market performance or historical validation.
+**Corrected historical run completed: 144/144, zero failures, zero eligible configurations.**
+See [the results and evidence report](PORTFOLIO_144_RESULTS_2026-09-28.md).
+Collection covers all requested windows; reproducible broker gaps remain and are disclosed.
+The controlled pilot and full matrix passed ledger verification at $200 starting capital.
+No demo-forward recommendation, Production change, live execution, or PR merge was made.
 
 Audit baseline: main commit `8aa10a4c99b67836056b0d6e27e0753d440583c5`, strategy
 `forex-trend-pullback-v1` 1.2.0. Production runtime readback showed
@@ -23,14 +25,13 @@ Broker max is 50 lots; the strategy cap remains **0.01**. Bars are **BID**.
 Pip size follows the standard convention for these three majors; broker tick precision
 was independently read back. Collection resolves IDs again, never uses this table as guessed defaults.
 
-### Remaining access/data blockers
+### Access and data status
 
 - Preview automation authorization is enabled and the read-only TradeLocker history smoke test now succeeds server-side for USDCHF, EURUSD and GBPUSD with execution disabled and the kill switch enabled.
 - Neon project `morning-heart-59905376` and the `tradelocker_gateway` research tables have been verified; migration 002 tables already exist on the default branch database.
-- The inherited macro calendar lacks US GDP, ECB and BOE releases. Its existing dates
-  and revised schedules also need source verification over the actual common data window.
-  The runner refuses incomplete coverage. Coverage declarations are reviewer attestations,
-  not proof that every historical event is present.
+- The frozen calendar now contains 172 CPI, Employment, GDP, FOMC, SNB, ECB, and BOE events with existing provenance declarations. Those attestations are not independent proof of every timestamp.
+- Migration 002 was applied to the isolated Preview database branch after the first pilot exposed its missing research tables.
+- 145 one-day gap rechecks recovered no additional candles. The complete-H1 protocol retained 69,328 M15 bars per pair and 456 warmup H1 bars. See the results report for exclusions.
 
 ## Running the experiment
 
@@ -86,7 +87,7 @@ local checkpoint, manifest and dashboard. Local data/output is git-ignored.
   There are 48 execution policies × 3 scoring objectives. Objective duplicates have
   identical trade histories; they are not independent statistical experiments.
 - Starting realized balance $200. Adaptive risk is 0.75%, raised to 1% only if the
-  completed H1 snapshot has ADX >= 30 and absolute +DI/-DI gap >= 10.
+  completed H1 snapshot has ADX >= 30 and absolute +DI/-DI gap >= 10 percentage points. The research adapter converts the installed indicator library's fractional DI output to percentage points; shared indicators remain unchanged.
 - One or two portfolio positions, at most one per pair. Aggregate initial modeled
   stop risk is capped at 1% equity for one slot and 1.5% for two slots. This cap is
   deliberate. No full-risk allocation to each of two simultaneous trades.
@@ -183,7 +184,7 @@ pass, report **no demo-forward recommendation**. Do not relax gates to manufactu
 
 ## Engineering validation
 
-`npm run test:research` checks matrix enumeration, all-144 synthetic fixture execution,
+`npm run test:research` now passes 25 tests and checks matrix enumeration, all-144 synthetic fixture execution,
 objective invariance, prefix causality, regime adaptation, lot floor/cost budget, concurrent
 capacity/risk, historical currency conversion, daily limits, news/cooldown, actual-open
 levels, spread checks, stop-first/gaps, PF representation and first-fold fitting causality.
