@@ -1,0 +1,57 @@
+name: Structure A - Displacement Short Replication
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [research/structure-a-displacement-short]
+    paths:
+      - ".github/workflows/research-structure-a-displacement-short.yml"
+      - "scripts/structure-a-displacement-short.mjs"
+      - "docs/STRUCTURE_A_DISPLACEMENT_SHORT_PROTOCOL.md"
+      - "lib/research/marketStructure.mjs"
+      - "tests/market-structure.test.mjs"
+      - "package.json"
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: structure-a-displacement-short
+  cancel-in-progress: false
+
+jobs:
+  evaluate:
+    if: github.ref == 'refs/heads/research/structure-a-displacement-short'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Run research engineering tests
+        run: npm run test:research
+      - name: Download corrected frozen research archive
+        uses: actions/download-artifact@v4
+        with:
+          name: portfolio-144-evaluation
+          path: research-output
+          run-id: 36506041404
+          github-token: ${{ github.token }}
+      - name: Run displacement short replication
+        run: |
+          node --loader ./scripts/research-loader.mjs scripts/structure-a-displacement-short.mjs \
+            research-output research-output/structure-a-displacement-short
+      - name: Upload displacement short results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: structure-a-displacement-short-results
+          path: |
+            research-output/structure-a-displacement-short/results.json
+            research-output/structure-a-displacement-short/summary.csv
+          if-no-files-found: warn
+          retention-days: 30
