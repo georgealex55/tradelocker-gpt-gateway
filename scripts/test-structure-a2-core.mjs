@@ -88,7 +88,6 @@ function bearishFixture(finalClose = 1.06) {
   assert.equal(setup.quality.closeLocationPass, true);
   assert.equal(setup.quality.bodyFractionPass, true);
   assert.equal(setup.quality.displacementPass, true);
-  assert.ok(setup.displacementATR == null || true);
 }
 
 {
