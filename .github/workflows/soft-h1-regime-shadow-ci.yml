@@ -1,0 +1,44 @@
+name: Soft H1 Regime Shadow CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/soft-h1-regime-shadow
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "lib/h1Regime.mjs"
+      - "lib/softRegimePullbackCore.mjs"
+      - "lib/softRegimeShadow.js"
+      - "lib/forexStrategyV1.js"
+      - "lib/forexStrategyV1Config.js"
+      - "lib/forexSignals.js"
+      - "lib/shadowVirtualTrades.js"
+      - "app/api/trading/soft-regime-shadow/route.js"
+      - "app/api/trading/m15-scan/route.js"
+      - "scripts/test-soft-h1-regime.mjs"
+      - "vercel.json"
+      - "package.json"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Test soft H1 regime logic
+        run: npm run test:soft-regime
+      - name: Regression test Structure A2
+        run: npm run test:structure-a2
+      - name: Build application
+        run: npm run build
