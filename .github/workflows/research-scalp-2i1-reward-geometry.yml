@@ -1,0 +1,59 @@
+name: Scalp 2I.1 - USDCHF M5 Reward Geometry
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - research/scalp-2i1-reward-geometry
+    paths:
+      - ".github/workflows/research-scalp-2i1-reward-geometry.yml"
+      - "scripts/scalp-2i1-reward-geometry.mjs"
+
+concurrency:
+  group: scalp-2i1-reward-geometry
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  geometry:
+    if: github.ref == 'refs/heads/research/scalp-2i1-reward-geometry'
+    name: USDCHF M5 reward geometry audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    env:
+      TRADE_APPROVAL_KEY: ${{ secrets.TRADE_APPROVAL_KEY }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+      RESEARCH_GATEWAY: https://tradelocker-gpt-gateway-fnpid8533-georgealex1925-2750s-projects.vercel.app
+
+    steps:
+      - name: Checkout research branch
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Verify required research secrets
+        shell: bash
+        run: |
+          test -n "$TRADE_APPROVAL_KEY" || { echo "TRADE_APPROVAL_KEY secret is missing"; exit 1; }
+          test -n "$VERCEL_AUTOMATION_BYPASS_SECRET" || { echo "VERCEL_AUTOMATION_BYPASS_SECRET secret is missing"; exit 1; }
+
+      - name: Run USDCHF M5 reward geometry audit
+        run: |
+          node scripts/scalp-2i1-reward-geometry.mjs \
+            --gateway "$RESEARCH_GATEWAY" \
+            --from "2024-01-01T00:00:00.000Z"
+
+      - name: Upload geometry results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scalp-2i1-reward-geometry
+          path: research-output/scalp-2i1-reward-geometry.json
+          if-no-files-found: warn
+          retention-days: 14
