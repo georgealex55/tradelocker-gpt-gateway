@@ -20,7 +20,7 @@ function authorized(request) {
   const approval = request.headers.get("x-trade-approval-key");
 
   return Boolean(
-    (cronSecret && auth === \`Bearer \${cronSecret}\`) ||
+    (cronSecret && auth === "Bearer " + cronSecret) ||
     (approvalKey && approval === approvalKey)
   );
 }
