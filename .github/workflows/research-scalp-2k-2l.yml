@@ -1,0 +1,82 @@
+name: Scalp 2K + 2L
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - research/scalp-2k-2l
+    paths:
+      - ".github/workflows/research-scalp-2k-2l.yml"
+      - "lib/scalpStrategyCore.mjs"
+      - "lib/scalpShadow.mjs"
+      - "app/api/trading/scalp-shadow/route.js"
+      - "scripts/scalp-2k-cost-stress.mjs"
+
+concurrency:
+  group: scalp-2k-2l
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate-and-stress:
+    if: github.ref == 'refs/heads/research/scalp-2k-2l'
+    name: 2K stress + 2L build validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    env:
+      TRADE_APPROVAL_KEY: ${{ secrets.TRADE_APPROVAL_KEY }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+      RESEARCH_GATEWAY: https://tradelocker-gpt-gateway-fnpid8533-georgealex1925-2750s-projects.vercel.app
+
+    steps:
+      - name: Checkout research branch
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify required research secrets
+        shell: bash
+        run: |
+          test -n "$TRADE_APPROVAL_KEY" || { echo "TRADE_APPROVAL_KEY secret is missing"; exit 1; }
+          test -n "$VERCEL_AUTOMATION_BYPASS_SECRET" || { echo "VERCEL_AUTOMATION_BYPASS_SECRET secret is missing"; exit 1; }
+
+      - name: Freeze historical end timestamp
+        shell: bash
+        run: |
+          echo "AUDIT_TO=$(date -u -d '10 minutes ago' +%Y-%m-%dT%H:%M:00.000Z)" >> "$GITHUB_ENV"
+
+      - name: Syntax check 2K/2L shared core
+        run: |
+          node --check lib/scalpStrategyCore.mjs
+          node --check lib/scalpShadow.mjs
+          node --check scripts/scalp-2k-cost-stress.mjs
+
+      - name: Validate 2L production build
+        run: npm run build
+
+      - name: Run 2K cost and spread stress
+        run: |
+          node scripts/scalp-2k-cost-stress.mjs \
+            --gateway "$RESEARCH_GATEWAY" \
+            --from "2024-01-01T00:00:00.000Z" \
+            --to "$AUDIT_TO" \
+            --output research-output
+
+      - name: Upload 2K results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scalp-2k-cost-stress
+          path: research-output/scalp-2k-cost-stress.json
+          if-no-files-found: warn
+          retention-days: 14
