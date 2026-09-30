@@ -20,6 +20,10 @@
     {
       "path": "/api/trading/scalp-dry-run-cron",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/trading/soft-regime-shadow",
+      "schedule": "6,21,36,51 * * * *"
     }
   ]
 }
