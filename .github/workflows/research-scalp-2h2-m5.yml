@@ -24,8 +24,8 @@ jobs:
     timeout-minutes: 30
 
     env:
-      TRADE_APPROVAL_KEY: \${{ secrets.TRADE_APPROVAL_KEY }}
-      VERCEL_AUTOMATION_BYPASS_SECRET: \${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+      TRADE_APPROVAL_KEY: ${{ secrets.TRADE_APPROVAL_KEY }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
       RESEARCH_GATEWAY: https://tradelocker-gpt-gateway-fnpid8533-georgealex1925-2750s-projects.vercel.app
 
     steps:
