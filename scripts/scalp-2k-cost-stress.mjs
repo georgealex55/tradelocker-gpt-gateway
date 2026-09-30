@@ -170,16 +170,19 @@ async function main() {
   const runtime = await safetyCheck();
   const symbols = ["USDCHF","EURUSD","GBPUSD"];
   const byPair = {};
+  const rawTrades = {};
   const aggregateRows = [];
 
   for (const symbol of symbols) {
     const candles = await fetchHistory(symbol);
     byPair[symbol] = [];
+    rawTrades[symbol] = {};
 
     for (const config of configs) {
       const engine = new StrategyEngine(symbol, requestedFrom, config);
       for (const candle of candles) engine.onBar(candle);
       const result = engine.summary();
+      rawTrades[symbol][config.id] = result.trades;
 
       const scenarios = costScenarios.map(s => summarizeStress(result.trades, s));
       byPair[symbol].push({
@@ -211,18 +214,10 @@ async function main() {
       let gateCount = 0;
       for (const symbol of ["USDCHF","EURUSD","GBPUSD"]) {
         const pair = byPair[symbol].find(x => x.config.id === config.id);
-        const engineTrades = pair ? null : null;
         const pairScenario = pair?.scenarios.find(x => x.scenario.id === scenario.id);
         grossCount += pairScenario?.all.trades || 0;
         gateCount += pairScenario?.gated.trades || 0;
-      }
-
-      // Re-run compactly to aggregate exact trade rows with the same gate/cost rules.
-      for (const symbol of ["USDCHF","EURUSD","GBPUSD"]) {
-        const candles = await fetchHistory(symbol);
-        const engine = new StrategyEngine(symbol, requestedFrom, config);
-        for (const candle of candles) engine.onBar(candle);
-        trades.push(...stressTrades(engine.trades, scenario, true));
+        trades.push(...stressTrades(rawTrades[symbol][config.id] || [], scenario, true));
       }
 
       const summary = groupSummary(trades);
