@@ -34,8 +34,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: npm
-      - run: npm ci
+      - run: npm install --no-audit --no-fund
       - name: Test soft H1 regime logic
         run: npm run test:soft-regime
       - name: Regression test Structure A2
