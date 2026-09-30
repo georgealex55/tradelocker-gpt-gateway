@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test:structure-a2": "node scripts/test-structure-a2-core.mjs"
+    "test:structure-a2": "node scripts/test-structure-a2-core.mjs",
+    "test:soft-regime": "node scripts/test-soft-h1-regime.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.0",
