@@ -1,0 +1,88 @@
+name: Scalp 2I Complete then 2J
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - research/scalp-2i-complete-2j
+    paths:
+      - ".github/workflows/research-scalp-2i-complete-2j.yml"
+      - "scripts/scalp-2i2-2j.mjs"
+
+concurrency:
+  group: scalp-2i-complete-2j
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  research:
+    if: github.ref == 'refs/heads/research/scalp-2i-complete-2j'
+    name: Finish 2I and run 2J cross-pair
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    env:
+      TRADE_APPROVAL_KEY: ${{ secrets.TRADE_APPROVAL_KEY }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+      RESEARCH_GATEWAY: https://tradelocker-gpt-gateway-fnpid8533-georgealex1925-2750s-projects.vercel.app
+
+    steps:
+      - name: Checkout research branch
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Verify required research secrets
+        shell: bash
+        run: |
+          test -n "$TRADE_APPROVAL_KEY" || { echo "TRADE_APPROVAL_KEY secret is missing"; exit 1; }
+          test -n "$VERCEL_AUTOMATION_BYPASS_SECRET" || { echo "VERCEL_AUTOMATION_BYPASS_SECRET secret is missing"; exit 1; }
+
+      - name: Freeze one historical end timestamp for all stages
+        shell: bash
+        run: |
+          echo "AUDIT_TO=$(date -u -d '10 minutes ago' +%Y-%m-%dT%H:%M:00.000Z)" >> "$GITHUB_ENV"
+
+      - name: Syntax check research runner
+        run: node --check scripts/scalp-2i2-2j.mjs
+
+      - name: Run 2I.2 actual outcome matrix
+        run: |
+          node scripts/scalp-2i2-2j.mjs 2i2 \
+            --gateway "$RESEARCH_GATEWAY" \
+            --from "2024-01-01T00:00:00.000Z" \
+            --to "$AUDIT_TO" \
+            --output research-output
+
+      - name: Run 2I.3 H1 gate comparison
+        run: |
+          node scripts/scalp-2i2-2j.mjs 2i3 \
+            --gateway "$RESEARCH_GATEWAY" \
+            --from "2024-01-01T00:00:00.000Z" \
+            --to "$AUDIT_TO" \
+            --output research-output
+
+      - name: Run 2J unchanged cross-pair validation
+        run: |
+          node scripts/scalp-2i2-2j.mjs 2j \
+            --gateway "$RESEARCH_GATEWAY" \
+            --from "2024-01-01T00:00:00.000Z" \
+            --to "$AUDIT_TO" \
+            --output research-output
+
+      - name: Upload 2I and 2J results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scalp-2i-complete-2j-results
+          path: |
+            research-output/scalp-2i2-outcomes.json
+            research-output/scalp-2i3-h1-gates.json
+            research-output/scalp-2j-cross-pair.json
+          if-no-files-found: warn
+          retention-days: 14
