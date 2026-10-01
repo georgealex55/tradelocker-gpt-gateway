@@ -539,7 +539,8 @@ function simulate({
         ...baseFeatures,
         plannedRiskPercent: size.plannedRiskPercent
       });
-      break;
+      // Keep scanning later symbols on this same M15 open so attribution
+      // records them as capacity-blocked. They cannot execute because position is now occupied.
     }
 
     if (position) {
