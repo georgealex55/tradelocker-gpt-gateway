@@ -64,3 +64,5 @@ jobs:
           retention-days: 30
 
 # trigger: gbpusd sell-only experiment
+
+# trigger: force branch workflow run
