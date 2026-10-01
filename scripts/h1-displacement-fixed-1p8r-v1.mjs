@@ -15,7 +15,8 @@ const VALIDATED_INPUT_HASH =
   "61e9d2fae987acf428cb8034e04514d7f84ad01e9e1a2f03d606de09ea740c14";
 
 const STRATEGY = Object.freeze({
-  id: "h1-displacement-fixed-1p8r-v1",
+  id: "h1-displacement-fixed-1p8r-sell-only-v1",
+  allowedSide: "SELL",
   signalTimeframe: "H1",
   entryChannelBars: 20,
   atrBars: 14,
@@ -34,7 +35,7 @@ const STRATEGY = Object.freeze({
 });
 
 const source = process.argv[2] || "research-output";
-const out = process.argv[3] || "research-output/h1-displacement-fixed-1p8r-v1";
+const out = process.argv[3] || "research-output/h1-displacement-fixed-1p8r-sell-only-v1";
 
 const dataset = JSON.parse(
   await fs.readFile(path.join(source, "dataset.rechecked.json"), "utf8")
@@ -142,6 +143,7 @@ function buildSignals(pair) {
       trigger = entryLow;
     }
     if (!action) continue;
+    if (action !== STRATEGY.allowedSide) continue;
 
     diagnostics.channelBreakouts++;
 
@@ -571,6 +573,7 @@ function verify(result) {
 
   for (const t of result.trades) {
     assert.equal(t.entryTime, t.signalTime + M15, "ENTRY_NOT_NEXT_M15_OPEN");
+    assert.equal(t.side, STRATEGY.allowedSide, "NON_SELL_TRADE_EXECUTED");
     assert.equal(t.lots, FIXED_LOTS, "FIXED_LOT_DRIFT");
     assert.ok(
       t.riskAmount <=
@@ -637,7 +640,7 @@ const signalDiagnostics = Object.fromEntries(
 
 const output = {
   experiment: STRATEGY.id,
-  recordedProtocol: "docs/H1_DISPLACEMENT_FIXED_1P8R_V1_PROTOCOL.md",
+  recordedProtocol: "docs/H1_DISPLACEMENT_FIXED_1P8R_SELL_ONLY_V1_PROTOCOL.md",
   inputHash: prepared.inputHash,
   sourceHash,
   strategy: STRATEGY,
