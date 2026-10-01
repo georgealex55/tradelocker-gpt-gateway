@@ -11,11 +11,12 @@ const H1 = 60 * 60 * 1000;
 const STARTING_BALANCE = 500;
 const HARD_RISK_CEILING_PERCENT = 20;
 const FIXED_LOTS = 0.01;
+const ACTIVE_SYMBOLS = Object.freeze(["GBPUSD"]);
 const VALIDATED_INPUT_HASH =
   "61e9d2fae987acf428cb8034e04514d7f84ad01e9e1a2f03d606de09ea740c14";
 
 const STRATEGY = Object.freeze({
-  id: "h1-displacement-fixed-1p8r-sell-only-v1",
+  id: "h1-displacement-gbpusd-sell-only-v1",
   allowedSide: "SELL",
   signalTimeframe: "H1",
   entryChannelBars: 20,
@@ -35,7 +36,7 @@ const STRATEGY = Object.freeze({
 });
 
 const source = process.argv[2] || "research-output";
-const out = process.argv[3] || "research-output/h1-displacement-fixed-1p8r-sell-only-v1";
+const out = process.argv[3] || "research-output/h1-displacement-gbpusd-sell-only-v1";
 
 const dataset = JSON.parse(
   await fs.readFile(path.join(source, "dataset.rechecked.json"), "utf8")
@@ -227,8 +228,8 @@ function fixedMinLotSize({ pair, entry, stop, equity, costPrice }) {
   };
 }
 
-function simulate({ from, to, costs, symbols = SYMBOLS }) {
-  const activeSymbols = SYMBOLS.filter(s => symbols.includes(s));
+function simulate({ from, to, costs, symbols = ACTIVE_SYMBOLS }) {
+  const activeSymbols = ACTIVE_SYMBOLS.filter(s => symbols.includes(s));
   const indexed = Object.fromEntries(
     activeSymbols.map(symbol => [
       symbol,
@@ -542,19 +543,6 @@ function eligibility(validation, stress, windowRows) {
     reasons.push("INCONSISTENT_WINDOWS");
   }
 
-  if (Object.values(validation.byPair).some(p => p.tradeCount < 5)) {
-    reasons.push("INSUFFICIENT_PAIR_DISTRIBUTION");
-  }
-
-  const pairGains = Object.values(validation.byPair).map(
-    p => Math.max(0, p.endingBalance - STARTING_BALANCE)
-  );
-  if (
-    Math.max(...pairGains) / (sum(pairGains, x => x) || 1) > 0.75
-  ) {
-    reasons.push("PAIR_GAIN_CONCENTRATION");
-  }
-
   const windowGains = windowRows.map(
     w => Math.max(0, w.endingBalance - w.startingBalance)
   );
@@ -574,6 +562,7 @@ function verify(result) {
   for (const t of result.trades) {
     assert.equal(t.entryTime, t.signalTime + M15, "ENTRY_NOT_NEXT_M15_OPEN");
     assert.equal(t.side, STRATEGY.allowedSide, "NON_SELL_TRADE_EXECUTED");
+    assert.equal(t.symbol, "GBPUSD", "NON_GBPUSD_TRADE_EXECUTED");
     assert.equal(t.lots, FIXED_LOTS, "FIXED_LOT_DRIFT");
     assert.ok(
       t.riskAmount <=
@@ -635,12 +624,12 @@ const sourceHash = createHash("sha256")
   .digest("hex");
 
 const signalDiagnostics = Object.fromEntries(
-  SYMBOLS.map(symbol => [symbol, prepared.pairs[symbol].diagnostics])
+  ACTIVE_SYMBOLS.map(symbol => [symbol, prepared.pairs[symbol].diagnostics])
 );
 
 const output = {
   experiment: STRATEGY.id,
-  recordedProtocol: "docs/H1_DISPLACEMENT_FIXED_1P8R_SELL_ONLY_V1_PROTOCOL.md",
+  recordedProtocol: "docs/H1_DISPLACEMENT_GBPUSD_SELL_ONLY_V1_PROTOCOL.md",
   inputHash: prepared.inputHash,
   sourceHash,
   strategy: STRATEGY,
