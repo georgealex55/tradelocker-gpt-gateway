@@ -1,0 +1,58 @@
+name: Strategy Solutions Suite V1
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [research/strategy-solutions-suite-v1]
+    paths:
+      - ".github/workflows/research-strategy-solutions-suite-v1.yml"
+      - "scripts/strategy-solutions-suite-v1.mjs"
+      - "docs/STRATEGY_SOLUTIONS_SUITE_V1_PROTOCOL.md"
+      - "lib/research/engine.mjs"
+      - "lib/research/policies.mjs"
+      - "package.json"
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: strategy-solutions-suite-v1
+  cancel-in-progress: false
+
+jobs:
+  evaluate:
+    if: github.ref == 'refs/heads/research/strategy-solutions-suite-v1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Run research engineering tests
+        run: npm run test:research
+      - name: Download corrected frozen research archive
+        uses: actions/download-artifact@v4
+        with:
+          name: portfolio-144-evaluation
+          path: research-output
+          run-id: 36506041404
+          github-token: ${{ github.token }}
+      - name: Run five-part strategy solutions suite
+        run: |
+          node --loader ./scripts/research-loader.mjs scripts/strategy-solutions-suite-v1.mjs \
+            research-output research-output/strategy-solutions-suite-v1
+      - name: Upload suite results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: strategy-solutions-suite-v1-results
+          path: |
+            research-output/strategy-solutions-suite-v1/results.json
+            research-output/strategy-solutions-suite-v1/summary.json
+          if-no-files-found: warn
+          retention-days: 30
