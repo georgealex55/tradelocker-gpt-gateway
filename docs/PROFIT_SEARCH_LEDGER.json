@@ -31,6 +31,34 @@
         "STRESS_RETURN_LE_0",
         "STRESS_DD_GT_10"
       ]
+    },
+    {
+      "id": 2,
+      "date": "2026-10-03",
+      "configHash": "1555de44077967dd0f2e3f3ceed45999fd52aaeff595788fe6db1c76b3f10f6f",
+      "base": {
+        "trades": 132,
+        "returnPercent": 5.084326588339713,
+        "expectancyR": 0.20588138169810596,
+        "profitFactor": 1.111108278575982,
+        "maxDrawdownPercent": 8.793460968197069
+      },
+      "stress": {
+        "trades": 132,
+        "returnPercent": 1.017153169665381,
+        "expectancyR": 0.11594267917303518,
+        "profitFactor": 1.0213866193541647,
+        "maxDrawdownPercent": 9.612240649706344
+      },
+      "windowsR": [
+        5.765945958289259,
+        14.677658340638578,
+        6.732738085222149
+      ],
+      "passed": false,
+      "failedGates": [
+        "PAIR_GAIN_CONCENTRATION"
+      ]
     }
   ]
 }
