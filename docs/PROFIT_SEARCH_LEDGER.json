@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "maxUniqueConfigurations": 36,
+  "entries": [
+    {
+      "id": 1,
+      "date": "2026-10-03",
+      "configHash": "cc107fab9db68bf861cdf12a0dc6543048daffdab28bfcea7b3362c3fd7626ae",
+      "base": {
+        "trades": 140,
+        "returnPercent": 3.83042554727553,
+        "expectancyR": 0.1693959963459054,
+        "profitFactor": 1.0814667960532214,
+        "maxDrawdownPercent": 9.405257373940398
+      },
+      "stress": {
+        "trades": 140,
+        "returnPercent": -0.3858657348701893,
+        "expectancyR": 0.0838305573472423,
+        "profitFactor": 0.9921109761813776,
+        "maxDrawdownPercent": 10.334064838716673
+      },
+      "windowsR": [
+        5.2695917820503295,
+        13.870250310696434,
+        4.575597395679992
+      ],
+      "passed": false,
+      "failedGates": [
+        "BASE_PF_LE_1_10",
+        "STRESS_RETURN_LE_0",
+        "STRESS_DD_GT_10"
+      ]
+    }
+  ]
+}
