@@ -1,0 +1,42 @@
+.shell{position:relative;left:50%;transform:translateX(-50%);width:min(1560px,calc(100vw - 28px));min-height:100vh;box-sizing:border-box;background:#050c17;color:#edf4ff;padding:26px;box-shadow:0 0 40px rgba(0,0,0,.2);border:1px solid #15253d;border-radius:18px;font-family:Inter,system-ui,Segoe UI,sans-serif}
+.shell *{box-sizing:border-box}.shell button,.shell select,.shell input{font:inherit}
+.header{display:flex;justify-content:space-between;gap:18px;align-items:center;margin-bottom:24px}
+.header h1{font-size:clamp(1.6rem,2.2vw,2.8rem);margin:4px 0 6px;letter-spacing:-.03em}
+.eyebrow{font-weight:750;color:#75baff;letter-spacing:.13em;font-size:11px;margin:12px 0 0}
+.subtitle,.muted{color:#93a9c6;font-size:13px;line-height:1.55;margin:4px 0}
+.back{color:#9ac9ff;text-decoration:none;font-weight:600;font-size:13px}.back:hover{text-decoration:underline}
+.pill{font-size:11px;white-space:nowrap;font-weight:800;letter-spacing:.08em;background:#173129;border:1px solid #326957;padding:9px 12px;border-radius:99px;color:#9bf0c7}
+.toolbar{display:flex;align-items:end;gap:18px;flex-wrap:wrap;background:#101e30;border:1px solid #2d4260;padding:14px 18px;border-radius:14px;margin-bottom:16px}
+.topForm{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.topForm label,.layoutPicker legend{color:#a3b5d1;font-size:12px;font-weight:600}
+.toolbar input:not([type=checkbox]),.panelTop input,.shell select{background:#071324;border:1px solid #344b69;border-radius:8px;color:#f0f7ff;padding:9px;min-width:0}
+.topForm input{width:154px;text-transform:uppercase}
+.shell button{cursor:pointer;border-radius:8px;background:#24405f;color:#ecf5ff;border:1px solid #385577;padding:9px 12px}
+.shell button:hover,.shell button:focus-visible{background:#3b5b83}
+.topForm button{background:#2563af;border-color:#347cce;font-weight:650}
+.layoutPicker{display:flex;align-items:center;gap:5px;margin:0;padding:0;border:0}
+.layoutPicker legend{margin-bottom:6px}
+.layoutPicker button{white-space:nowrap;font-size:12px}
+.layoutPicker .selected{background:#155e89;border-color:#45a3d8}
+.linked{white-space:nowrap;display:flex;align-items:center;gap:7px;color:#b7c7da;font-size:12px;padding-bottom:9px}
+.linked input{accent-color:#57b2ef}
+.single,.double,.quad{display:grid;gap:14px;align-items:stretch}
+.single{grid-template-columns:1fr}.double,.quad{grid-template-columns:repeat(2,minmax(0,1fr))}
+.chartPanel{border:1px solid #273e5a;border-radius:14px;background:#081629;min-width:0;overflow:hidden}
+.panelTop{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:10px 12px;min-height:60px}
+.panelNumber{font-weight:800;color:#7ba7d6;font-size:12px}
+.tickerForm{display:flex;align-items:center;gap:6px;flex:1;min-width:170px}
+.tickerForm input{width:100%;font-weight:700;letter-spacing:.02em;text-transform:uppercase}
+.tickerForm button{padding:9px 10px}
+.panelTop select{font-size:12px;max-width:80px}
+.widgetHost{height:clamp(390px,53vh,640px);min-height:390px;position:relative;background:#0b1726}
+.subline{font-size:11px;color:#8299b9;margin:0;padding:8px 12px;min-height:30px}
+.infoGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:16px}
+.infoCard{background:#101e30;border:1px solid #273e5a;border-radius:14px;padding:16px;line-height:1.6}
+.infoCard h2{margin:0 0 7px;font-size:16px}
+.infoCard p{font-size:13px;color:#bbcbe0;margin:0 0 9px}
+.infoCard p.muted{color:#91a7c3;margin-bottom:0}
+.footer{font-size:12px;line-height:1.65;color:#90a7c6;border-top:1px solid #273e5a;margin-top:20px;padding-top:16px}
+.srOnly{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+.error{color:#ffbaba;font-size:12px;width:100%;margin:6px 0}
+@media(max-width:1100px){.shell{padding:16px}.double,.quad{grid-template-columns:1fr}.widgetHost{height:550px}}
+@media(max-width:700px){.shell{width:calc(100vw - 12px);padding:10px}.header{align-items:flex-start;flex-direction:column}.pill{align-self:flex-start}.toolbar{padding:12px}.infoGrid{grid-template-columns:1fr}.widgetHost{height:440px}.topForm{width:100%}}
