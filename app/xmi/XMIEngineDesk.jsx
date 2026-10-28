@@ -31,15 +31,15 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
   try{
    const raw=window.localStorage.getItem(KEY);
    if(raw){const data=deserializeWorkspace(raw);setSavedDrawings(data.drawings);
-    setGlobalSettings(data.settings);setTech(data.technical);}
+    setGlobalSettings(data.settings);setChartOverride(data.overrides);setTech(data.technical);}
   }catch{ /* Private browsing / older schema: fail closed to default settings. */ }
   setLoaded(true);
  },[]);
  useEffect(()=>{
   if(!loaded)return;
-  try{window.localStorage.setItem(KEY,serializeWorkspace(savedDrawings,globalSettings,tech));}
+  try{window.localStorage.setItem(KEY,serializeWorkspace(savedDrawings,globalSettings,tech,chartOverride));}
   catch{setError("Local drawing storage unavailable. Export JSON to retain this session.");}
- },[loaded,savedDrawings,globalSettings,tech]);
+ },[loaded,savedDrawings,globalSettings,tech,chartOverride]);
  useEffect(()=>{
   const change=()=>setBrowserFullscreen(document.fullscreenElement===root.current);
   document.addEventListener("fullscreenchange",change);
@@ -87,7 +87,7 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
   }
  }
  function exportJson(){
-  const body=serializeWorkspace(savedDrawings,globalSettings,tech);
+  const body=serializeWorkspace(savedDrawings,globalSettings,tech,chartOverride);
   const url=URL.createObjectURL(new Blob([body],{type:"application/json"}));
   const link=document.createElement("a");link.href=url;link.download="xmi-chart-drawings.json";
   link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
@@ -97,6 +97,7 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
    if(file.size>350000)throw Error("Import file too large");
    const parsed=deserializeWorkspace(await file.text());
    setSavedDrawings(parsed.drawings);setGlobalSettings(parsed.settings);
+   setChartOverride(parsed.overrides);
    setTech(parsed.technical);setError("");setDrawTool(null);
   }catch(e){setError("Drawing import declined: "+e.message);}
  }
@@ -110,7 +111,6 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
  const patternReport=patterns[focus+"|"+current.key+"|"+resolutions[focus]]||[];
  const count=STRUCTURE_CONCEPTS.filter(x=>structure[x.id].enabled).length;
  const showLeft=watchVisible&&!focusMode,showRight=intelVisible&&!focusMode;
- const focusedSettings=resolveChartSettings(globalSettings,chartOverride,focus);
  const deskClass=[styles.studioDesk,maximized?styles.studioMaximized:"",
   !showLeft?styles.studioNoLeft:"",!showRight?styles.studioNoRight:"",
   focusMode?styles.studioFocused:"",browserFullscreen?styles.studioBrowserFullscreen:""].join(" ");
