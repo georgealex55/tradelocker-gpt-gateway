@@ -5,6 +5,8 @@ on:
       - 'app/xmi/**'
       - 'app/api/xmi/**'
       - 'lib/xmiWorkspace.mjs'
+      - 'lib/xmiLive*.mjs'
+      - 'tests/xmi-live-engine.test.mjs'
       - 'lib/xmiDeskState.mjs'
       - 'tests/xmi-desk.test.mjs'
       - 'lib/xmiContext.mjs'
@@ -31,6 +33,9 @@ jobs:
       - name: Syntax-check the chart settings
         run: |
           node --check lib/xmiWorkspace.mjs
+          node --check lib/xmiLiveMath.mjs
+          node --check lib/xmiLiveProvider.mjs
+          node --check app/api/xmi/live/route.js
           node --check lib/xmiDeskState.mjs
           node --check lib/xmiContext.mjs
           node --check lib/xmiJournal.mjs
