@@ -4,6 +4,10 @@ on:
     paths:
       - 'app/xmi/**'
       - 'lib/xmiWorkspace.mjs'
+      - 'lib/xmiContext.mjs'
+      - 'lib/xmiJournal.mjs'
+      - 'tests/xmi-context.test.mjs'
+      - 'tests/xmi-journal.test.mjs'
       - 'tests/xmi-workspace.test.mjs'
       - '.github/workflows/xmi-preview-checks.yml'
 permissions:
@@ -17,6 +21,10 @@ jobs:
         with:
           persist-credentials: false
       - name: Syntax-check the chart settings
-        run: node --check lib/xmiWorkspace.mjs
+        run: |
+          node --check lib/xmiWorkspace.mjs
+          node --check lib/xmiContext.mjs
+          node --check lib/xmiJournal.mjs
+          node --check app/api/xmi/context/route.js
       - name: Test equity boundaries and widget configuration
-        run: node --test tests/xmi-workspace.test.mjs
+        run: node --test tests/xmi-*.test.mjs
