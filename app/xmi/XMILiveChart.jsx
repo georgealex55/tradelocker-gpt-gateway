@@ -64,12 +64,12 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
  },[enabled,libReady]);
  useEffect(()=>{
   if(!libReady||!series.current||!active)return;
-  let active=true,abort=null,timer=null;
+  let running=true,abort=null,timer=null;
   const all=series.current;
   let fitted=false;
   // No synthetic candles or broker-order requests. Refresh a bounded OHLC snapshot.
   async function refresh(){
-   if(!active)return;
+   if(!running)return;
    if(document.visibilityState==="hidden"){timer=setTimeout(refresh,20000);return;}
    abort=new AbortController();
    try{
@@ -78,7 +78,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
     const data=await res.json();
     if(!res.ok||!data.ok)throw Error(data.error||"Broker candles unavailable");
     const stats=computeFive(data.bars,resolution,Date.parse(data.asOf),data.volumeBasis);
-    if(!active)return;
+    if(!running)return;
     const mapped=stats.bars.map(({time,open,high,low,close})=>({time,open,high,low,close}));
     if(mapped.length){
      all.candle.setData(mapped);
@@ -93,15 +93,15 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
     setFeed({phase:quality==="STALE"?"stale":mapped.length?"ready":"empty",
      message:mapped.length?(quality==="CURRENT"?"Read-only candles · "+data.delivery:"Broker candles are not recent"):"No candles returned",
      stats,asOf:data.asOf,last:stats.latest,quality});
-   }catch(e){if(!active||e.name==="AbortError")return;
+   }catch(e){if(!running||e.name==="AbortError")return;
     setFeed(prev=>({...prev,phase:"error",message:e.message,quality:"UNAVAILABLE"}));
-   }finally{if(active)timer=setTimeout(refresh,20000);}
+   }finally{if(running)timer=setTimeout(refresh,20000);}
   }
   setFeed({phase:"loading",message:"Loading verified broker candles…",last:null,stats:null,asOf:null});
   // Clear stale previous symbol history immediately.
   for(const key of Object.keys(all))all[key].setData([]);
   refresh();
-  return ()=>{active=false;abort?.abort();if(timer)clearTimeout(timer);};
+  return ()=>{running=false;abort?.abort();if(timer)clearTimeout(timer);};
  },[symbol,resolution,libReady,active]);
  const stats=feed.stats;const ready=feed.phase==="ready";
  return <article className={styles.engineCard+(selected?" "+styles.chartActive:"")} aria-label={symbol+" live forex chart"}>
