@@ -105,7 +105,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
      message:mapped.length?(quality==="CURRENT"?"Read-only candles · "+data.delivery:"Broker candles are not recent"):"No candles returned",
      stats,asOf:data.asOf,last:stats.latest,quality});
    }catch(e){if(!running||e.name==="AbortError")return;
-    setFeed(prev=>({...prev,phase:"error",message:e.message,quality:"UNAVAILABLE"}));
+    setFeed(prev=>({...prev,phase:"error",message:e.message,stats:null,last:null,quality:"UNAVAILABLE"}));
    }finally{if(running)timer=setTimeout(refresh,20000);}
   }
   setFeed({phase:"loading",message:"Loading verified broker candles…",last:null,stats:null,asOf:null});
@@ -150,6 +150,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
    overlay.marker.setMarkers([]);
    overlay.primitive.setAnnotations([],null);
    setOverlayMessage("");
+   if(selected)onStructureRef.current?.({summaries:[],annotations:[],unavailable:[{concept:"Market data",resolution,reason:"Awaiting verified candles"}]});
    return;
   }
   const byResolution={
