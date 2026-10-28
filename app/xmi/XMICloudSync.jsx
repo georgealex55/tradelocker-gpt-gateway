@@ -11,24 +11,26 @@ export default function XMICloudSync({trades,setTrades}){
  const [busy,setBusy]=useState(false);
  const initialized=useRef(false);
  useEffect(()=>{
-  if(initialized.current)return;initialized.current=true;
   let mounted=true;
-  (async()=>{
-   try{
-    const response=await fetch("/api/xmi/auth/config",{cache:"no-store"});
-    const cfg=await response.json();
-    if(!response.ok||cfg.ok!==true)throw Error("Account configuration unavailable");
-    // Always process callback even if config is disabled, to scrub any OAuth code from URL.
-    const account=await finishCallback(cfg);
-    if(!mounted)return;
-    setConfig(cfg);
-    if(account){
-     setSession(account);setStatus("Signed in. Upload or load is optional; no background sync.");
-    }else setStatus(cfg.configured?
-      "Cloud journal ready for sign-in. No trades upload automatically.":
-      "Cloud sync unavailable: secure identity provider and private Neon login are not configured.");
-   }catch(e){if(mounted){setConfig({configured:false});setStatus("Sign-in unavailable: "+shortError(e));}}
+  // Reuse the same callback promise during React strict-mode effect replay.
+  // Parsing an OAuth code twice would consume it and lose the session.
+  if(!initialized.current)initialized.current=(async()=>{
+   const response=await fetch("/api/xmi/auth/config",{cache:"no-store"});
+   const cfg=await response.json();
+   if(!response.ok||cfg.ok!==true)throw Error("Account configuration unavailable");
+   const account=await finishCallback(cfg);
+   return {cfg,account};
   })();
+  initialized.current.then(({cfg,account})=>{
+   if(!mounted)return;
+   setConfig(cfg);
+   if(account){setSession(account);setStatus("Signed in. Upload or load is optional; no background sync.");}
+   else setStatus(cfg.configured?
+     "Cloud journal ready for sign-in. No trades upload automatically.":
+     "Cloud sync unavailable: secure identity provider and private Neon login are not configured.");
+  }).catch(e=>{
+   if(mounted){setConfig({configured:false});setStatus("Sign-in unavailable: "+shortError(e));}
+  });
   return ()=>{mounted=false;};
  },[]);
  function token(){
