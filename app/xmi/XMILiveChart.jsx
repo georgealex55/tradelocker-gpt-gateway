@@ -98,7 +98,15 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
      }
      all.histogram.setData(stats.overlays.macdHistogram.map(p=>({...p,color:p.value>=0?"#339a9a":"#b66c84"})));
      all.volume.setData(stats.overlays.volume);
-     if(!fitted){chart.current?.timeScale().fitContent();fitted=true;}
+     if(!fitted){
+      // Showing all 320 candles compresses them into an almost invisible strip.
+      // Start on the last ~70 actual bars, preserving the user's pan/zoom thereafter.
+      const last=mapped.length-1;
+      chart.current?.timeScale().setVisibleLogicalRange({
+       from:Math.max(0,last-69),to:last+5
+      });
+      fitted=true;
+     }
     }
     const quality=quoteState(stats.lastClosed,Date.parse(data.asOf),resolution);
     setFeed({phase:quality==="STALE"?"stale":mapped.length?"ready":"empty",
@@ -196,6 +204,9 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
    </span>
    <span role="status">{feed.message}</span>
    <span>{feed.last?(feed.last.closed?"Last bar closed":"Last bar forming")+" · "+new Date(feed.last.time*1000).toLocaleString():"No verified price"}</span>
+   {stats?.bars?.length?<span className={styles.candleReadout}>
+    {stats.bars.length} verified candles · O {feed.last.open.toFixed(5)} · H {feed.last.high.toFixed(5)} · L {feed.last.low.toFixed(5)} · C {feed.last.close.toFixed(5)}
+   </span>:null}
    {overlayMessage?<span>{overlayMessage}</span>:null}
   </div>
   {stats?<div className={styles.engineNotes}>
