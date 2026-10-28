@@ -27,8 +27,8 @@ test("Switching layout resets offscreen focus and retains visible focus",()=>{
  assert.throws(()=>focusAfterLayout(0,3),/layout/);
 });
 test("Per-chart timeframe changes are independent",()=>{
- const next=updateTimeframe(charts,2,"60");
- assert.equal(next[2].interval,"60");
+ const next=updateTimeframe(charts,2,"5");
+ assert.equal(next[2].interval,"5");
  assert.equal(next[0].interval,charts[0].interval);
  assert.throws(()=>updateTimeframe(charts,0,"90"),/Invalid/);
 });
