@@ -90,6 +90,15 @@ test("Only enabled concepts appear; missing source is explicitly unavailable",()
  assert.ok(!result.unavailable.some(x=>x.concept==="FVG"));
  assert.equal(result.annotations.filter(x=>x.concept==="FVG").length,0);
 });
+test("Hourly-or-faster requirement prevents false higher-timeframe session summaries",()=>{
+ let c=defaultStructureSettings();
+ for(const id of STRUCTURE_IDS)c=setStructureOption(c,id,{enabled:id==="Session High / Low"});
+ c=setStructureOption(c,"Session High / Low",{resolution:"1D"});
+ assert.deepEqual(requiredStructureTimeframes(c,"5m"),[]);
+ const result=assembleStructure(c,{},"5m",[{...mk(0),closed:true}]);
+ assert.equal(result.summaries.length,0);
+ assert.match(result.unavailable[0].reason,/1H or faster/);
+});
 test("Annotations are capped to five per concept and have safe chart marker attributes",()=>{
  const bars=Array.from({length:90},(_,i)=>mk(i,i%2?110:100,i%2?112:102,
   i%2?99:90,i%2?111:91));
