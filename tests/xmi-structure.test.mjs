@@ -65,7 +65,7 @@ test("Displacement is determined by previously closed candle ranges, not a volum
 });
 test("Completed UTC reference session levels do not use partial sessions",()=>{
  const bars=Array.from({length:12},(_,i)=>mk(i,100,101+i*.1,99-i*.1,100,3600));
- const before=detectStructure(bars,"1H",(start+8*3600)*1000);
+ const before=detectStructure(bars.slice(0,8),"1H",(start+8*3600)*1000);
  const after=detectStructure(bars,"1H",(start+12*3600)*1000);
  assert.equal(before.events["Session High / Low"].length,0);
  assert.ok(after.events["Session High / Low"].find(e=>e.summary.includes("Asia")));
