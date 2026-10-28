@@ -193,3 +193,83 @@
 @media(prefers-reduced-motion:reduce){.shell button,.chartPanel{transition:none}}
 
 .uxHelper{font-size:10px;color:#8fa9c4;line-height:1.5;margin:-5px 0 13px}
+
+/* Forex-first live engine: watchlist / charts / intelligence */
+.mainNavigation{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;
+ border:1px solid #2b4057;background:#0b1729;border-radius:13px;padding:6px;margin-bottom:14px}
+.mainNavigation button{border-color:transparent;background:transparent;text-align:left;display:grid;gap:4px;
+ padding:12px 16px;min-width:0}
+.mainNavigation button strong{font-size:13px;letter-spacing:.01em}
+.mainNavigation button small{font-size:10px;color:#8da3be}
+.mainNavigation .mainNavActive{background:#184464;border-color:#3b91bc;box-shadow:inset 0 0 0 1px #315a7a}
+.mainNavigation .mainNavActive small{color:#c2d7e9}
+.nonChartWorkspace{min-height:460px;border:1px solid #29405a;background:#09192b;border-radius:14px;padding:19px}
+.liveDesk{display:grid;grid-template-columns:210px minmax(0,1fr) 235px;gap:12px;align-items:start}
+.liveWatch,.liveIntelligence{border:1px solid #2e435d;background:#101e32;border-radius:13px;padding:13px;min-width:0}
+.liveSideTitle{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px}
+.liveSideTitle strong{font-size:12px}
+.liveSideTitle>span{font-size:10px;color:#9ec3d8;white-space:nowrap}
+.liveWatch>p,.liveIntelligence>p{font-size:11px;line-height:1.65;color:#8faac4}
+.watchRows{display:grid;gap:5px;margin-top:13px}
+.watchRow{display:flex;border:1px solid #263e56;border-radius:9px;background:#0b1929;align-items:stretch}
+.watchActive{border-color:#4c9cc6;background:#153854}
+.watchSelect{border:0!important;background:transparent!important;padding:9px!important;display:grid;flex:1;min-width:0;text-align:left;gap:3px}
+.watchSelect strong{font-size:12px;color:#e5f4ff}
+.watchSelect small{font-size:9px;color:#86a1bf;white-space:normal}
+.watchRemove{border:0!important;background:transparent!important;color:#83a2bf!important;padding:8px!important;font-size:17px!important}
+.watchRemove:hover{color:#ffe2e2!important}
+.watchAdd{margin-top:16px;display:grid;gap:8px}
+.watchAdd>label{font-weight:750;font-size:11px;color:#b3c7db}
+.watchAdd>div{display:flex;flex-wrap:wrap;gap:6px}
+.watchAdd input{width:100%;font-size:11px!important}
+.watchAdd button{font-size:11px}
+.watchFoot{font-size:10px!important;line-height:1.7;color:#859bb8!important}
+.liveCharts{min-width:0}
+.liveChartHeading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+.liveChartHeading h2{font-size:19px;margin:0}
+.liveChartItem{min-width:0}
+.engineCard{border:1px solid #2b475f;background:#0b1828;border-radius:13px;min-width:0;overflow:hidden}
+.engineCard.chartActive{border-color:#4192b3}
+.engineTop{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px}
+.engineTop>div:first-child{display:grid;gap:3px}
+.engineSymbol{font-size:15px;letter-spacing:.02em}
+.engineTop small{font-size:10px;color:#8da6c3}
+.engineActions{display:flex;align-items:center;gap:7px}
+.engineActions select{min-width:63px}
+.indicatorControls{display:flex;gap:6px;flex-wrap:wrap;padding:8px 10px;
+ border-top:1px solid #26374d;background:#101e31}
+.indicatorControls label{display:flex;align-items:center;gap:5px;font-size:10px;color:#c3d6e8;white-space:nowrap;
+ padding:5px 7px;border:1px solid #28415c;background:#13263c;border-radius:6px;cursor:pointer}
+.indicatorControls input{accent-color:#55bdec}
+.engineCanvas{width:100%;height:620px;min-width:0;position:relative;background:#0a1626}
+.engineFooter{display:flex;flex-wrap:wrap;align-items:center;gap:8px;border-top:1px solid #2a3e54;
+ padding:9px 12px;font-size:10px;color:#a3b8ce;line-height:1.5}
+.engineFooter>span:last-child{margin-left:auto}
+.liveOk,.feedWarn{padding:3px 7px;border-radius:6px;letter-spacing:.04em;white-space:nowrap;font-size:9px;font-weight:850}
+.liveOk{background:#164339;color:#a2f0d4}.feedWarn{background:#49382a;color:#fbd6aa}
+.engineNotes{display:grid;gap:3px;padding:8px 12px;background:#142333;color:#9bb1c9;font-size:10px;line-height:1.5}
+.engineSignal{display:flex;flex-wrap:wrap;align-items:center;gap:7px;padding:11px 12px;
+ border-top:1px solid #253f58;background:#102238;font-size:11px}
+.engineSignal>strong{color:#d6eafd}
+.engineSignal>span{padding:4px 7px;border:1px solid #4a5771;border-radius:6px;color:#a5b8cf;font-size:9px}
+.engineSignal small{color:#869db7;flex-basis:100%}
+.feedMissing{border:1px solid #36506c;border-radius:12px;padding:24px;background:#121e2f;min-height:360px}
+.feedMissing h3{margin:0 0 8px}
+.feedMissing p{font-size:12px;line-height:1.6;color:#a2b6cb}
+.liveIntelligence h3{font-size:21px;margin:5px 0 17px}
+.liveState{border-top:1px solid #2a405b;padding:12px 0;display:grid;gap:5px}
+.liveState span{font-size:10px;color:#8ba6c2}
+.liveState strong{font-size:12px;line-height:1.5;color:#d2e3f3}
+.liveCoach{background:#152d43;border:1px solid #32516f;border-radius:10px;padding:13px}
+.liveCoach strong{display:block;color:#a4d8ee;margin-bottom:7px}
+@media(max-width:1250px){.liveDesk{grid-template-columns:185px minmax(0,1fr)}.liveIntelligence{grid-column:1/-1}.liveIntelligence .liveState{display:inline-grid;vertical-align:top;width:calc(50% - 4px);padding-right:12px}}
+@media(max-width:850px){.liveDesk{grid-template-columns:minmax(0,1fr)}.liveWatch{grid-row:2}.liveIntelligence{grid-row:3}
+ .watchRows{grid-template-columns:repeat(2,minmax(0,1fr))}.watchAdd>div{flex-wrap:nowrap}.watchAdd input{flex:1}
+ .mainNavigation{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .engineCanvas{height:480px!important}
+}
+@media(max-width:480px){.watchRows{grid-template-columns:1fr}.engineTop{gap:7px}
+ .engineFooter>span:last-child{margin-left:0}.mainNavigation button{padding:10px}
+ .mainNavigation button strong{font-size:11px}.indicatorControls label{font-size:9px}
+ .liveIntelligence .liveState{width:100%}
+}
