@@ -86,3 +86,15 @@ NEVER enable the flag before all prerequisites and owner-isolation QA pass. The 
 5. Test full workflow in the gateway Vercel preview with TradingView, XMI news, stock/ETF imports, and untouched TradeLocker execution protections.
 6. Keep gateway PR #12 and XMI PR #2 in DRAFT. Obtain explicit owner approval for production merge, domain promotion or database migration.
 
+
+## UX refinement — chart-first preview (October 28, 2026)
+
+- One large TradingView chart is the default; choose one, two or four charts on demand. Multi-chart controls include a clear **Use for research** focus action. The XMI news/journal ticker follows that selected chart rather than an arbitrary last-changed widget.
+- Search accepts a plain symbol (for example, `AAPL`) with an explicit venue dropdown; also accepts a qualified TradingView symbol. Quick picks SPY, QQQ, AAPL and NVDA require one click. Linking all chart symbols remains opt-in.
+- News and Trade journal use distinct, accessible tab panels. Both components stay mounted when hidden, so switching tabs does not discard journal entries or active in-memory account tokens.
+- The evidence panel has one-click 24-hour / 7-day / 30-day presets, date validation, a compact coverage status and timestamped links. Changing ticker or dates invalidates old results, preventing misleading stale headlines.
+- The coach is split into **New trade / Import history / Private account** modes. Optional rule annotations are collapsed. Behavior sample size and local-only storage are explicit. Browser beforeunload warns if leaving with locally held records.
+- A signed-in OIDC callback returns to the Trade journal / Private account section. Authentication still requires separate preview-only provider configuration; no automatic uploads or deployments were enabled.
+- The interface is responsive down to narrow phones; one chart defaults to a taller panel. No TradeLocker execution route or cron was edited.
+
+Browser-based TradingView iframe rendering and end-to-end API calls still require manual preview QA; Next.js build success alone is not a complete UX signoff.
