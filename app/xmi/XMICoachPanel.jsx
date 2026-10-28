@@ -6,149 +6,168 @@ import {importTrades,normalizeTrade,fingerprint,coachSummary} from "../../lib/xm
 
 function localISO(value){
  if(!value)return "";
- const millis=Date.parse(value);
- if(!Number.isFinite(millis))throw Error("Invalid trade time");
- return new Date(millis).toISOString();
+ const ms=Date.parse(value);
+ if(!Number.isFinite(ms))throw Error("Invalid trade time");
+ return new Date(ms).toISOString();
 }
 export default function XMICoachPanel({ticker}){
  const [rows,setRows]=useState([]);
- const [report,setReport]=useState("Journal data is held only in this browser tab's memory.");
+ const [mode,setMode]=useState("manual");
+ const [report,setReport]=useState("This is your private, tab-only journal. Nothing uploads automatically.");
  const [formError,setFormError]=useState("");
  const [notes,setNotes]=useState("");
  const [setup,setSetup]=useState("");
  const stats=coachSummary(rows);
+ function mergeTrades(previous,trades,source){
+  const known=new Set(previous.map(fingerprint)),next=[...previous];
+  for(const t of trades){
+   const key=fingerprint(t);
+   if(!known.has(key)){next.push({...t,source:t.source||source});known.add(key);}
+  }
+  return next.slice(-5000);
+ }
  async function onImport(event){
-  const f=event.target.files?.[0];event.target.value="";
-  if(!f)return;
-  if(f.size>2_000_000){setReport("Import rejected: maximum file size 2 MB.");return;}
+  const file=event.target.files?.[0];event.target.value="";
+  if(!file)return;
+  if(file.size>2_000_000){setReport("Import rejected: maximum file size 2 MB.");return;}
   try{
-   const batch=importTrades(await f.text());let added=0;
-   setRows(previous=>{
-    const known=new Set(previous.map(fingerprint));
-    const next=[...previous];
-    for(const t of batch.trades){
-     const id=fingerprint(t);
-     if(!known.has(id)){next.push({...t,source:'csv'});known.add(id);added++;}
-    }
-    return next.slice(-5000);
-   });
-   setReport("Imported "+batch.trades.length+" valid rows, with "+batch.errors.length+
-     " invalid rows flagged. Review CSV first; duplicates are skipped. "+
-     (batch.errors.length?"Examples: "+batch.errors.slice(0,3).map(e=>"row "+e.row+" "+e.reason).join("; "):""));
-  }catch(e){setReport("Import rejected: "+e.message);}
+   const batch=importTrades(await file.text());
+   setRows(previous=>mergeTrades(previous,batch.trades,"csv"));
+   setReport("Processed "+batch.total+" CSV rows · "+batch.trades.length+" valid · "+
+      batch.errors.length+" invalid. Duplicate trades are skipped. "+
+      (batch.errors.length?"First errors: "+batch.errors.slice(0,2).map(x=>"row "+x.row+" "+x.reason).join("; "):""));
+  }catch(e){setReport("CSV import rejected: "+e.message);}
  }
  function onManual(event){
   event.preventDefault();setFormError("");
   try{
-   const payload=Object.fromEntries(new FormData(event.currentTarget).entries());
-   payload.symbol=ticker.split(":")[1];
-   payload.entry_time=localISO(payload.entry_time);
-   payload.exit_time=localISO(payload.exit_time);
-   payload.notes=notes;payload.setup=setup;
-   const trade=normalizeTrade(payload);
-   setRows(previous=>{
-    if(previous.some(x=>fingerprint(x)===fingerprint(trade)))return previous;
-    return [...previous,{...trade,source:'manual'}].slice(-5000);
-   });
-   setReport("Trade journaled locally (no broker order, no server upload).");
-   event.currentTarget.reset();
-   setNotes("");setSetup("");
+   const values=Object.fromEntries(new FormData(event.currentTarget).entries());
+   values.symbol=ticker.split(":")[1];
+   values.entry_time=localISO(values.entry_time);
+   values.exit_time=localISO(values.exit_time);
+   values.notes=notes;values.setup=setup;
+   const trade=normalizeTrade(values);
+   setRows(previous=>mergeTrades(previous,[trade],"manual"));
+   setReport("Trade saved in this tab only. No broker order or upload was placed.");
+   event.currentTarget.reset();setNotes("");setSetup("");
   }catch(e){setFormError(e.message);}
  }
- async function restoreEntries(event){
+ async function restore(event){
   const file=event.target.files?.[0];event.target.value="";
   if(!file)return;
-  if(file.size>2_000_000){setReport("JSON restore rejected: maximum file size 2 MB.");return;}
+  if(file.size>2_000_000){setReport("Restore rejected: maximum file size 2 MB.");return;}
   try{
    const data=JSON.parse(await file.text());
    if(data?.format!=="xmi-local-journal-v1"||!Array.isArray(data.trades)||
-      data.trades.length>5000)throw Error("Not a supported XMI local journal export");
-   const received=data.trades.map((raw,index)=>{
+      data.trades.length>5000)throw Error("Not a supported XMI journal export");
+   const trades=data.trades.map((raw,index)=>{
     try{return {...normalizeTrade(raw),source:raw.source==="csv"?"csv":"manual"};}
     catch(e){throw Error("Record "+(index+1)+": "+e.message);}
    });
-   setRows(previous=>{
-    const seen=new Set(previous.map(fingerprint)),next=[...previous];
-    for(const t of received){const id=fingerprint(t);if(!seen.has(id)){next.push(t);seen.add(id);}}
-    return next.slice(-5000);
-   });
-   setReport("Validated and restored "+received.length+" exported records locally. Cloud upload is still a separate explicit action.");
-  }catch(e){setReport("JSON restore rejected: "+e.message);}
+   setRows(previous=>mergeTrades(previous,trades,"manual"));
+   setReport("Restored "+trades.length+" validated local records. Cloud upload is still optional.");
+  }catch(e){setReport("Restore rejected: "+e.message);}
  }
- function exportEntries(){
-  if(!rows.length){setReport("No journal records to export.");return;}
-  const blob=new Blob([JSON.stringify({format:"xmi-local-journal-v1",exportedAt:new Date().toISOString(),trades:rows},null,2)],
-   {type:"application/json"});
-  const url=URL.createObjectURL(blob),a=document.createElement("a");
-  a.href=url;a.download="xmi-private-journal-"+new Date().toISOString().slice(0,10)+".json";
+ function exportJournal(){
+  if(!rows.length)return;
+  const payload={format:"xmi-local-journal-v1",exportedAt:new Date().toISOString(),trades:rows};
+  const url=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}));
+  const a=document.createElement("a");a.href=url;
+  a.download="xmi-private-journal-"+new Date().toISOString().slice(0,10)+".json";
   document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
-  setReport("Export requested. Keep the downloaded file private; it contains your trades.");
+  setReport("Private JSON exported. Keep the downloaded file secure.");
  }
- return <section className={styles.infoCard} id="xmi-coach" aria-label="Personal trading coach">
-  <h2>Personal Trading Coach</h2>
-  <p>Historical trades and manually annotated setups are analyzed locally. Nothing on this panel places
-    orders or uploads journal data to TradeLocker, XMI, or Vercel.</p>
-  <div className={styles.coachNotice}>
-    <strong>Private cloud sync: not active.</strong> A verified identity provider and
-    least-privilege Neon login are required before account memory can be enabled.
-    The private coach service in XMI Draft PR #2 is not yet deployed.
-  </div>
-  <div className={styles.journalMetrics}>
-   <div><span>Trades</span><strong>{stats.trades}</strong></div>
-   <div><span>Completed</span><strong>{stats.completed}</strong></div>
-   <div><span>Recorded P/L</span><strong>{stats.pnl.toFixed(2)}</strong></div>
-   <div><span>Win rate</span><strong>{stats.winRate===null?"—":stats.winRate+"%"}</strong></div>
-   <div><span>Rule adherence</span><strong>{stats.consistency===null?"—":stats.consistency+"%"}</strong></div>
-  </div>
-  <div className={styles.journalSplit}>
-   <div>
-    <h3>Import historical trade CSV</h3>
-    <p>One row per LONG/SHORT trade, not raw broker fills. Max 2 MB / 5,000 rows.</p>
-    <input type="file" accept=".csv,text/csv" aria-label="Import historical trade CSV" onChange={onImport}/>
-    <details><summary>Required CSV columns</summary>
-     <code>symbol,side,entry_time,entry_price,quantity</code>
-     <p>Closed trades also require exit_time and exit_price. Use timezone-qualified ISO timestamps
-      (for example, 2026-10-28T14:30:00Z). Optional:
-      setup, notes, confirmed, followed_plan, chased, moved_stop.</p>
-    </details>
+ const actions=[{id:"manual",title:"New trade",hint:"Manual entry"},
+   {id:"import",title:"Import history",hint:"CSV or saved JSON"},
+   {id:"cloud",title:"Private account",hint:"Opt-in sync"}];
+ return <section className={styles.infoCard+" "+styles.toolCard} id="xmi-coach" aria-label="Personal trade journal">
+   <div className={styles.toolIntro}>
+    <div><h3>Personal trade journal</h3>
+     <p>Record the trade, review habits, and keep control of where your history lives.</p></div>
+    <span className={styles.dataSource}>LOCAL BY DEFAULT</span>
    </div>
-   <div>
-    <h3>Journal {ticker.split(":")[1]} setup</h3>
+   <div className={styles.journalMetrics}>
+    <div><span>Trades</span><strong>{stats.trades}</strong></div>
+    <div><span>Closed</span><strong>{stats.completed}</strong></div>
+    <div><span>Recorded P/L</span><strong>{stats.pnl.toFixed(2)}</strong></div>
+    <div><span>Win rate</span><strong>{stats.winRate===null?"—":stats.winRate+"%"}</strong></div>
+    <div><span>Rules followed</span><strong>{stats.consistency===null?"—":stats.consistency+"%"}</strong></div>
+   </div>
+   <div className={styles.journalModes} role="group" aria-label="Journal actions">
+    {actions.map(action=><button type="button" key={action.id}
+       className={mode===action.id?styles.modeActive:""} aria-pressed={mode===action.id}
+       onClick={()=>{setMode(action.id);setFormError("");}}>
+       <strong>{action.title}</strong><small>{action.hint}</small>
+    </button>)}
+   </div>
+   <div hidden={mode!=="manual"} className={styles.journalArea}>
+    <div className={styles.modeHeading}><h4>Journal {ticker.split(":")[1]}</h4>
+      <span>Stock/ETF · local record</span></div>
     <form onSubmit={onManual} className={styles.journalForm}>
      <div className={styles.fieldGrid}>
       <label>Direction<select name="side"><option>LONG</option><option>SHORT</option></select></label>
-      <label>Entry (local)<input required name="entry_time" type="datetime-local"/></label>
-      <label>Entry price<input required name="entry_price" type="number" min="0.000001" step="any"/></label>
-      <label>Shares<input required name="quantity" type="number" min="0.000001" step="any"/></label>
-      <label>Exit (optional, local)<input name="exit_time" type="datetime-local"/></label>
-      <label>Exit price (optional)<input name="exit_price" type="number" min="0.000001" step="any"/></label>
-      <label>Entry confirmed?<select name="confirmed"><option value="">Unknown</option><option value="yes">Yes</option><option value="no">No</option></select></label>
-      <label>Followed plan?<select name="followed_plan"><option value="">Unknown</option><option value="yes">Yes</option><option value="no">No</option></select></label>
-      <label>Chased entry?<select name="chased"><option value="">Unknown</option><option value="yes">Yes</option><option value="no">No</option></select></label>
-      <label>Moved stop?<select name="moved_stop"><option value="">Unknown</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+      <label>Entry time · local<input required type="datetime-local" name="entry_time"/></label>
+      <label>Entry price<input required type="number" name="entry_price" step="any" min="0.000001"/></label>
+      <label>Shares<input required type="number" name="quantity" step="any" min="0.000001"/></label>
+      <label>Exit time · optional<input type="datetime-local" name="exit_time"/></label>
+      <label>Exit price · optional<input type="number" name="exit_price" step="any" min="0.000001"/></label>
      </div>
-     <label className={styles.fullLabel}>Setup<input value={setup} maxLength={80} onChange={e=>setSetup(e.target.value)} placeholder="EMA pullback"/></label>
-     <label className={styles.fullLabel}>Trade notes<textarea value={notes} maxLength={2000} onChange={e=>setNotes(e.target.value)}
-       rows={2} placeholder="Plan, conditions, lesson…"/></label>
-     <button type="submit">Save trade locally</button>
+     <details className={styles.advancedForm}>
+      <summary>Setup notes & behavior checks <span>Optional</span></summary>
+      <label className={styles.fullLabel}>Setup<input maxLength={80} value={setup}
+        onChange={e=>setSetup(e.target.value)} placeholder="e.g. Pullback + retest"/></label>
+      <label className={styles.fullLabel}>Trade notes<textarea maxLength={2000} rows={2}
+        value={notes} onChange={e=>setNotes(e.target.value)} placeholder="What did the setup look like?"/></label>
+      <div className={styles.fieldGrid}>
+       <label>Entry confirmed?<select name="confirmed"><option value="">Unrecorded</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+       <label>Followed plan?<select name="followed_plan"><option value="">Unrecorded</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+       <label>Chased entry?<select name="chased"><option value="">Unrecorded</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+       <label>Moved stop?<select name="moved_stop"><option value="">Unrecorded</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+      </div>
+     </details>
+     <button className={styles.primaryAction} type="submit">Save trade locally</button>
      {formError?<p className={styles.error} role="alert">{formError}</p>:null}
     </form>
    </div>
-  </div>
-  <p role="status" className={styles.contextStatus}>{report}</p>
-  <div className={styles.journalActions}>
-    <button type="button" onClick={exportEntries} disabled={!rows.length}>Export private JSON</button>
-    <label className={styles.jsonRestore}>Restore private JSON <input type="file" accept=".json,application/json" aria-label="Restore exported XMI journal JSON" onChange={restoreEntries}/></label>
+   <div hidden={mode!=="import"} className={styles.journalArea}>
+    <div className={styles.modeHeading}><h4>Import or restore trades</h4><span>Local validation only</span></div>
+    <div className={styles.importOptions}>
+     <label>Import trade CSV <input type="file" accept=".csv,text/csv"
+       aria-label="Import a CSV of historical stock trades" onChange={onImport}/></label>
+     <label>Restore XMI journal JSON <input type="file" accept=".json,application/json"
+       aria-label="Restore your exported local XMI journal" onChange={restore}/></label>
+    </div>
+    <details className={styles.advancedForm}>
+     <summary>CSV format and limits</summary>
+     <p>One LONG/SHORT stock or ETF trade per row; raw BUY/SELL order fills are not
+       interpreted as round trips. Maximum 2 MB and 5,000 rows.</p>
+     <code>symbol,side,entry_time,entry_price,quantity</code>
+     <p>For completed trades, include <code>exit_time</code> and <code>exit_price</code>.
+       Use timezone-qualified ISO times, e.g. 2026-10-28T14:30:00Z.</p>
+    </details>
+   </div>
+   <div hidden={mode!=="cloud"} className={styles.journalArea}>
+    <XMICloudSync trades={rows} setTrades={setRows}/>
+   </div>
+   <div className={styles.resultStrip} role="status" aria-live="polite">{report}</div>
+   <div className={styles.journalActions}>
+    <button type="button" disabled={!rows.length} onClick={exportJournal}>Export private JSON</button>
     <button type="button" disabled={!rows.length} onClick={()=>{
-      if(window.confirm("Discard all local journal records in this tab?")){setRows([]);setReport("Local journal cleared.");}
-    }}>Clear local journal</button>
-  </div>
-  <XMICloudSync trades={rows} setTrades={setRows}/>
-  {stats.alerts.length?<div><h3>Observed behavior flags</h3>
-    <ul className={styles.storyList}>{stats.alerts.slice(0,10).map((a,i)=><li key={a.at+i}>
-      {a.symbol} · {a.note} · {new Date(a.at).toLocaleString()}</li>)}</ul></div>:null}
-  <p className={styles.muted}>Only explicitly recorded behavior is flagged. Small samples are not
-    predictive. Local records disappear on page reload unless you export them; the TradingView
-    hosted widget cannot provide trade entry or selected-region data programmatically.</p>
+      if(window.confirm("Discard all local trades in this browser tab?")){
+       setRows([]);setReport("Local records cleared. Cloud records, if any, are unchanged.");
+      }
+    }}>Clear local records</button>
+   </div>
+   {stats.alerts.length?<details className={styles.advancedForm}>
+    <summary>Observed behavior flags <span>{stats.alerts.length}</span></summary>
+    <ul className={styles.storyList}>
+     {stats.alerts.slice(0,10).map((item,i)=><li key={item.at+"-"+i}>
+      {item.symbol} · {item.note} · {new Date(item.at).toLocaleString()}</li>)}
+    </ul>
+   </details>:null}
+   <p className={styles.disclaimer}>P/L is based on recorded entry/exit prices and share quantity,
+     excluding fees and slippage. Behavior flags use only your annotations, not predictions.
+     Local data disappears on reload unless exported. Cloud storage remains disabled until
+     sign-in and restricted database access are configured and verified.</p>
  </section>;
 }
