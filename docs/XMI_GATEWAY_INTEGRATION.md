@@ -98,3 +98,30 @@ NEVER enable the flag before all prerequisites and owner-isolation QA pass. The 
 - The interface is responsive down to narrow phones; one chart defaults to a taller panel. No TradeLocker execution route or cron was edited.
 
 Browser-based TradingView iframe rendering and end-to-end API calls still require manual preview QA; Next.js build success alone is not a complete UX signoff.
+
+## Phase 4 — Forex-first programmable candle engine (preview only)
+
+- The /xmi page has four tabs: Live Chart, News & Research, Strategy Lab and Admin.
+- The Live Chart hosts a ten-instrument local watchlist (forex pairs plus qualified equities/ETFs), a 1/2/4 chart grid and strategy intelligence rail. Only visible charts poll; ten-symbol unattended monitoring is a later service milestone.
+- TradingView Lightweight Charts v5.2.1 replaces the hosted widget on the main tab. Indicator families: EMA 20/50/200, VWAP, RSI, MACD and Volume, each selectable in the chart.
+- Forex data is retrieved through TradeLocker FOREX instrument metadata and the INFO historical-bar route. The new API cannot place, alter or close broker orders.
+- Polling is every 20 seconds when the chart is visible. This is read-only broker OHLC refresh, NOT a verified streaming tick feed. No synthetic candles or invented indicators are generated.
+- Broker tick volume is explicitly labeled. Forex VWAP is a UTC-reset tick-volume-weighted **proxy**, not consolidated exchange volume. Missing volume is not treated as real data.
+- **NO ACTIVE STRATEGY** is shown intentionally. Candle-close strategy confirmation, user-defined entry/SL/TP and actual-trade overlays are future milestones requiring explicit strategy activation and safe account access.
+- Equity chart rows show live feed pending until a separately approved Alpaca market-data source is connected. Forex news is not mislabeled as the current equity-only XMI historical feed.
+
+### Preview-only market data activation gate
+
+The new GET /api/xmi/live route fails closed unless VERCEL_ENV is preview, VERCEL_GIT_COMMIT_REF matches feature/xmi-tradingview-workstation-preview, and XMI_READONLY_MARKET_DATA_ENABLED is true.
+
+The activation flag is NOT set by this PR. The flag must not be enabled without a separately access-protected preview and verified market-data redistribution/display permissions. On a public or unconfigured preview the endpoint responds FEED_DISABLED (HTTP 503), and the UI shows NOT LIVE instead of simulated prices.
+
+### Required QA before turning on a feed or releasing
+
+1. Check TradeLocker INFO metadata, timestamp alignment and candle update cadence against actual broker data.
+2. Confirm preview authentication/protection and provider redistribution terms before enabling the preview-only read data API.
+3. Test changing symbols, timeframes and chart counts; ensure stale/disconnected states are visible.
+4. Confirm five indicator families, FX volume caveat, and the lack of premature candle-close signals.
+5. Check mobile and desktop rendering, CPU, quotas and source response latency.
+6. Confirm no order routes, credentials, main Neon production or published source leak.
+7. Keep both PRs Draft and unmerged and obtain explicit approval before a production release.
