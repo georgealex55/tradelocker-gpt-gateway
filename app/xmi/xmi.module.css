@@ -43,6 +43,7 @@
 .topForm{display:grid;gap:6px}
 .topForm>label,.layoutPicker legend{font-size:11px;font-weight:750;color:#acc1da;letter-spacing:.02em}
 .searchInput{display:flex;gap:7px;min-width:0}
+.searchInput select{flex:0 0 94px;font-size:11px!important;padding:8px 7px!important}
 .searchInput input{flex:1;min-width:0;letter-spacing:.025em;text-transform:uppercase;font-weight:750}
 .searchInput button,.primaryAction{border:1px solid #2d9dd9!important;background:linear-gradient(110deg,#115d91,#1a83af)!important;
  color:#f8fdff!important;font-weight:800!important;white-space:nowrap}
