@@ -6,7 +6,7 @@ const COLOR={ema20:"#59c9d8",ema50:"#d1ad5b",ema200:"#a690fa",vwap:"#ef9ed9",
  rsi:"#60ccf5",macd:"#7c95ed",macdSignal:"#f1a45d"};
 const TIMEFRAMES=Object.keys(FX_RESOLUTIONS);
 function title(v){return v==="EMA"?"EMA 20 / 50 / 200":v==="VWAP"?"VWAP proxy":v;}
-export default function XMILiveChart({symbol,resolution,onResolution,selected,onFocus,compact=false}){
+export default function XMILiveChart({symbol,resolution,onResolution,selected,onFocus,compact=false,active=true}){
  const el=useRef(null),chart=useRef(null),series=useRef(null);
  const [enabled,setEnabled]=useState(()=>Object.fromEntries(FIVE_INDICATORS.map(x=>[x,true])));
  const [feed,setFeed]=useState({phase:"loading",message:"Waiting for read-only forex data",last:null,stats:null,asOf:null});
@@ -63,9 +63,10 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   for(const [key,on] of Object.entries(visible))all[key].applyOptions({visible:on});
  },[enabled,libReady]);
  useEffect(()=>{
-  if(!libReady||!series.current)return;
+  if(!libReady||!series.current||!active)return;
   let active=true,abort=null,timer=null;
   const all=series.current;
+  let fitted=false;
   // No synthetic candles or broker-order requests. Refresh a bounded OHLC snapshot.
   async function refresh(){
    if(!active)return;
@@ -86,7 +87,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
      }
      all.histogram.setData(stats.overlays.macdHistogram.map(p=>({...p,color:p.value>=0?"#339a9a":"#b66c84"})));
      all.volume.setData(stats.overlays.volume);
-     if(feed.phase!=="ready")chart.current?.timeScale().fitContent();
+     if(!fitted){chart.current?.timeScale().fitContent();fitted=true;}
     }
     const quality=quoteState(stats.lastClosed,Date.parse(data.asOf),resolution);
     setFeed({phase:quality==="STALE"?"stale":mapped.length?"ready":"empty",
@@ -101,7 +102,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   for(const key of Object.keys(all))all[key].setData([]);
   refresh();
   return ()=>{active=false;abort?.abort();if(timer)clearTimeout(timer);};
- },[symbol,resolution,libReady]);
+ },[symbol,resolution,libReady,active]);
  const stats=feed.stats;const ready=feed.phase==="ready";
  return <article className={styles.engineCard+(selected?" "+styles.chartActive:"")} aria-label={symbol+" live forex chart"}>
   <div className={styles.engineTop}>
