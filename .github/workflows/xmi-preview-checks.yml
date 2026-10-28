@@ -6,6 +6,8 @@ on:
       - 'app/api/xmi/**'
       - 'lib/xmiWorkspace.mjs'
       - 'lib/xmiLive*.mjs'
+      - 'lib/xmiStructure*.mjs'
+      - 'tests/xmi-structure.test.mjs'
       - 'tests/xmi-live-engine.test.mjs'
       - 'tests/xmi-chart-lifecycle.test.mjs'
       - 'lib/xmiDeskState.mjs'
@@ -35,6 +37,8 @@ jobs:
         run: |
           node --check lib/xmiWorkspace.mjs
           node --check lib/xmiLiveMath.mjs
+          node --check lib/xmiStructure.mjs
+          node --check lib/xmiStructureOverlay.mjs
           node --check lib/xmiLiveProvider.mjs
           node --check app/api/xmi/live/route.js
           node --check lib/xmiDeskState.mjs
