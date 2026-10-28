@@ -4,7 +4,7 @@ import styles from "./xmi.module.css";
 import XMIContext from "./XMIContext";
 import XMICoachPanel from "./XMICoachPanel";
 import {DEFAULT_CHARTS,INTERVALS,normalizeTicker,widgetSettings} from "../../lib/xmiWorkspace.mjs";
-import {focusedChart,focusAfterLayout,updateSymbols,updateTimeframe} from "../../lib/xmiDeskState.mjs";
+import {focusedChart,focusAfterLayout,updateSymbols,updateTimeframe,resolveTicker,splitTicker} from "../../lib/xmiDeskState.mjs";
 
 const WATCHLIST=[
  {symbol:"AMEX:SPY",label:"SPY"},
@@ -65,7 +65,8 @@ export default function XMIWorkstation(){
  const [count,setCount]=useState(1);
  const [focused,setFocused]=useState(0);
  const [linked,setLinked]=useState(false);
- const [input,setInput]=useState(DEFAULT_CHARTS[0].symbol);
+ const [input,setInput]=useState("SPY");
+ const [exchange,setExchange]=useState("AMEX");
  const [error,setError]=useState("");
  const [tab,setTab]=useState("evidence");
  const [openCloud,setOpenCloud]=useState(false);
@@ -78,22 +79,28 @@ export default function XMIWorkstation(){
  },[]);
  function chooseChart(index){
   setFocused(index);
-  setInput(charts[index].symbol);
+  const parts=splitTicker(charts[index].symbol);
+  setInput(parts.ticker);setExchange(parts.exchange);
   setError("");
  }
  function applySymbol(symbol){
   setCharts(prev=>updateSymbols(prev,focused,symbol,linked));
-  setInput(symbol);setError("");
+  const parts=splitTicker(symbol);
+  setInput(parts.ticker);setExchange(parts.exchange);setError("");
  }
  function submitSymbol(event){
   event.preventDefault();
-  try{applySymbol(normalizeTicker(input));}
+  try{applySymbol(resolveTicker(input,exchange));}
   catch(e){setError(e.message);}
  }
  function chooseLayout(num){
   setCount(num);
   const next=focusAfterLayout(focused,num);
-  if(next!==focused){setFocused(next);setInput(charts[next].symbol);}
+  if(next!==focused){
+   setFocused(next);
+   const parts=splitTicker(charts[next].symbol);
+   setInput(parts.ticker);setExchange(parts.exchange);
+  }
   setError("");
  }
  function updateInterval(index,interval){
@@ -121,11 +128,16 @@ export default function XMIWorkstation(){
    <form className={styles.topForm} onSubmit={submitSymbol}>
     <label htmlFor="xmi-symbol">Symbol</label>
     <div className={styles.searchInput}>
+     <label className={styles.srOnly} htmlFor="xmi-exchange">Stock exchange</label>
+     <select id="xmi-exchange" aria-label="Stock exchange" value={exchange}
+       onChange={e=>setExchange(e.target.value)}>
+       {["NASDAQ","NYSE","AMEX","ARCA"].map(venue=><option key={venue} value={venue}>{venue}</option>)}
+     </select>
      <input id="xmi-symbol" autoComplete="off" spellCheck={false} value={input}
-      maxLength={20} onChange={e=>setInput(e.target.value)} placeholder="NASDAQ:AAPL"/>
-     <button type="submit">Load chart</button>
+      maxLength={20} onChange={e=>setInput(e.target.value)} placeholder="AAPL"/>
+     <button type="submit">Load</button>
     </div>
-    <span className={styles.controlHint}>Updates {linked?"all visible charts":"selected chart"}.</span>
+    <span className={styles.controlHint}>Search a ticker, then Load. Updates {linked?"all visible charts":"the selected chart"}.</span>
    </form>
    <div className={styles.controlsRight}>
     <fieldset className={styles.layoutPicker}>
