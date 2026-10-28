@@ -1,6 +1,7 @@
 "use client";
 import {useState} from "react";
 import styles from "./xmi.module.css";
+import XMICloudSync from "./XMICloudSync";
 import {importTrades,normalizeTrade,fingerprint,coachSummary} from "../../lib/xmiJournal.mjs";
 
 function localISO(value){
@@ -27,7 +28,7 @@ export default function XMICoachPanel({ticker}){
     const next=[...previous];
     for(const t of batch.trades){
      const id=fingerprint(t);
-     if(!known.has(id)){next.push(t);known.add(id);added++;}
+     if(!known.has(id)){next.push({...t,source:'csv'});known.add(id);added++;}
     }
     return next.slice(-5000);
    });
@@ -47,7 +48,7 @@ export default function XMICoachPanel({ticker}){
    const trade=normalizeTrade(payload);
    setRows(previous=>{
     if(previous.some(x=>fingerprint(x)===fingerprint(trade)))return previous;
-    return [...previous,trade].slice(-5000);
+    return [...previous,{...trade,source:'manual'}].slice(-5000);
    });
    setReport("Trade journaled locally (no broker order, no server upload).");
    event.currentTarget.reset();
@@ -121,11 +122,12 @@ export default function XMICoachPanel({ticker}){
       if(window.confirm("Discard all local journal records in this tab?")){setRows([]);setReport("Local journal cleared.");}
     }}>Clear local journal</button>
   </div>
+  <XMICloudSync trades={rows} setTrades={setRows}/>
   {stats.alerts.length?<div><h3>Observed behavior flags</h3>
     <ul className={styles.storyList}>{stats.alerts.slice(0,10).map((a,i)=><li key={a.at+i}>
       {a.symbol} · {a.note} · {new Date(a.at).toLocaleString()}</li>)}</ul></div>:null}
   <p className={styles.muted}>Only explicitly recorded behavior is flagged. Small samples are not
-    predictive. Records disappear on page reload unless you export them; the TradingView
+    predictive. Local records disappear on page reload unless you export them; the TradingView
     hosted widget cannot provide trade entry or selected-region data programmatically.</p>
  </section>;
 }
