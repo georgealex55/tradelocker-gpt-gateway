@@ -5,131 +5,174 @@ import XMIContext from "./XMIContext";
 import XMICoachPanel from "./XMICoachPanel";
 import {DEFAULT_CHARTS,INTERVALS,normalizeTicker,widgetSettings} from "../../lib/xmiWorkspace.mjs";
 
-function TradingViewPanel({spec,index,onSymbol,onInterval}){
-  const host=useRef(null);
-  const [value,setValue]=useState(spec.symbol);
-  const [error,setError]=useState("");
-  const [status,setStatus]=useState("Loading chart widget");
-  useEffect(()=>setValue(spec.symbol),[spec.symbol]);
-  useEffect(()=>{
-    const target=host.current;
-    if(!target)return;
-    let active=true;
-    setStatus("Loading TradingView widget");
-    target.replaceChildren();
-    const widget=document.createElement("div");
-    widget.className="tradingview-widget-container__widget";
-    widget.style.width="100%";
-    widget.style.height="100%";
-    target.append(widget);
-    const script=document.createElement("script");
-    script.type="text/javascript";
-    script.src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
-    script.async=true;
-    script.textContent=JSON.stringify(widgetSettings(spec));
-    script.onload=()=>{if(active)setStatus("TradingView widget script loaded");};
-    script.onerror=()=>{if(active)setStatus("Chart script unavailable; check access or content blockers");};
-    target.append(script);
-    return ()=>{active=false;target.replaceChildren();};
-  },[spec.symbol,spec.interval]);
+const WATCHLIST=[
+ {symbol:"AMEX:SPY",label:"SPY"},
+ {symbol:"NASDAQ:QQQ",label:"QQQ"},
+ {symbol:"NASDAQ:AAPL",label:"AAPL"},
+ {symbol:"NASDAQ:NVDA",label:"NVDA"}
+];
+const INTERVAL_LABEL=Object.fromEntries(INTERVALS.map(([value,label])=>[value,label]));
 
-  function apply(event){
-    event.preventDefault();
-    try{const symbol=normalizeTicker(value);onSymbol(index,symbol);setError("");}
-    catch(e){setError(e.message);}
-  }
-
-  return <section className={styles.chartPanel} aria-label={"Chart "+(index+1)}>
-    <div className={styles.panelTop}>
-      <span className={styles.panelNumber}>0{index+1}</span>
-      <form onSubmit={apply} className={styles.tickerForm}>
-        <label className={styles.srOnly} htmlFor={"ticker-"+index}>Ticker and exchange</label>
-        <input id={"ticker-"+index} value={value} maxLength={20}
-          onChange={e=>setValue(e.target.value)} spellCheck={false}
-          aria-label={"Chart "+(index+1)+" stock or ETF symbol"}/>
-        <button type="submit" aria-label={"Load ticker in chart "+(index+1)}>Load</button>
-      </form>
-      <label className={styles.srOnly} htmlFor={"tf-"+index}>Timeframe</label>
-      <select aria-label={"Chart "+(index+1)+" timeframe"} id={"tf-"+index}
-        value={spec.interval} onChange={e=>onInterval(index,e.target.value)}>
-        {INTERVALS.map(([v,label])=><option key={v} value={v}>{label}</option>)}
+function TradingViewPanel({spec,index,selected,onFocus,onInterval}){
+ const host=useRef(null);
+ const [status,setStatus]=useState("Loading chart");
+ useEffect(()=>{
+  const target=host.current;
+  if(!target)return;
+  let active=true;
+  setStatus("Requesting TradingView chart…");
+  target.replaceChildren();
+  const widget=document.createElement("div");
+  widget.className="tradingview-widget-container__widget";
+  widget.style.width="100%";
+  widget.style.height="100%";
+  target.append(widget);
+  const script=document.createElement("script");
+  script.type="text/javascript";
+  script.src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+  script.async=true;
+  script.textContent=JSON.stringify(widgetSettings(spec));
+  script.onload=()=>{if(active)setStatus("Widget script loaded · chart rendering depends on TradingView");};
+  script.onerror=()=>{if(active)setStatus("TradingView script unavailable. Check network or content blockers.");};
+  target.append(script);
+  return ()=>{active=false;target.replaceChildren();};
+ },[spec.symbol,spec.interval]);
+ return <section className={styles.chartPanel+(selected?" "+styles.chartActive:"")}
+    aria-label={"Chart "+(index+1)+": "+spec.symbol}>
+   <div className={styles.panelTop}>
+    <span className={styles.panelNumber}>0{index+1}</span>
+    <div className={styles.chartTitle}><strong>{spec.symbol}</strong><small>{INTERVAL_LABEL[spec.interval]||"5m"} · TradingView</small></div>
+    <button className={selected?styles.activeFocus:styles.focusButton}
+     type="button" onClick={()=>onFocus(index)}
+     aria-pressed={selected} aria-label={"Use chart "+(index+1)+" for news research and trade journal"}>
+      {selected?"<escape>✓</escape> Research chart":"Use for research"}
+    </button>
+    <label className={styles.timeframeControl}>
+      <span className={styles.srOnly}>Chart {index+1} timeframe</span>
+      <select value={spec.interval} onChange={e=>onInterval(index,e.target.value)}>
+       {INTERVALS.map(([value,label])=><option key={value} value={value}>{label}</option>)}
       </select>
-    </div>
-    {error?<p role="alert" className={styles.error}>{error}</p>:null}
-    <div ref={host} className={styles.widgetHost+" tradingview-widget-container"} aria-label={"TradingView chart for "+spec.symbol}/>
-    <p className={styles.subline}>{status} · Chart data and drawing tools supplied by TradingView</p>
-  </section>;
+    </label>
+   </div>
+   <div ref={host} className={styles.widgetHost+" tradingview-widget-container"}
+     aria-label={"TradingView chart for "+spec.symbol}/>
+   <p className={styles.subline} role="status">{status}</p>
+ </section>;
 }
-
 export default function XMIWorkstation(){
-  const [charts,setCharts]=useState(()=>DEFAULT_CHARTS.map(x=>({...x})));
-  const [count,setCount]=useState(2);
-  const [linkSymbols,setLinkSymbols]=useState(false);
-  const [activeSymbol,setActiveSymbol]=useState(DEFAULT_CHARTS[0].symbol);
-  const [input,setInput]=useState(DEFAULT_CHARTS[0].symbol);
-  const [error,setError]=useState("");
-  function updateSymbol(index,symbol){
-    setCharts(prev=>prev.map((chart,i)=>
-      linkSymbols||i===index?{...chart,symbol}:chart));
-    setActiveSymbol(symbol);setInput(symbol);
-  }
-  function updateInterval(index,interval){
-    if(!INTERVALS.some(([x])=>x===interval))return;
-    setCharts(prev=>prev.map((c,i)=>i===index?{...c,interval}:c));
-  }
-  function applyAll(event){
-    event.preventDefault();
-    try {
-      const symbol=normalizeTicker(input);
-      setCharts(prev=>prev.map(c=>({...c,symbol})));
-      setActiveSymbol(symbol);setError("");
-    }catch(e){setError(e.message);}
-  }
-  return <main className={styles.shell}>
-    <div className={styles.header}>
-      <div>
-        <a className={styles.back} href="/">← Gateway</a>
-        <p className={styles.eyebrow}>XMI 2.0 / DEVELOPMENT WORKSTATION</p>
-        <h1>TradingView Chart Desk</h1>
-        <p className={styles.subtitle}>Stocks and ETFs · read-only research · separate from TradeLocker execution</p>
-      </div>
-      <span className={styles.pill}>PREVIEW · NO ORDERS</span>
+ const [charts,setCharts]=useState(()=>DEFAULT_CHARTS.map(x=>({...x})));
+ const [count,setCount]=useState(1);
+ const [focused,setFocused]=useState(0);
+ const [linked,setLinked]=useState(false);
+ const [input,setInput]=useState(DEFAULT_CHARTS[0].symbol);
+ const [error,setError]=useState("");
+ const [tab,setTab]=useState("evidence");
+ const active=charts[focused]||charts[0];
+ const activeSymbol=active.symbol;
+ useEffect(()=>{
+  const hasCallback=new URLSearchParams(window.location.search).has("code")||
+    new URLSearchParams(window.location.search).has("error");
+  if(hasCallback)setTab("coach");
+ },[]);
+ function chooseChart(index){
+  setFocused(index);
+  setInput(charts[index].symbol);
+  setError("");
+ }
+ function applySymbol(symbol){
+  setCharts(prev=>prev.map((c,i)=>linked||i===focused?{...c,symbol}:c));
+  setInput(symbol);setError("");
+ }
+ function submitSymbol(event){
+  event.preventDefault();
+  try{applySymbol(normalizeTicker(input));}
+  catch(e){setError(e.message);}
+ }
+ function chooseLayout(num){
+  setCount(num);
+  if(focused>=num){setFocused(0);setInput(charts[0].symbol);}
+  setError("");
+ }
+ function updateInterval(index,interval){
+  if(!INTERVALS.some(([value])=>value===interval))return;
+  setCharts(prev=>prev.map((c,i)=>i===index?{...c,interval}:c));
+ }
+ const tabs=[{id:"evidence",text:"News & evidence",hint:"Read-only XMI context"},
+             {id:"coach",text:"Trade journal",hint:"Private, optional sync"}];
+ return <main className={styles.shell}>
+  <header className={styles.header}>
+   <div>
+    <a className={styles.back} href="/">Gateway home</a>
+    <div className={styles.brandRow}>
+     <span className={styles.brandMark} aria-hidden="true">X</span>
+     <div>
+      <p className={styles.eyebrow}>XMI 2.0 / RESEARCH DESK</p>
+      <h1>Chart workstation</h1>
+     </div>
     </div>
-    <div className={styles.toolbar}>
-      <form onSubmit={applyAll} className={styles.topForm}>
-        <label htmlFor="all-tickers">Load ticker across charts</label>
-        <input id="all-tickers" spellCheck={false} value={input} maxLength={20}
-          onChange={e=>setInput(e.target.value)} placeholder="NASDAQ:AAPL"/>
-        <button type="submit">Load all</button>
-      </form>
-      <fieldset className={styles.layoutPicker}>
-        <legend>Layout</legend>
-        {[1,2,4].map(num=><button key={num} type="button"
-          className={count===num?styles.selected:""} aria-pressed={count===num}
-          onClick={()=>setCount(num)}>{num} chart{num>1?"s":""}</button>)}
-      </fieldset>
-      <label className={styles.linked}>
-        <input type="checkbox" checked={linkSymbols}
-          onChange={e=>setLinkSymbols(e.target.checked)}/>
-        Link ticker changes
-      </label>
-      {error?<p role="alert" className={styles.error}>{error}</p>:null}
+    <p className={styles.subtitle}>TradingView charts, XMI evidence and your trading journal. One focused workflow.</p>
+   </div>
+   <span className={styles.pill}>DEVELOPMENT PREVIEW · READ ONLY</span>
+  </header>
+  <section className={styles.commandBar} aria-label="Chart controls">
+   <form className={styles.topForm} onSubmit={submitSymbol}>
+    <label htmlFor="xmi-symbol">Symbol</label>
+    <div className={styles.searchInput}>
+     <input id="xmi-symbol" autoComplete="off" spellCheck={false} value={input}
+      maxLength={20} onChange={e=>setInput(e.target.value)} placeholder="NASDAQ:AAPL"/>
+     <button type="submit">Load chart</button>
     </div>
-    <div className={count===1?styles.single:count===2?styles.double:styles.quad}>
-      {charts.slice(0,count).map((spec,index)=>
-        <TradingViewPanel key={index} spec={spec} index={index}
-          onSymbol={updateSymbol} onInterval={updateInterval}/>)}
-    </div>
-    <div className={styles.integratedDesk}>
-      <XMIContext ticker={activeSymbol}/>
-      <XMICoachPanel ticker={activeSymbol}/>
-    </div>
-    <footer className={styles.footer}>
-      <strong>Market-data boundary:</strong> The embedded charts use TradingView-hosted data,
-      not Alpaca IEX. XMI public news comes through a separate read-only adapter. The
-      hosted widget does not expose crosshair, candle ranges, or private drawings to XMI;
-      select dates manually for news review. Personal journal data remains in this tab
-      unless you explicitly export a local file. No broker execution is connected.
-    </footer>
-  </main>;
+    <span className={styles.controlHint}>Updates {linked?"all visible charts":"selected chart"}.</span>
+   </form>
+   <div className={styles.controlsRight}>
+    <fieldset className={styles.layoutPicker}>
+     <legend>Layout</legend>
+     {[1,2,4].map(n=><button key={n} type="button" className={count===n?styles.selected:""}
+      aria-pressed={count===n} onClick={()=>chooseLayout(n)}>{n}</button>)}
+    </fieldset>
+    <label className={styles.linked}><input type="checkbox" checked={linked}
+       onChange={e=>setLinked(e.target.checked)}/> Link symbols</label>
+   </div>
+   <div className={styles.quickPicks}>
+    <span>Quick picks</span>
+    {WATCHLIST.map(t=><button type="button" key={t.symbol}
+      className={activeSymbol===t.symbol?styles.quickActive:""}
+      onClick={()=>applySymbol(t.symbol)} aria-pressed={activeSymbol===t.symbol}>{t.label}</button>)}
+    <span className={styles.selectedChartHint}>Researching chart {focused+1} of {count}</span>
+   </div>
+   {error?<p role="alert" className={styles.error}>{error}</p>:null}
+  </section>
+  <div className={count===1?styles.single:count===2?styles.double:styles.quad}>
+   {charts.slice(0,count).map((spec,index)=>
+    <TradingViewPanel key={index} index={index} spec={spec}
+      selected={focused===index} onFocus={chooseChart} onInterval={updateInterval}/>)}
+  </div>
+  <section className={styles.workspace} aria-label="Research workspace">
+   <div className={styles.workspaceHeading}>
+    <div><p className={styles.eyebrow}>WORKSPACE</p><h2>{activeSymbol.split(":")[1]} research</h2>
+      <p className={styles.muted}>News and journal follow your selected research chart, not every open chart.</p></div>
+    <span className={styles.previewTag}>No order execution</span>
+   </div>
+   <div className={styles.tabs} role="tablist" aria-label="Research tools">
+    {tabs.map(item=><button type="button" key={item.id} id={"xmi-tab-"+item.id}
+      role="tab" aria-selected={tab===item.id} aria-controls={"xmi-panel-"+item.id}
+      className={tab===item.id?styles.currentTab:""}
+      onClick={()=>setTab(item.id)}>
+      <strong>{item.text}</strong><small>{item.hint}</small>
+    </button>)}
+   </div>
+   <div id="xmi-panel-evidence" role="tabpanel" aria-labelledby="xmi-tab-evidence" hidden={tab!=="evidence"}>
+    <XMIContext ticker={activeSymbol}/>
+   </div>
+   <div id="xmi-panel-coach" role="tabpanel" aria-labelledby="xmi-tab-coach" hidden={tab!=="coach"}>
+    <XMICoachPanel ticker={activeSymbol}/>
+   </div>
+  </section>
+  <footer className={styles.footer}>
+   TradingView supplies the embedded chart and its market data, not Alpaca IEX.
+   The hosted widget cannot send drawing or candle selections to XMI. Choose dates
+   in News & evidence. Personal journal records stay in tab memory unless you explicitly
+   export or, after separate secure configuration, request a cloud upload.
+  </footer>
+ </main>;
 }
