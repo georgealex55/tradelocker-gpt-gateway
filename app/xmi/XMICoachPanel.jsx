@@ -100,6 +100,7 @@ export default function XMICoachPanel({ticker,openCloud=false}){
     <div><span>Win rate</span><strong>{stats.winRate===null?"—":stats.winRate+"%"}</strong></div>
     <div><span>Rules followed</span><strong>{stats.consistency===null?"—":stats.consistency+"%"}</strong></div>
    </div>
+   <p className={styles.uxHelper}>{stats.observedChecks} recorded behavior checks. Unrecorded habits are never assumed.</p>
    <div className={styles.journalModes} role="group" aria-label="Journal actions">
     {actions.map(action=><button type="button" key={action.id}
        className={mode===action.id?styles.modeActive:""} aria-pressed={mode===action.id}
@@ -132,7 +133,7 @@ export default function XMICoachPanel({ticker,openCloud=false}){
        <label>Moved stop?<select name="moved_stop"><option value="">Unrecorded</option><option value="yes">Yes</option><option value="no">No</option></select></label>
       </div>
      </details>
-     <button className={styles.primaryAction} type="submit">Save trade locally</button>
+     <button className={styles.primaryAction} type="submit">Add trade to this tab</button>
      {formError?<p className={styles.error} role="alert">{formError}</p>:null}
     </form>
    </div>
