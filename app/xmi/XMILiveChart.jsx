@@ -224,6 +224,78 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   }
   if(selected)onStructureRef.current?.(result);
  },[symbol,resolution,feed.stats,feed.asOf,structureSettings,auxData,libReady,selected,active,extraKey]);
+ // Manual drawings, completed price patterns, and swing-anchored Fibonacci use the
+ // existing chart data only. Missing data clears every optional drawing primitive.
+ useEffect(()=>{
+  if(!libReady||!drawings.current)return;
+  const primitive=drawings.current.manualPrimitive;
+  if(!feed.stats){primitive.setDrawings([]);if(selected)onPatternsRef.current?.([]);return;}
+  const bars=feed.stats.bars;
+  const nearest=time=>{
+   const b=bars.reduce((best,bar)=>!best||Math.abs(bar.time-time)<Math.abs(best.time-time)?bar:best,null);
+   return b?.time??time;
+  };
+  const project=d=>({...d,points:d.points.map(p=>({...p,time:nearest(p.time)}))});
+  const manual=savedDrawings.map(project);
+  const detected=autoPatterns?detectClassicPatterns(bars):[];
+  const patterns=detected.slice(0,16).map(p=>project({
+   id:p.id,tool:p.concept,symbol,auto:true,points:p.points
+  }));
+  const fib=autoFib?autoFibonacci(bars,
+   TOOL_CATALOG.Fibonacci.includes(drawTool)?drawTool:"Fib Retracement"):null;
+  const fibDrawings=fib?[project({...fib,id:"fib:auto",symbol,auto:true})]:[];
+  primitive.setDrawings([...manual,...patterns,...fibDrawings]);
+  if(selected)onPatternsRef.current?.(detected.slice(0,8));
+ },[feed.stats,libReady,savedDrawings,autoPatterns,autoFib,drawTool,symbol,selected]);
+ function pointerPoint(e){
+  const root=el.current,seriesApi=series.current?.candle,chartApi=chart.current;
+  if(!root||!seriesApi||!chartApi)return null;
+  const rect=root.getBoundingClientRect();
+  const time=chartApi.timeScale().coordinateToTime(e.clientX-rect.left);
+  const price=seriesApi.coordinateToPrice(e.clientY-rect.top);
+  if(typeof time!=="number"||!Number.isFinite(price)||price<=0)return null;
+  return drawingPoint(time,price);
+ }
+ function commitPoints(tool,points){
+  if(!points.length)return;
+  const text=tool==="Text labels"?(window.prompt("Chart note (maximum 100 characters):","Note")||"").slice(0,100):"";
+  if(tool==="Text labels"&&!text)return;
+  const done=onDrawingRef.current?.({tool,points,text});
+  if(done){interaction.current.points=[];interaction.current.stroke=[];setPendingCount(0);setDrawingError("");}
+ }
+ function pointerDown(e){
+  if(!drawTool)return;
+  e.preventDefault();e.stopPropagation();
+  const point=pointerPoint(e);
+  if(!point){setDrawingError("Click inside the plotted price area");return;}
+  try{
+   if(drawTool==="Freehand drawing"){
+    interaction.current.stroke=[point];
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setPendingCount(1);
+   }else{
+    const points=[...interaction.current.points,point];
+    interaction.current.points=points;setPendingCount(points.length);
+    if(points.length>=requiredClicks(drawTool))commitPoints(drawTool,points);
+   }
+  }catch{setDrawingError("Invalid chart point");}
+ }
+ function pointerMove(e){
+  if(drawTool!=="Freehand drawing"||!interaction.current.stroke.length)return;
+  const point=pointerPoint(e);
+  if(point&&interaction.current.stroke.length<600){
+   const stroke=interaction.current.stroke;
+   if(stroke.at(-1).time!==point.time||Math.abs(stroke.at(-1).price-point.price)>1e-7)stroke.push(point);
+  }
+ }
+ function pointerUp(e){
+  if(drawTool!=="Freehand drawing"||!interaction.current.stroke.length)return;
+  const stroke=interaction.current.stroke.slice();
+  if(stroke.length>1)commitPoints(drawTool,stroke);
+  interaction.current.stroke=[];
+  setPendingCount(0);
+  if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);
+ }
  const stats=feed.stats;const ready=feed.phase==="ready";
  return <article className={styles.engineCard+(selected?" "+styles.chartActive:"")} aria-label={symbol+" live forex chart"}>
   <div className={styles.engineTop}>
@@ -237,12 +309,23 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
       className={selected?styles.activeFocus:styles.focusButton}>{selected?"Research chart":"Focus"}</button>
    </div>
   </div>
-  <div className={styles.indicatorControls} role="group" aria-label="Chart indicators">
-   {FIVE_INDICATORS.map(name=><label key={name} title={name==="VWAP"?"Forex VWAP is a UTC-reset broker-tick-volume proxy.":undefined}>
-    <input type="checkbox" checked={enabled[name]} onChange={e=>setEnabled(old=>({...old,[name]:e.target.checked}))}/>
-    {title(name)}</label>)}
+  <div className={styles.engineDrawingCaption}>
+   <span>{chartSettings.chartType}{chartSettings.chartType==="Heikin Ashi"?" · transformed prices (not broker executions)":""}</span>
+   <span>Indicators, Patterns & Drawing Tools: unified toolbar</span>
   </div>
-  <div className={styles.engineCanvas} ref={el} style={{height:compact?460:620}} aria-label="Programmable candlestick chart"/>
+  <div className={styles.engineDrawHost}>
+   <div className={styles.engineCanvas} ref={el} style={{height:compact?460:620}}
+    aria-label={chartSettings.chartType+" market chart"}/>
+   {drawTool?<div className={styles.engineDrawCapture} role="application"
+    aria-label={"Drawing tool "+drawTool} title={"Click chart points for "+drawTool}
+    onPointerDown={pointerDown} onPointerMove={pointerMove}
+    onPointerUp={pointerUp} onPointerCancel={pointerUp}/>:null}
+  </div>
+  {drawTool?<div className={styles.engineDrawStatus} role="status">
+   Drawing: {drawTool} · {drawTool==="Freehand drawing"?"Drag on chart":"Select "+requiredClicks(drawTool)+" chart point(s)"}
+   {pendingCount?" · "+pendingCount+" point(s) selected":""}
+   {drawingError?" · "+drawingError:""}
+  </div>:null}
   <div className={styles.engineFooter}>
    <span className={feed.phase==="ready"?styles.liveOk:styles.feedWarn}>
     {ready?"CANDLES RECEIVING":feed.phase==="loading"?"CONNECTING":feed.phase==="stale"?"STALE DATA":"NOT LIVE"}
