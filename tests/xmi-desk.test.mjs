@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {DEFAULT_CHARTS} from "../lib/xmiWorkspace.mjs";
-import {focusedChart,focusAfterLayout,updateSymbols,updateTimeframe} from "../lib/xmiDeskState.mjs";
+import {focusedChart,focusAfterLayout,updateSymbols,updateTimeframe,resolveTicker,splitTicker} from "../lib/xmiDeskState.mjs";
 const charts=DEFAULT_CHARTS.map(x=>({...x}));
 test("One focused chart determines the research ticker",()=>{
  assert.equal(focusedChart(charts,0).symbol,"AMEX:SPY");
@@ -36,4 +36,14 @@ test("Ticker input cannot route forex or futures symbols",()=>{
  assert.throws(()=>updateSymbols(charts,0,"OANDA:USDCHF"),/Use AMEX/);
  assert.throws(()=>updateSymbols(charts,0,"CME:ES1!"),/Use AMEX/);
  assert.throws(()=>updateSymbols(charts,55,"NASDAQ:AAPL"),/not found/);
+});
+
+test("Plain ticker entry uses chosen stock exchange, full codes still accepted",()=>{
+ assert.equal(resolveTicker("spy","AMEX"),"AMEX:SPY");
+ assert.equal(resolveTicker("aapl","NASDAQ"),"NASDAQ:AAPL");
+ assert.equal(resolveTicker("NYSE:IBM","NASDAQ"),"NYSE:IBM");
+ assert.deepEqual(splitTicker("ARCA:XLK"),{exchange:"ARCA",ticker:"XLK"});
+ assert.throws(()=>resolveTicker("ES1!","CME"),/exchange/);
+ assert.throws(()=>resolveTicker("USDCHF","OANDA"),/exchange/);
+ assert.throws(()=>resolveTicker("BO GUS","NYSE"),/Use AMEX/);
 });
