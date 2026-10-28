@@ -74,3 +74,9 @@
 .journalActions button:disabled{opacity:.55;cursor:not-allowed}
 @media(max-width:900px){.journalSplit{grid-template-columns:1fr}.journalMetrics{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:560px){.fieldGrid{grid-template-columns:1fr}.journalMetrics{grid-template-columns:repeat(2,minmax(0,1fr))}.contextForm label{width:100%}}
+
+.coachCloud{margin:18px 0 14px;padding:16px;border:1px solid #34658b;background:#0a1e34;border-radius:14px}
+.coachCloud h3{font-size:16px;margin:0 0 8px;color:#b9e4ff}
+.coachCloud p{font-size:12px;line-height:1.6;color:#b9cce3}
+.coachCloud .journalActions button{font-weight:600}
+@media(max-width:600px){.coachCloud{padding:12px}}
