@@ -316,7 +316,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   <div className={styles.engineDrawHost}>
    <div className={styles.engineCanvas} ref={el} style={{height:compact?460:620}}
     aria-label={chartSettings.chartType+" market chart"}/>
-   {drawTool?<div className={styles.engineDrawCapture} role="application"
+   {drawTool&&!TOOL_CATALOG.Fibonacci.includes(drawTool)?<div className={styles.engineDrawCapture} role="application"
     aria-label={"Drawing tool "+drawTool} title={"Click chart points for "+drawTool}
     onPointerDown={pointerDown} onPointerMove={pointerMove}
     onPointerUp={pointerUp} onPointerCancel={pointerUp}/>:null}
