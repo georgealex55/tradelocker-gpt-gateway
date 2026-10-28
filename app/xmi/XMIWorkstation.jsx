@@ -13,6 +13,7 @@ const TABS=[
 ];
 export default function XMIWorkstation(){
  const [tab,setTab]=useState("live");
+ const [focusMode,setFocusMode]=useState(false);
  const [selected,setSelected]=useState("FX:EURUSD");
  const [openCloud,setOpenCloud]=useState(false);
  useEffect(()=>{
@@ -20,7 +21,8 @@ export default function XMIWorkstation(){
   if(u.has("code")||u.has("error")){setTab("admin");setOpenCloud(true);}
  },[]);
  const item=parseInstrument(selected);
- return <main className={styles.shell}>
+ return <main className={styles.shell+" "+(tab==="live"?styles.studioShell:"")+
+   (tab==="live"&&focusMode?" "+styles.studioFocus:"")}>
   <header className={styles.header}>
    <div>
     <a className={styles.back} href="/">Gateway home</a>
@@ -39,7 +41,9 @@ export default function XMIWorkstation(){
      <strong>{t.title}</strong><small>{t.sub}</small>
    </button>)}
   </nav>
-  <div hidden={tab!=="live"}><XMIEngineDesk selected={selected} onSelected={setSelected} onResearch={()=>setTab("research")} active={tab==="live"}/></div>
+  <div hidden={tab!=="live"}><XMIEngineDesk selected={selected} onSelected={setSelected}
+    onResearch={()=>setTab("research")} active={tab==="live"}
+    focusMode={focusMode} onFocusMode={()=>setFocusMode(v=>!v)}/></div>
   <div hidden={tab!=="research"} className={styles.nonChartWorkspace}>
    <div className={styles.workspaceHeading}><div><p className={styles.eyebrow}>RESEARCH</p>
     <h2>{item.label} · market evidence</h2><p className={styles.muted}>Source-verified market context, not a promise of causation.</p></div></div>
