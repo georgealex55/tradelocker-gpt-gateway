@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'app/xmi/**'
+      - 'app/api/xmi/**'
       - 'lib/xmiWorkspace.mjs'
       - 'lib/xmiContext.mjs'
       - 'lib/xmiJournal.mjs'
