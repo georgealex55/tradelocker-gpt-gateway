@@ -68,12 +68,13 @@ export default function XMIWorkstation(){
  const [input,setInput]=useState(DEFAULT_CHARTS[0].symbol);
  const [error,setError]=useState("");
  const [tab,setTab]=useState("evidence");
+ const [openCloud,setOpenCloud]=useState(false);
  const active=focusedChart(charts,focused);
  const activeSymbol=active.symbol;
  useEffect(()=>{
   const hasCallback=new URLSearchParams(window.location.search).has("code")||
     new URLSearchParams(window.location.search).has("error");
-  if(hasCallback)setTab("coach");
+  if(hasCallback){setTab("coach");setOpenCloud(true);}
  },[]);
  function chooseChart(index){
   setFocused(index);
@@ -167,7 +168,7 @@ export default function XMIWorkstation(){
     <XMIContext ticker={activeSymbol}/>
    </div>
    <div id="xmi-panel-coach" role="tabpanel" aria-labelledby="xmi-tab-coach" hidden={tab!=="coach"}>
-    <XMICoachPanel ticker={activeSymbol}/>
+    <XMICoachPanel ticker={activeSymbol} openCloud={openCloud}/>
    </div>
   </section>
   <footer className={styles.footer}>
