@@ -413,6 +413,20 @@ export default async function Home() {
           Open Structure A2 Live Panel
         </a>
         <a
+          href="/xmi"
+          style={{
+            display: "inline-block",
+            padding: "10px 14px",
+            borderRadius: 10,
+            background: "#0c7491",
+            color: "#fff",
+            textDecoration: "none",
+            fontWeight: 700
+          }}
+        >
+          XMI TradingView Preview (Read-only)
+        </a>
+        <a
           href="/backtests"
           style={{
             display: "inline-block",
