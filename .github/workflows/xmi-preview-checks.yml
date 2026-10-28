@@ -7,6 +7,7 @@ on:
       - 'lib/xmiWorkspace.mjs'
       - 'lib/xmiLive*.mjs'
       - 'tests/xmi-live-engine.test.mjs'
+      - 'tests/xmi-chart-lifecycle.test.mjs'
       - 'lib/xmiDeskState.mjs'
       - 'tests/xmi-desk.test.mjs'
       - 'lib/xmiContext.mjs'
