@@ -5,7 +5,7 @@ import XMILiveChart from "./XMILiveChart";
 import {parseInstrument,validateWatchlist,FX_RESOLUTIONS} from "../../lib/xmiLiveMath.mjs";
 const START=["EURUSD","GBPUSD","USDJPY","USDCHF","AUDUSD","NASDAQ:AAPL","AMEX:SPY"];
 const DEFAULT=START.map(parseInstrument);
-export default function XMIEngineDesk({selected,onSelected}){
+export default function XMIEngineDesk({selected,onSelected,active=true}){
  const [watchlist,setWatchlist]=useState(DEFAULT);
  const [watchInput,setWatchInput]=useState("");
  const [error,setError]=useState("");
@@ -74,7 +74,7 @@ export default function XMIEngineDesk({selected,onSelected}){
       {item.asset==="forex"
        ?<XMILiveChart symbol={item.symbol} resolution={resolutions[index]}
           onResolution={v=>setResolutions(r=>r.map((x,i)=>i===index?v:x))}
-          selected={index===focus} onFocus={()=>{setFocus(index);onSelected(key);}} compact={layout>1}/>
+          selected={index===focus} onFocus={()=>{setFocus(index);onSelected(key);}} compact={layout>1} active={active}/>
        :<div className={styles.feedMissing}>
          <h3>{item.label}</h3><p>Stock/ETF chart not yet connected.</p>
          <p>Alpaca data requires a separate approved market-data adapter and feed entitlement. No synthetic candles are displayed.</p>
