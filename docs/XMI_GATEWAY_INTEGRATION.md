@@ -139,3 +139,13 @@ The activation flag is NOT set by this PR. The flag must not be enabled without 
 - Daily and 4-hour reference-session detection is explicitly unavailable (requires 1H or faster). Missing broker data clears previous annotations and never creates a signal.
 - No actual trades, TP/SL proposals, strategy activation or background monitoring is claimed as part of this phase.
 - QA requires authenticated browser interaction for scrolling, collapse behavior, independent settings, scaling, mobile grid, and brokerage data freshness. Keep both PRs Draft, production unchanged and all broker execution disabled.
+
+## Phase 5 recovery — visible candles and limited forex fundamentals
+
+- User preview feedback: broker candles reached the browser ('CANDLES RECEIVING') while the price canvas was not visibly drawing; the optional market-structure series primitive supplied zOrder as a string instead of the required v5 method. The primitive now has a correctly shaped zOrder() function and fail-isolated drawing.
+- On initial load the candle chart presents the most recent approximately 70 real candles rather than fitting up to 320 into the canvas width. The footer shows the last broker-reported OHLC and loaded candle count, separately from any canvas/rendering issues.
+- The market-structure sidebar now includes an explicit 'Show all 11' control, 'Hide all', and a warning when no concepts are enabled. The SMC detection engine and chart primitive have regression coverage.
+- News & Research no longer hides every FX instrument behind a placeholder. FX:AAA BBB symbols use the existing bounded XMI public 80-entry news adapter, filtering exact pair, relevant currency and broader macro mentions while maintaining publish/observed timestamps and source links.
+- Important: this is NOT a complete FX economic calendar, policy-decision feed, proof of headline price causation, or authenticated private XMI news archive. Missing or incomplete snapshot is disclosed as such.
+- The intelligence rail now links directly to the selected FX instrument's News & Research tab. No orders, automated strategy confirmations or user-specific journal sync are introduced.
+- Authenticated browser QA must confirm that actual painted candle bodies and optional market-structure annotations are visible on the preview; unit tests and Vercel READY alone do not prove canvas rendering.
