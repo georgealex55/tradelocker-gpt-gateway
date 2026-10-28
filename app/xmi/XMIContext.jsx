@@ -24,7 +24,7 @@ export default function XMIContext({ticker}){
   setStart(localTime(new Date(now.getTime()-7*86400000)));
   setEnd(localTime(now));
  },[]);
- useEffect(()=>{resetEvidence("Ticker changed. Review evidence for this stock or ETF.");},[ticker]);
+ useEffect(()=>{resetEvidence("Instrument changed. Review the latest available public evidence.");},[ticker]);
  async function load(e){
   e.preventDefault();
   const from=Date.parse(start),to=Date.parse(end);
@@ -73,7 +73,7 @@ export default function XMIContext({ticker}){
    </div>
    {data?.coverage?<div className={styles.coverageStrip}>
       <strong>Limited coverage</strong>
-      This checks only the 80 newest records in the public XMI feed, not the complete historical archive.
+      This checks only the 80 newest records in the public XMI feed, not a complete archive or economic calendar.
       <span>Feed window: {data.coverage.oldestObserved?new Date(data.coverage.oldestObserved).toLocaleString():"unknown"}
         {" – "}{data.coverage.newestObserved?new Date(data.coverage.newestObserved).toLocaleString():"unknown"}</span>
     </div>:null}
@@ -81,7 +81,9 @@ export default function XMIContext({ticker}){
      {data.stories.map((story,i)=><li key={story.url+"-"+i}>
        <a href={story.url} target="_blank" rel="noopener noreferrer">{story.title}</a>
        <div className={styles.storyMeta}>
-        {story.scope==="ticker-related"?"TICKER MENTIONED":"BROADER MARKET"} · {story.source}
+        {story.scope==="ticker-related"?"TICKER MENTIONED":
+          story.scope==="pair-related"?"FX PAIR MENTIONED":
+          story.scope==="currency-related"?"CURRENCY CONTEXT":"BROADER MARKET"} · {story.source}
        </div>
        <div className={styles.storyMeta}>Published {new Date(story.publishedAt).toLocaleString()}
          {" · "}XMI collected {new Date(story.observedAt).toLocaleString()}</div>
@@ -90,6 +92,6 @@ export default function XMIContext({ticker}){
    {data&&data.stories.length===0?<div className={styles.emptyResult}>
       No matching stories in this limited public snapshot. The full historical archive may contain more.</div>:null}
    <p className={styles.disclaimer}>These are timestamped references, not proven causes of price moves.
-     TradingView's hosted chart does not share candle selections with XMI; use the date controls above.</p>
+     News context is not proof of price causation. Use the date controls above to limit the snapshot.</p>
   </section>;
 }
