@@ -4,7 +4,7 @@ import {FX_RESOLUTIONS} from "../lib/xmiLiveMath.mjs";
 import {STRUCTURE_CONCEPTS,STRUCTURE_IDS,defaultStructureSettings,setStructureOption,
  validateStructureSettings,requiredStructureTimeframes,detectStructure,mapStructureToChart,
  assembleStructure,MAX_STRUCTURE_PER_CONCEPT} from "../lib/xmiStructure.mjs";
-import {structurePalette,toStructureMarkers} from "../lib/xmiStructureOverlay.mjs";
+import {structurePalette,toStructureMarkers,StructureOverlayPrimitive} from "../lib/xmiStructureOverlay.mjs";
 const start=Date.parse("2026-10-26T00:00:00Z")/1000;
 const mk=(index,o=100,h=101,l=99,c=100,step=60)=>({
  time:start+index*step,open:o,high:h,low:l,close:c,volume:20
@@ -111,4 +111,16 @@ test("Annotations are capped to five per concept and have safe chart marker attr
  assert.equal(markers[0].shape,"arrowUp");
  assert.equal(markers[0].position,"belowBar");
  assert.match(structurePalette("bull").fill,/rgba/);
+});
+
+test("Chart primitive supplies v5 zOrder as a function and cannot abort candle drawing",()=>{
+ const layer=new StructureOverlayPrimitive();
+ const view=layer.paneViews()[0];
+ assert.equal(typeof view.zOrder,"function");
+ assert.equal(view.zOrder(),"bottom");
+ assert.equal(typeof view.renderer().draw,"function");
+ // An optional structure renderer must never interrupt the price canvas.
+ layer.attached({chart:{timeScale:()=>{throw Error("chart is resizing")}},series:{},requestUpdate:()=>{}});
+ layer.setAnnotations([{time:123,chartTime:123,level:101}],123);
+ assert.doesNotThrow(()=>view.renderer().draw({}));
 });
