@@ -4,6 +4,7 @@ import styles from "./xmi.module.css";
 import XMIContext from "./XMIContext";
 import XMICoachPanel from "./XMICoachPanel";
 import {DEFAULT_CHARTS,INTERVALS,normalizeTicker,widgetSettings} from "../../lib/xmiWorkspace.mjs";
+import {focusedChart,focusAfterLayout,updateSymbols,updateTimeframe} from "../../lib/xmiDeskState.mjs";
 
 const WATCHLIST=[
  {symbol:"AMEX:SPY",label:"SPY"},
@@ -67,7 +68,7 @@ export default function XMIWorkstation(){
  const [input,setInput]=useState(DEFAULT_CHARTS[0].symbol);
  const [error,setError]=useState("");
  const [tab,setTab]=useState("evidence");
- const active=charts[focused]||charts[0];
+ const active=focusedChart(charts,focused);
  const activeSymbol=active.symbol;
  useEffect(()=>{
   const hasCallback=new URLSearchParams(window.location.search).has("code")||
@@ -80,7 +81,7 @@ export default function XMIWorkstation(){
   setError("");
  }
  function applySymbol(symbol){
-  setCharts(prev=>prev.map((c,i)=>linked||i===focused?{...c,symbol}:c));
+  setCharts(prev=>updateSymbols(prev,focused,symbol,linked));
   setInput(symbol);setError("");
  }
  function submitSymbol(event){
@@ -90,12 +91,13 @@ export default function XMIWorkstation(){
  }
  function chooseLayout(num){
   setCount(num);
-  if(focused>=num){setFocused(0);setInput(charts[0].symbol);}
+  const next=focusAfterLayout(focused,num);
+  if(next!==focused){setFocused(next);setInput(charts[next].symbol);}
   setError("");
  }
  function updateInterval(index,interval){
   if(!INTERVALS.some(([value])=>value===interval))return;
-  setCharts(prev=>prev.map((c,i)=>i===index?{...c,interval}:c));
+  setCharts(prev=>updateTimeframe(prev,index,interval));
  }
  const tabs=[{id:"evidence",text:"News & evidence",hint:"Read-only XMI context"},
              {id:"coach",text:"Trade journal",hint:"Private, optional sync"}];
