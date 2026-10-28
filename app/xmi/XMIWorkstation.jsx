@@ -39,15 +39,12 @@ export default function XMIWorkstation(){
      <strong>{t.title}</strong><small>{t.sub}</small>
    </button>)}
   </nav>
-  <div hidden={tab!=="live"}><XMIEngineDesk selected={selected} onSelected={setSelected} active={tab==="live"}/></div>
+  <div hidden={tab!=="live"}><XMIEngineDesk selected={selected} onSelected={setSelected} onResearch={()=>setTab("research")} active={tab==="live"}/></div>
   <div hidden={tab!=="research"} className={styles.nonChartWorkspace}>
    <div className={styles.workspaceHeading}><div><p className={styles.eyebrow}>RESEARCH</p>
     <h2>{item.label} · market evidence</h2><p className={styles.muted}>Source-verified market context, not a promise of causation.</p></div></div>
-   {item.asset==="equity"?<XMIContext ticker={item.key}/>:
-   <section className={styles.infoCard}><h3>Forex fundamental research</h3>
-    <p>Historical news and economic-calendar matching for {item.label} are scheduled for a separate, timestamp-qualified FX research adapter.
-     The current public XMI news endpoint is stock/ETF scoped and must not be mislabeled as a forex feed.</p>
-    <p className={styles.muted}>No news, event impact, or directional market story will be fabricated while that feed is unavailable.</p></section>}
+   {item.asset==="forex"?<p className={styles.muted}>Forex evidence is filtered by pair, currencies and broad macro topics from XMI's latest public news snapshot. This is not a full economic calendar or a verified cause of price movements.</p>:null}
+   <XMIContext ticker={item.key}/>
   </div>
   <div hidden={tab!=="strategy"} className={styles.nonChartWorkspace}>
    <div className={styles.workspaceHeading}><div><p className={styles.eyebrow}>STRATEGY LAB</p><h2>Custom strategy builder</h2></div>
