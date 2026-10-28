@@ -7,7 +7,7 @@ import {STRUCTURE_CONCEPTS,defaultStructureSettings,setStructureOption} from "..
 const START=["EURUSD","GBPUSD","USDJPY","USDCHF","AUDUSD","NASDAQ:AAPL","AMEX:SPY"];
 const DEFAULT=START.map(parseInstrument);
 const TIMEFRAMES=["1m","5m","15m","30m","1H","4H","1D"];
-export default function XMIEngineDesk({selected,onSelected,active=true}){
+export default function XMIEngineDesk({selected,onSelected,onResearch,active=true}){
  const [watchlist,setWatchlist]=useState(DEFAULT);
  const [watchInput,setWatchInput]=useState("");
  const [error,setError]=useState("");
@@ -154,7 +154,10 @@ export default function XMIEngineDesk({selected,onSelected,active=true}){
     <h4>Market structure · {activeConceptCount} enabled</h4>
     {itemOrNull(current.asset,report)}
    </section>
-   <div className={styles.liveState}><span>Economic fundamentals</span><strong>See News & Research</strong></div>
+   <div className={styles.liveState}><span>Economic news</span>
+    <button type="button" className={styles.newsJump} onClick={onResearch}>View verified news for {current.label}</button>
+    <small>Latest public snapshot only · economic calendar not connected</small>
+   </div>
    <p className={styles.liveCoach}><strong>XMI observation</strong>
     Market structure overlays are algorithmic price-action observations, not confirmed trade entries.
     Strategy filters, actual trades, TP and SL remain separate and disabled until explicitly configured.
