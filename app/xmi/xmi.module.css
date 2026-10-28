@@ -40,3 +40,37 @@
 .error{color:#ffbaba;font-size:12px;width:100%;margin:6px 0}
 @media(max-width:1100px){.shell{padding:16px}.double,.quad{grid-template-columns:1fr}.widgetHost{height:550px}}
 @media(max-width:700px){.shell{width:calc(100vw - 12px);padding:10px}.header{align-items:flex-start;flex-direction:column}.pill{align-self:flex-start}.toolbar{padding:12px}.infoGrid{grid-template-columns:1fr}.widgetHost{height:440px}.topForm{width:100%}}
+
+
+.integratedDesk{display:grid;grid-template-columns:1fr;gap:14px;margin-top:18px}
+.integratedDesk .infoCard h2{font-size:19px;margin-bottom:8px}
+.contextForm{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin:14px 0}
+.contextForm label,.journalForm label,.fullLabel{display:grid;gap:7px;font-size:12px;font-weight:600;color:#a9bcd4}
+.contextForm input,.journalForm input,.journalForm textarea,.journalForm select{background:#071324;border:1px solid #344b69;border-radius:8px;color:#edf5ff;font:inherit;font-size:13px;padding:10px;min-width:0;max-width:100%}
+.contextForm button{background:#155e89;border-color:#4d87c2;font-weight:700}
+.contextStatus{padding:12px;background:#12263d;border:1px solid #2c4a66;border-radius:10px;font-size:12px!important;color:#dcecff!important}
+.storyList{list-style:none;margin:12px 0 0;padding:0;max-height:355px;overflow:auto}
+.storyList li{padding:10px 0;border-bottom:1px solid #253850;font-size:13px;line-height:1.55}
+.storyList a{color:#8ccaff;text-decoration:none}
+.storyList a:hover{text-decoration:underline}
+.storyMeta{font-size:11px;color:#8fa8c8;margin-top:4px}
+.coachNotice{padding:12px;border:1px solid #7a6131;background:#302716;border-radius:10px;color:#f1d7a7;font-size:12px;line-height:1.6;margin:12px 0}
+.coachNotice strong{color:#f8e6c3}
+.journalMetrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:16px 0}
+.journalMetrics div{background:#0d2135;border:1px solid #24405c;border-radius:10px;padding:12px}
+.journalMetrics span{color:#94aac7;font-size:11px;display:block;margin-bottom:5px}
+.journalMetrics strong{font-size:19px;color:#ebf5ff}
+.journalSplit{display:grid;grid-template-columns:1fr 1.3fr;gap:18px}
+.journalSplit h3{font-size:14px;margin:12px 0}
+.journalSplit details{font-size:12px;line-height:1.7;margin-top:10px}
+.journalSplit details code{word-break:break-word;color:#bbe0ff}
+.journalSplit input[type=file]{max-width:100%;font-size:12px}
+.journalForm{display:grid;gap:10px}
+.fieldGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.fullLabel{margin-top:5px}
+.journalForm button{justify-self:start;background:#155e89;border-color:#428fc1}
+.journalActions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.journalActions button{font-size:12px}
+.journalActions button:disabled{opacity:.55;cursor:not-allowed}
+@media(max-width:900px){.journalSplit{grid-template-columns:1fr}.journalMetrics{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:560px){.fieldGrid{grid-template-columns:1fr}.journalMetrics{grid-template-columns:repeat(2,minmax(0,1fr))}.contextForm label{width:100%}}
