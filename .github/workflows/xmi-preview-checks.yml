@@ -1,0 +1,22 @@
+name: XMI read-only chart checks
+on:
+  pull_request:
+    paths:
+      - 'app/xmi/**'
+      - 'lib/xmiWorkspace.mjs'
+      - 'tests/xmi-workspace.test.mjs'
+      - '.github/workflows/xmi-preview-checks.yml'
+permissions:
+  contents: read
+jobs:
+  chart-workspace:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout proposed branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Syntax-check the chart settings
+        run: node --check lib/xmiWorkspace.mjs
+      - name: Test equity boundaries and widget configuration
+        run: node --test tests/xmi-workspace.test.mjs
