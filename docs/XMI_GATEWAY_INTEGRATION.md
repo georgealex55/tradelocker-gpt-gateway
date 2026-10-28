@@ -125,3 +125,17 @@ The activation flag is NOT set by this PR. The flag must not be enabled without 
 5. Check mobile and desktop rendering, CPU, quotas and source response latency.
 6. Confirm no order routes, credentials, main Neon production or published source leak.
 7. Keep both PRs Draft and unmerged and obtain explicit approval before a production release.
+
+## Phase 5 — SMC overlays and compact watchlist
+
+- The watchlist shows five visible instruments and scrolls internally up to ten instruments; it can collapse/expand without losing the focused chart.
+- Market Structure is separately collapsible. All eleven user-selected concepts are checked by default: BOS, CHoCH, FVG, Order Blocks, Liquidity Sweeps, HH / HL / LH / LL, Support / Resistance, MSS, Premium / Discount, Displacement, Session High / Low.
+- Independent per-concept timeframes are 1m, 5m, 15m, 30m, 1H, 4H, 1D; settings are shared between charts within the current browser tab, and never activate strategy rules.
+- Pure SMC calculations use verified broker OHLC from CLOSED candles. Swing pivots require two closed bars to confirm. BOS/CHoCH need a close beyond an already confirmed level; MSS requires opposing break and displacement.
+- FVG uses a three-candle imbalance, Order Blocks a heuristic opposing candle before displacement, sweeps require wick break plus return close, and sessions are fixed UTC reference ranges (not daylight-saving-adjusted live exchange session times). These are transparent algorithmic annotations, not institutional tape claims.
+- TradingView Lightweight Charts v5 series markers and a custom drawing primitive display minimal labels, swing-level lines and translucent gap/block/range zones. Maximum five recent annotations per concept from available history.
+- Additional unique timeframes are retrieved using only the preview-gated read-only TradeLocker history endpoint, and refreshed at 65-second intervals. The main chart refreshes at 20 seconds. No new execution endpoints or credentials in the browser.
+- Higher-timeframe markers are projected only when both the source confirmation candle and display candle are complete. The original confirmation timestamp is shown in the intelligence panel.
+- Daily and 4-hour reference-session detection is explicitly unavailable (requires 1H or faster). Missing broker data clears previous annotations and never creates a signal.
+- No actual trades, TP/SL proposals, strategy activation or background monitoring is claimed as part of this phase.
+- QA requires authenticated browser interaction for scrolling, collapse behavior, independent settings, scaling, mobile grid, and brokerage data freshness. Keep both PRs Draft, production unchanged and all broker execution disabled.
