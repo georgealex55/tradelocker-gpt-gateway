@@ -1,5 +1,5 @@
 "use client";
-import {useEffect,useState} from "react";
+import {useEffect,useRef,useState} from "react";
 import styles from "./xmi.module.css";
 function localInput(d){
  return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);
@@ -8,22 +8,22 @@ export default function XMIContext({ticker}){
  const [start,setStart]=useState(()=>localInput(new Date(Date.now()-7*86400000)));
  const [end,setEnd]=useState(()=>localInput(new Date()));
  const [state,setState]=useState({phase:"idle",data:null,message:"Choose a period to compare with XMI's recent public evidence."});
- const [requestId,setRequestId]=useState(0);
- useEffect(()=>setState({phase:"idle",data:null,message:"Ticker changed. Request new evidence for this stock/ETF."}),[ticker]);
+ const pending=useRef(0);
+ useEffect(()=>{pending.current++;setState({phase:"idle",data:null,message:"Ticker changed. Request new evidence for this stock/ETF."});},[ticker]);
  async function load(event){
   event.preventDefault();const from=Date.parse(start),to=Date.parse(end);
   if(!Number.isFinite(from)||!Number.isFinite(to)||from>=to||to-from>31*86400000||to>Date.now()+120000){
    setState({phase:"error",data:null,message:"Choose a valid period of up to 31 days, ending no later than now."});return;
   }
-  const id=requestId+1;setRequestId(id);
+  const id=++pending.current;
   setState({phase:"loading",data:null,message:"Reading public XMI evidence…"});
   try{
    const qs=new URLSearchParams({symbol:ticker,start:String(Math.floor(from/1000)),end:String(Math.floor(to/1000))});
    const r=await fetch("/api/xmi/context?"+qs,{cache:"no-store"});
    const payload=await r.json();
    if(!r.ok||!payload.ok)throw Error(payload.error||"XMI unavailable");
-   setState({phase:"ready",data:payload,message:payload.count+" timestamp-qualified articles returned from the recent XMI snapshot."});
-  }catch(e){setState({phase:"error",data:null,message:e.message});}
+   if(id===pending.current)setState({phase:"ready",data:payload,message:payload.count+" timestamp-qualified articles returned from the recent XMI snapshot."});
+  }catch(e){if(id===pending.current)setState({phase:"error",data:null,message:e.message});}
  }
  const {data}=state;
  return <section className={styles.infoCard} aria-label="Historical XMI news context">
