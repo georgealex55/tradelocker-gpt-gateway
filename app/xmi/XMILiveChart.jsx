@@ -322,7 +322,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
     onPointerUp={pointerUp} onPointerCancel={pointerUp}/>:null}
   </div>
   {drawTool?<div className={styles.engineDrawStatus} role="status">
-   Drawing: {drawTool} · {drawTool==="Freehand drawing"?"Drag on chart":"Select "+requiredClicks(drawTool)+" chart point(s)"}
+   Drawing: {drawTool} · {TOOL_CATALOG.Fibonacci.includes(drawTool)?"Automatically anchored to confirmed swings":drawTool==="Freehand drawing"?"Drag on chart":"Select "+requiredClicks(drawTool)+" chart point(s)"}
    {pendingCount?" · "+pendingCount+" point(s) selected":""}
    {drawingError?" · "+drawingError:""}
   </div>:null}
