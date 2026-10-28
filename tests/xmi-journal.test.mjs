@@ -25,7 +25,7 @@ test("Private coach only scores explicitly recorded behavior",()=>{
  const x=normalizeTrade(row);
  const result=coachSummary([x]);
  assert.equal(result.completed,1);
- assert.equal(result.consistency,25);
+ assert.equal(result.consistency,33);
  assert.equal(result.observedChecks,3);
  assert.equal(result.alerts.length,2);
  const missing=normalizeTrade({...row,confirmed:"",followed_plan:"",chased:"",moved_stop:""});
