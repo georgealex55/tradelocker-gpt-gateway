@@ -1,5 +1,5 @@
 "use client";
-import {useEffect,useRef,useState} from "react";
+import {useEffect,useMemo,useRef,useState} from "react";
 import styles from "./xmi.module.css";
 import XMILiveChart from "./XMILiveChart";
 import XMIToolbox from "./XMIToolbox";
@@ -27,6 +27,15 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
  const [maximized,setMaximized]=useState(false),[browserFullscreen,setBrowserFullscreen]=useState(false);
  const [chartKeys,setChartKeys]=useState(()=>[DEFAULT[0].key,DEFAULT[1].key,DEFAULT[2].key,DEFAULT[3].key]);
  const [resolutions,setResolutions]=useState(["5m","15m","1H","1D"]);
+ // Keep derived chart inputs referentially stable across intelligence feedback renders.
+ // Otherwise each drawings array allocation retriggers pattern effects -> setPatterns -> render.
+ const chartDrawingMap=useMemo(()=>Object.fromEntries(
+  [...new Set(chartKeys.map(key=>parseInstrument(key).symbol))]
+   .map(symbol=>[symbol,drawingsForSymbol(savedDrawings,symbol)])
+ ),[chartKeys,savedDrawings]);
+ const chartSettingsBySlot=useMemo(()=>[0,1,2,3].map(
+  slot=>resolveChartSettings(globalSettings,chartOverride,slot)
+ ),[globalSettings,chartOverride]);
  useEffect(()=>{
   try{
    const raw=window.localStorage.getItem(KEY);
@@ -172,9 +181,9 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
          onResolution={v=>setResolution(index,v)}
          selected={index===focus} onFocus={()=>{setFocus(index);onSelected(key);}}
          structureSettings={structure} technicalEnabled={tech}
-         chartSettings={resolveChartSettings(globalSettings,chartOverride,index)}
+         chartSettings={chartSettingsBySlot[index]}
          drawTool={index===focus?drawTool:null} onDrawing={d=>onChartDrawing(item.symbol,d)}
-         savedDrawings={drawingsForSymbol(savedDrawings,item.symbol)}
+         savedDrawings={chartDrawingMap[item.symbol]}
          autoPatterns={autoPatterns} autoFib={autoFib}
          onPatterns={result=>setPatterns(old=>({...old,[index+"|"+key+"|"+resolutions[index]]:result}))}
          onStructure={result=>setObservations(old=>({...old,[index+"|"+key+"|"+resolutions[index]]:result}))}
