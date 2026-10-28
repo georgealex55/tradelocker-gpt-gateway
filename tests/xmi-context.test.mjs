@@ -67,3 +67,17 @@ test("Oversized or unavailable public responses fail closed",async()=>{
  await assert.rejects(()=>loadPublicContext(q,async()=>({ok:false})),/unavailable/);
  await assert.rejects(()=>loadPublicContext(q,async()=>({ok:true,headers:{get:()=>4_000_000}})),/size limit/);
 });
+
+test("Forex pairs get timestamp-bounded real XMI public context without claiming calendar completeness",()=>{
+ const fx=parseQuery({symbol:"FX:USDCHF",start:at-3600,end:at},at);
+ assert.deepEqual(fx,{ticker:"FX:USDCHF",symbol:"USDCHF",market:"forex",start:at-3600,end:at});
+ const result=filterEvidence(valid,fx);
+ assert.equal(result.count,2);
+ assert.equal(result.stories[0].scope,"pair-related");
+ assert.equal(result.stories[0].title,"USDCHF story");
+ assert.equal(result.stories[1].scope,"broader-market");
+ assert.match(result.notice,/economic calendar/);
+ assert.equal(result.coverage.requestedIntervalCovered,false);
+ assert.ok(result.stories.every(x=>Date.parse(x.observedAt)<=at*1000));
+ assert.throws(()=>parseQuery({symbol:"FX:BAD123",start:at-3600,end:at},at));
+});
