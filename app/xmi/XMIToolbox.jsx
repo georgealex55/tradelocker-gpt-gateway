@@ -4,6 +4,7 @@ import styles from "./xmi.module.css";
 import {TOOL_CATALOG,PANEL_NAMES,CHART_TYPES} from "../../lib/xmiChartTools.mjs";
 import {STRUCTURE_CONCEPTS,STRUCTURE_TIMEFRAMES,setStructureOption,defaultStructureSettings} from "../../lib/xmiStructure.mjs";
 const TECH=["EMA","VWAP","RSI","MACD","Volume"];
+const DEFAULT_INDICATORS={EMA:true,VWAP:true,RSI:true,MACD:true,Volume:true};
 const ICONS={"Indicators":"∑","Annotations":"✎","Patterns":"◇","Fibonacci":"φ","Lines":"／","Measurements":"↔","Chart Settings":"⚙"};
 const SETTINGS=[
  ["theme","Theme","select",["dark","light"]],["bull","Up color","color"],["bear","Down color","color"],
@@ -31,6 +32,9 @@ export default function XMIToolbox({
  const ref=useRef(null),upload=useRef(null);
  const settings=scope==="chart"?{...globalSettings,...(chartOverride[slot]||{})}:globalSettings;
  const updateSetting=(key,value)=>{
+  if(key==="indicatorDefaults")setTech(Object.fromEntries(
+   Object.keys(DEFAULT_INDICATORS).map(id=>[id,value])
+  ));
   if(scope==="global")setGlobalSettings(old=>({...old,[key]:value}));
   else setChartOverride(old=>({...old,[slot]:{...old[slot],[key]:value}}));
  };
