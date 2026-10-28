@@ -43,6 +43,7 @@ export default function XMIToolbox({
  },[activePanel,docked,pinned,setActivePanel]);
  const open=(panel)=>{setSearch("");setActivePanel(x=>x===panel?null:panel);};
  const chooseTool=tool=>{
+  if(TOOL_CATALOG.Fibonacci.includes(tool))setAutoFib(true);
   setDrawTool(old=>old===tool?null:tool);
   if(!pinned&&!docked)setActivePanel(null);
  };
