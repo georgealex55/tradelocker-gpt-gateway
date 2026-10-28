@@ -54,7 +54,7 @@ function TradingViewPanel({spec,index,onSymbol,onInterval}){
       </select>
     </div>
     {error?<p role="alert" className={styles.error}>{error}</p>:null}
-    <div ref={host} className={styles.widgetHost} aria-label={"TradingView chart for "+spec.symbol}/>
+    <div ref={host} className={styles.widgetHost+" tradingview-widget-container"} aria-label={"TradingView chart for "+spec.symbol}/>
     <p className={styles.subline}>{status} · Chart data and drawing tools supplied by TradingView</p>
   </section>;
 }
