@@ -317,3 +317,13 @@
  .watchRows{max-height:260px}
 }
 @media(max-width:490px){.structureList{grid-template-columns:1fr}}
+
+/* Live-price proof and structural-overlay recovery controls */
+.engineFooter .candleReadout{flex-basis:100%;display:block;font-size:11px;color:#d3eefb;
+ letter-spacing:.01em;font-variant-numeric:tabular-nums;border-top:1px solid #2a4358;padding-top:7px}
+.structureToolbar{display:flex;gap:6px;align-items:center;margin:8px 0}
+.structureToolbar button{flex:1;font-size:10px!important;padding:7px 6px!important;
+ border-color:#366487!important;color:#c8e4f4!important;background:#18354e!important}
+.newsJump{display:block;text-align:left;font-size:11px!important;padding:8px 10px!important;
+ background:#184660!important;border-color:#4a8aaa!important;color:#def6ff!important}
+.liveState small{color:#8caac3;font-size:10px;line-height:1.5}
