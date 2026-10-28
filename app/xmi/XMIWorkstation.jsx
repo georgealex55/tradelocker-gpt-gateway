@@ -1,6 +1,8 @@
 "use client";
 import {useEffect,useRef,useState} from "react";
 import styles from "./xmi.module.css";
+import XMIContext from "./XMIContext";
+import XMICoachPanel from "./XMICoachPanel";
 import {DEFAULT_CHARTS,INTERVALS,normalizeTicker,widgetSettings} from "../../lib/xmiWorkspace.mjs";
 
 function TradingViewPanel({spec,index,onSymbol,onInterval}){
@@ -118,30 +120,16 @@ export default function XMIWorkstation(){
         <TradingViewPanel key={index} spec={spec} index={index}
           onSymbol={updateSymbol} onInterval={updateInterval}/>)}
     </div>
-    <div className={styles.infoGrid}>
-      <section className={styles.infoCard}>
-        <h2>Historical XMI intelligence</h2>
-        <p>Market-event context and point-in-time chart-region explanations are being
-          integrated separately from this hosted widget. Historical claims will require
-          timestamped sources and must never assume headlines caused a price move.</p>
-        <p className={styles.muted}>Existing XMI research and its strict signal-confirmation
-          gate remain in the separate private repository until integration is reviewed.</p>
-      </section>
-      <section className={styles.infoCard}>
-        <h2>Personal Trading Coach</h2>
-        <p>Trade-history imports, manual chart journaling and coaching memory
-          require signed-in, private account storage. They are deliberately not activated
-          inside this public gateway workspace without identity and database QA.</p>
-        <p className={styles.muted}>No orders, broker credentials, journal records,
-          or TradeLocker execution endpoints are used by this page.</p>
-      </section>
+    <div className={styles.integratedDesk}>
+      <XMIContext ticker={activeSymbol}/>
+      <XMICoachPanel ticker={activeSymbol}/>
     </div>
     <footer className={styles.footer}>
-      <strong>Market-data boundary:</strong> The embedded charts use TradingView-hosted
-      data, not Alpaca IEX. Chart state and annotations inside TradingView's hosted widget
-      are not accessible to the XMI coach. A separate programmable chart layer is required
-      for custom indicators and selected-region analysis. The widget's indicators and
-      drawing tools are provided by TradingView.
+      <strong>Market-data boundary:</strong> The embedded charts use TradingView-hosted data,
+      not Alpaca IEX. XMI public news comes through a separate read-only adapter. The
+      hosted widget does not expose crosshair, candle ranges, or private drawings to XMI;
+      select dates manually for news review. Personal journal data remains in this tab
+      unless you explicitly export a local file. No broker execution is connected.
     </footer>
   </main>;
 }
