@@ -55,6 +55,26 @@ export default function XMICoachPanel({ticker}){
    setNotes("");setSetup("");
   }catch(e){setFormError(e.message);}
  }
+ async function restoreEntries(event){
+  const file=event.target.files?.[0];event.target.value="";
+  if(!file)return;
+  if(file.size>2_000_000){setReport("JSON restore rejected: maximum file size 2 MB.");return;}
+  try{
+   const data=JSON.parse(await file.text());
+   if(data?.format!=="xmi-local-journal-v1"||!Array.isArray(data.trades)||
+      data.trades.length>5000)throw Error("Not a supported XMI local journal export");
+   const received=data.trades.map((raw,index)=>{
+    try{return {...normalizeTrade(raw),source:raw.source==="csv"?"csv":"manual"};}
+    catch(e){throw Error("Record "+(index+1)+": "+e.message);}
+   });
+   setRows(previous=>{
+    const seen=new Set(previous.map(fingerprint)),next=[...previous];
+    for(const t of received){const id=fingerprint(t);if(!seen.has(id)){next.push(t);seen.add(id);}}
+    return next.slice(-5000);
+   });
+   setReport("Validated and restored "+received.length+" exported records locally. Cloud upload is still a separate explicit action.");
+  }catch(e){setReport("JSON restore rejected: "+e.message);}
+ }
  function exportEntries(){
   if(!rows.length){setReport("No journal records to export.");return;}
   const blob=new Blob([JSON.stringify({format:"xmi-local-journal-v1",exportedAt:new Date().toISOString(),trades:rows},null,2)],
@@ -118,6 +138,7 @@ export default function XMICoachPanel({ticker}){
   <p role="status" className={styles.contextStatus}>{report}</p>
   <div className={styles.journalActions}>
     <button type="button" onClick={exportEntries} disabled={!rows.length}>Export private JSON</button>
+    <label className={styles.jsonRestore}>Restore private JSON <input type="file" accept=".json,application/json" aria-label="Restore exported XMI journal JSON" onChange={restoreEntries}/></label>
     <button type="button" disabled={!rows.length} onClick={()=>{
       if(window.confirm("Discard all local journal records in this tab?")){setRows([]);setReport("Local journal cleared.");}
     }}>Clear local journal</button>
