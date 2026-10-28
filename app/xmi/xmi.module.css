@@ -327,3 +327,117 @@
 .newsJump{display:block;text-align:left;font-size:11px!important;padding:8px 10px!important;
  background:#184660!important;border-color:#4a8aaa!important;color:#def6ff!important}
 .liveState small{color:#8caac3;font-size:10px;line-height:1.5}
+
+
+/* XMI chart studio — chart maximizes as watchlist / intelligence disappear */
+.studioShell{width:100%;max-width:none;min-height:100dvh;left:auto;transform:none;
+ margin:0!important;padding:8px 11px!important;border-radius:0;border:0}
+.studioShell .header{padding:3px 8px 7px!important;margin:0!important;min-height:0}
+.studioShell .header h1{font-size:19px!important;margin:0}
+.studioShell .subtitle{margin:3px 0}
+.studioShell .mainNavigation{margin-bottom:5px;gap:3px;padding:3px}
+.studioShell .mainNavigation button{padding:6px 9px}
+.studioShell .footer{margin-top:4px;padding:7px}
+.studioFocus .header,.studioFocus .mainNavigation,.studioFocus .footer{display:none!important}
+.studioDesk{width:100%;max-width:none;position:relative;min-width:0;background:#091524;
+ border:1px solid #273d55;border-radius:10px;padding:5px;isolation:isolate;color:#e1f0fc}
+.studioCommand{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;
+ padding:4px 7px 8px;border-bottom:1px solid #233a55;margin-bottom:4px}
+.studioCommandLeft,.studioCommandRight{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.studioCommandLeft strong{font-size:11px;letter-spacing:.06em}
+.studioCommandLeft span{font-size:9px;color:#8fcab7;margin-right:7px}
+.studioCommand button{font-size:10px!important;padding:5px 8px!important}
+.studioCommand button[aria-pressed="true"]{background:#184a66!important;border-color:#4eacd2!important}
+.studioBody{display:grid;grid-template-columns:192px minmax(0,1fr) 222px;gap:6px;align-items:start;min-width:0}
+.studioNoLeft .studioBody{grid-template-columns:minmax(0,1fr) 222px}
+.studioNoRight .studioBody{grid-template-columns:192px minmax(0,1fr)}
+.studioNoLeft.studioNoRight .studioBody{grid-template-columns:minmax(0,1fr)}
+.studioWatch,.studioIntel{min-width:0;max-height:calc(100dvh - 100px);overflow:auto;padding:10px}
+.studioHide{font-size:10px!important;margin-top:10px;padding:6px!important}
+.studioCenter{display:flex;min-width:0;position:relative;align-items:stretch}
+.studioCenter:has(.toolHorizontal){flex-direction:column}
+.studioChartArea{flex:1;min-width:0;overflow:hidden}
+.studioDockOpen{min-width:0}
+.studioChartArea .double,.studioChartArea .quad{gap:6px}
+.studioChartArea .single,.studioChartArea .double,.studioChartArea .quad{min-width:0}
+.studioFooter{font-size:9px;color:#6f95b2;padding:4px 7px;line-height:1.25}
+.studioError{font-size:11px;color:#ffb6af;padding:5px 10px;margin:3px}
+.studioMaximized{position:fixed!important;z-index:9990;inset:0!important;width:100vw;height:100dvh;
+ border:0;border-radius:0;overflow:auto;padding:4px;background:#091524}
+.studioMaximized .studioWatch,.studioMaximized .studioIntel{max-height:calc(100dvh - 65px)}
+.studioMaximized .engineCanvas,.studioBrowserFullscreen .engineCanvas{height:calc(100dvh - 220px)!important;min-height:370px}
+.studioFocused .studioCommandLeft>strong,.studioFocused .studioCommandLeft>span,
+.studioFocused .studioFooter{display:none}
+.studioDesk:fullscreen{width:100vw;height:100dvh;overflow:auto;border:0;border-radius:0;padding:5px;background:#091524}
+.toolShell{display:flex;align-self:stretch;position:relative;z-index:12;flex:0 0 auto;min-width:0}
+.toolButtons{display:flex;gap:3px;padding:4px;border:1px solid #2b4961;border-radius:8px;background:#10263a;
+ align-content:start;align-items:stretch}
+.toolVertical .toolButtons{width:53px;flex-direction:column}
+.toolHorizontal{flex-direction:column;align-self:stretch}
+.toolHorizontal .toolButtons{flex-direction:row;flex-wrap:wrap;width:auto}
+.toolButtons button{padding:7px 4px!important;min-width:41px!important;display:flex;flex-direction:column;gap:3px;
+ align-items:center;justify-content:center;background:transparent!important;border:1px solid transparent!important;
+ color:#b8d4e8!important}
+.toolButtons button>span{font-size:19px;line-height:1}
+.toolButtons button small{font-size:8px;line-height:1.05;max-width:50px;overflow-wrap:anywhere}
+.toolSelected,.toolButtons .toolSelected{background:#205573!important;border-color:#50abd3!important;color:#e5fbff!important}
+.studioFocused .toolButtons button small{display:none}
+.toolboxPopup{width:min(320px,80vw);max-height:min(75dvh,730px);display:flex;flex-direction:column;
+ color:#d6e7f6;background:#0d2337;border:1px solid #446c89;border-radius:10px;
+ box-shadow:0 14px 38px rgba(0,0,0,.55);z-index:30}
+.toolboxFloating{position:absolute;top:0;left:100%}
+.toolHorizontal .toolboxFloating{top:100%;left:0}
+.toolboxDocked{position:relative;box-shadow:none;max-height:calc(100dvh - 135px);border-radius:7px}
+.toolHorizontal .toolboxDocked{width:100%;max-height:280px}
+.toolboxHeading{display:flex;align-items:center;justify-content:space-between;gap:4px;
+ padding:9px 9px 7px;border-bottom:1px solid #34546c}
+.toolboxHeading strong{font-size:12px}
+.toolboxHeading>div{display:flex;gap:3px}
+.toolboxHeading button{font-size:9px!important;padding:4px 6px!important}
+.toolboxScroll{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;
+ padding:9px;flex:1;min-height:0;max-height:calc(75dvh - 45px)}
+.toolboxSearch{width:100%;margin-bottom:8px;font-size:11px!important;padding:8px!important}
+.toolboxGroup{border:1px solid #294960;border-radius:8px;margin-bottom:8px;overflow:hidden}
+.toolboxGroupHead{width:100%;display:flex;justify-content:space-between;background:#17364f!important;
+ border:0!important;text-align:left;font-size:11px!important;font-weight:750;padding:10px!important}
+.toolboxRows{display:grid;gap:4px;padding:6px}
+.toolboxRows>label,.toolboxToggle{display:flex;gap:7px;align-items:center;color:#c6dce9;
+ font-size:11px;line-height:1.3;cursor:pointer;padding:6px}
+.toolboxRows input,.toolboxToggle input{accent-color:#5bc2d5}
+.toolboxRows>button{font-size:11px!important;padding:8px!important;text-align:left}
+.toolboxIndicatorRow{display:flex;align-items:center;gap:5px;justify-content:space-between;padding:4px 2px}
+.toolboxIndicatorRow label{display:flex;align-items:center;gap:6px;font-size:10px;flex:1;min-width:0;cursor:pointer}
+.toolboxIndicatorRow label span{overflow-wrap:anywhere}
+.toolboxIndicatorRow select{font-size:10px!important;max-width:60px;padding:5px 2px!important}
+.toolboxInline{display:flex;gap:5px;flex-wrap:wrap;margin:7px 0}
+.toolboxInline button{font-size:10px!important;flex:1;padding:7px!important}
+.toolboxInline button[aria-pressed="true"]{background:#21597a!important;border-color:#53bfe4!important}
+.toolboxNote{font-size:10px;color:#97b3c9;line-height:1.6;margin:8px 2px}
+.toolboxSetting{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px;
+ border-bottom:1px solid #253e55;font-size:11px}
+.toolboxSetting select{max-width:150px;min-width:70px;font-size:10px!important;padding:5px!important}
+.toolboxSetting input[type="color"]{height:26px;width:45px}
+.toolboxSetting input[type="checkbox"]{accent-color:#4ed5c0}
+.engineDrawingCaption{display:flex;gap:10px;align-items:center;justify-content:space-between;
+ padding:5px 9px;background:#10253a;border-top:1px solid #294359;font-size:9px;color:#9fc5dd;flex-wrap:wrap}
+.engineDrawHost{position:relative;min-width:0}
+.engineDrawCapture{position:absolute;inset:0;z-index:3;cursor:crosshair;touch-action:none;background:transparent}
+.engineDrawStatus{font-size:10px;padding:7px 10px;background:#153d52;color:#e0f8ff}
+@media(max-width:1150px){
+ .studioBody{grid-template-columns:172px minmax(0,1fr)}
+ .studioIntel{grid-column:1/-1;max-height:320px}
+ .studioNoLeft .studioBody{grid-template-columns:1fr}
+ .studioNoRight .studioBody{grid-template-columns:172px minmax(0,1fr)}
+ .studioNoLeft.studioNoRight .studioBody{grid-template-columns:1fr}
+}
+@media(max-width:750px){
+ .studioBody,.studioNoLeft .studioBody,.studioNoRight .studioBody{grid-template-columns:1fr}
+ .studioWatch{grid-row:2;max-height:350px}
+ .studioIntel{grid-row:3}
+ .studioCenter{grid-row:1}
+ .toolButtons button small{display:none}
+ .toolVertical .toolButtons{width:43px}
+ .toolButtons button{min-width:32px!important}
+ .toolboxFloating{width:min(280px,calc(100vw - 75px))}
+ .studioCommandLeft,.studioCommandRight{gap:3px}
+}
