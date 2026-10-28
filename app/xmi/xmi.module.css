@@ -6,7 +6,7 @@
 .subtitle,.muted{color:#93a9c6;font-size:13px;line-height:1.55;margin:4px 0}
 .back{color:#9ac9ff;text-decoration:none;font-weight:600;font-size:13px}.back:hover{text-decoration:underline}
 .pill{font-size:11px;white-space:nowrap;font-weight:800;letter-spacing:.08em;background:#173129;border:1px solid #326957;padding:9px 12px;border-radius:99px;color:#9bf0c7}
-.toolbar{display:flex;align-items:end;gap:18px;flex-wrap:wrap;background:#101e30;border:1px solid #2d4260;padding:14px 18px;border-radius:14px;margin-bottom:16px}
+.toolbar{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap;background:#101e30;border:1px solid #2d4260;padding:14px 18px;border-radius:14px;margin-bottom:16px}
 .topForm{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.topForm label,.layoutPicker legend{color:#a3b5d1;font-size:12px;font-weight:600}
 .toolbar input:not([type=checkbox]),.panelTop input,.shell select{background:#071324;border:1px solid #344b69;border-radius:8px;color:#f0f7ff;padding:9px;min-width:0}
 .topForm input{width:154px;text-transform:uppercase}
