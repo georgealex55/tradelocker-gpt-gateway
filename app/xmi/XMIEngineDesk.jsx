@@ -86,6 +86,13 @@ export default function XMIEngineDesk({selected,onSelected,active=true}){
     </div>
     <div id="xmi-structure-body" hidden={!structureOpen}>
      <p className={styles.sideHint}>Chart overlays · each concept has its own timeframe</p>
+     <div className={styles.structureToolbar}>
+      <button type="button" onClick={()=>setStructureSettings(defaultStructureSettings())}>Show all 11</button>
+      <button type="button" onClick={()=>setStructureSettings(old=>Object.fromEntries(
+       Object.entries(old).map(([id,item])=>[id,{...item,enabled:false}])
+      ))}>Hide all</button>
+     </div>
+     {activeConceptCount===0?<p className={styles.structureWarning}>All structure overlays are off. Select concepts or choose Show all 11.</p>:null}
      <div className={styles.structureList}>
       {STRUCTURE_CONCEPTS.map(item=><div className={styles.structureRow} key={item.id} title={item.description}>
        <label className={styles.structureLabel}>
@@ -158,7 +165,7 @@ export default function XMIEngineDesk({selected,onSelected,active=true}){
 }
 function itemOrNull(asset,report){
  if(asset!=="forex")return <p className={styles.watchFoot}>An equity live-price adapter is not configured. No market structure inferred.</p>;
- if(!report)return <p className={styles.watchFoot}>Awaiting verified broker candles and structure analysis.</p>;
+ if(!report)return <p className={styles.watchFoot}>Awaiting verified broker candles and structure analysis. Open a forex chart with enabled Market Structure checkboxes.</p>;
  const {summaries=[],unavailable=[]}=report;
  return <>
   {summaries.length?<div className={styles.structureFindings}>
