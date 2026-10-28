@@ -191,3 +191,5 @@
  .journalModes button small{font-size:9px}
 }
 @media(prefers-reduced-motion:reduce){.shell button,.chartPanel{transition:none}}
+
+.uxHelper{font-size:10px;color:#8fa9c4;line-height:1.5;margin:-5px 0 13px}
