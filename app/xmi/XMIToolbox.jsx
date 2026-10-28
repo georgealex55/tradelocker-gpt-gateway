@@ -32,7 +32,7 @@ export default function XMIToolbox({
  const ref=useRef(null),upload=useRef(null);
  const settings=scope==="chart"?{...globalSettings,...(chartOverride[slot]||{})}:globalSettings;
  const updateSetting=(key,value)=>{
-  if(key==="indicatorDefaults")setTech(Object.fromEntries(
+  if(key==="indicatorDefaults"&&scope==="global")setTech(Object.fromEntries(
    Object.keys(DEFAULT_INDICATORS).map(id=>[id,value])
   ));
   if(scope==="global")setGlobalSettings(old=>({...old,[key]:value}));
