@@ -13,7 +13,7 @@ test("XMI chart defaults are stocks and ETFs, never TradeLocker forex",()=>{
 test("Equity ticker format prevents direct FOREX/futures venues and untrusted config",()=>{
  assert.equal(normalizeTicker(" nasdaq:aapl "),"NASDAQ:AAPL");
  for(const symbol of ["USDCHF","FX:USDCHF","OANDA:USDCHF","CME:ES1!","BINANCE:BTCUSDT",
-  "https://example.com","NASDAQ:AAPL/../../x","NASDAQ:AAPL\n","NYSE:","NYSE:SP Y"]){
+  "https://example.com","NASDAQ:AAPL/../../x","NASDAQ:AA\nPL","NYSE:","NYSE:SP Y"]){
   assert.throws(()=>normalizeTicker(symbol));
  }
 });
