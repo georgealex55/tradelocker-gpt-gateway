@@ -2,12 +2,20 @@
 import {useEffect,useRef,useState} from "react";
 import {computeFive,FX_RESOLUTIONS,quoteState,FIVE_INDICATORS} from "../../lib/xmiLiveMath.mjs";
 import styles from "./xmi.module.css";
+import {defaultStructureSettings,requiredStructureTimeframes,detectStructure,assembleStructure} from "../../lib/xmiStructure.mjs";
+import {StructureOverlayPrimitive,toStructureMarkers} from "../../lib/xmiStructureOverlay.mjs";
 const COLOR={ema20:"#59c9d8",ema50:"#d1ad5b",ema200:"#a690fa",vwap:"#ef9ed9",
  rsi:"#60ccf5",macd:"#7c95ed",macdSignal:"#f1a45d"};
 const TIMEFRAMES=Object.keys(FX_RESOLUTIONS);
 function title(v){return v==="EMA"?"EMA 20 / 50 / 200":v==="VWAP"?"VWAP proxy":v;}
-export default function XMILiveChart({symbol,resolution,onResolution,selected,onFocus,compact=false,active=true}){
- const el=useRef(null),chart=useRef(null),series=useRef(null);
+const NO_STRUCTURE=defaultStructureSettings();
+export default function XMILiveChart({symbol,resolution,onResolution,selected,onFocus,compact=false,active=true,structureSettings=NO_STRUCTURE,onStructure}){
+ const el=useRef(null),chart=useRef(null),series=useRef(null),drawings=useRef(null);
+ const onStructureRef=useRef(onStructure);onStructureRef.current=onStructure;
+ const [auxData,setAuxData]=useState({});
+ const [overlayMessage,setOverlayMessage]=useState("");
+ const extraRes=requiredStructureTimeframes(structureSettings,resolution);
+ const extraKey=extraRes.join("|");
  const [enabled,setEnabled]=useState(()=>Object.fromEntries(FIVE_INDICATORS.map(x=>[x,true])));
  const [feed,setFeed]=useState({phase:"loading",message:"Waiting for read-only forex data",last:null,stats:null,asOf:null});
  const [detail,setDetail]=useState(null);
@@ -44,6 +52,9 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
      priceFormat:{type:"volume"},priceScaleId:""},3);
    try{c.panes()[1]?.setHeight(100);c.panes()[2]?.setHeight(95);c.panes()[3]?.setHeight(85);}catch{}
    series.current={candle,ema20,ema50,ema200,vwap,rsi,macd,macdSignal,histogram,volume};
+   const primitive=new StructureOverlayPrimitive();
+   candle.attachPrimitive(primitive);
+   drawings.current={marker:lib.createSeriesMarkers(candle,[]),primitive};
    const resizeObserver=new ResizeObserver(entries=>{
     const rect=entries[0]?.contentRect;
     if(rect&&live)c.applyOptions({width:Math.max(300,Math.floor(rect.width)),height:Math.max(290,Math.floor(rect.height))});
@@ -51,7 +62,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
    resizeObserver.observe(root);resize=resizeObserver;
    setLibReady(true);
   }).catch(()=>setFeed(x=>({...x,phase:"error",message:"Chart engine unavailable"})));
-  return ()=>{live=false;resize?.disconnect();chart.current?.remove();chart.current=null;series.current=null;setLibReady(false);};
+  return ()=>{live=false;resize?.disconnect();chart.current?.remove();chart.current=null;series.current=null;drawings.current=null;setLibReady(false);};
  },[]);
  useEffect(()=>{
   const all=series.current;if(!all)return;
@@ -103,6 +114,62 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   refresh();
   return ()=>{running=false;abort?.abort();if(timer)clearTimeout(timer);};
  },[symbol,resolution,libReady,active]);
+ // Additional timeframes use the same protected, read-only candle API.
+ // Each distinct selected timeframe is fetched once; settings are shared by all charts.
+ useEffect(()=>{
+  if(!active||!libReady||!extraKey)return;
+  let running=true,timer=null;
+  const controllers=[];
+  async function load(){
+   if(!running)return;
+   if(document.visibilityState==="hidden"){timer=setTimeout(load,65000);return;}
+   await Promise.all(extraKey.split("|").map(async tf=>{
+    const controller=new AbortController();controllers.push(controller);
+    const key=symbol+"|"+tf;
+    try{
+     const res=await fetch("/api/xmi/live?"+new URLSearchParams({symbol,resolution:tf}),
+      {cache:"no-store",signal:controller.signal});
+     const data=await res.json();
+     if(!res.ok||!data.ok)throw Error(data.error||"No verified market candles");
+     const structure=detectStructure(data.bars,tf,Date.parse(data.asOf));
+     if(running)setAuxData(old=>({...old,[key]:{structure,loadedAt:Date.parse(data.asOf)}}));
+    }catch(err){
+     if(running&&err.name!=="AbortError")
+      setAuxData(old=>({...old,[key]:{error:"Market data unavailable for "+tf}}));
+    }
+   }));
+   if(running)timer=setTimeout(load,65000);
+  }
+  load();
+  return ()=>{running=false;if(timer)clearTimeout(timer);controllers.forEach(c=>c.abort());};
+ },[symbol,active,libReady,extraKey]);
+ useEffect(()=>{
+  const overlay=drawings.current;
+  if(!libReady||!overlay)return;
+  if(!feed.stats){
+   overlay.marker.setMarkers([]);
+   overlay.primitive.setAnnotations([],null);
+   setOverlayMessage("");
+   return;
+  }
+  const byResolution={
+   [resolution]:{structure:detectStructure(feed.stats.bars,resolution,Date.parse(feed.asOf))}
+  };
+  for(const tf of extraRes){
+   const stored=auxData[symbol+"|"+tf];
+   if(stored)byResolution[tf]=stored;
+  }
+  const display=feed.stats.bars;
+  const result=assembleStructure(structureSettings,byResolution,resolution,display);
+  try{
+   overlay.marker.setMarkers(toStructureMarkers(result.annotations));
+   overlay.primitive.setAnnotations(result.annotations,display.at(-1)?.time??null);
+   setOverlayMessage(result.annotations.length+" annotations · "+result.unavailable.length+" timeframes awaiting data");
+  }catch(err){
+   setOverlayMessage("Structure drawing unavailable; candle feed remains read-only");
+  }
+  if(selected)onStructureRef.current?.(result);
+ },[symbol,resolution,feed.stats,feed.asOf,structureSettings,auxData,libReady,selected,active,extraKey]);
  const stats=feed.stats;const ready=feed.phase==="ready";
  return <article className={styles.engineCard+(selected?" "+styles.chartActive:"")} aria-label={symbol+" live forex chart"}>
   <div className={styles.engineTop}>
@@ -128,6 +195,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
    </span>
    <span role="status">{feed.message}</span>
    <span>{feed.last?(feed.last.closed?"Last bar closed":"Last bar forming")+" · "+new Date(feed.last.time*1000).toLocaleString():"No verified price"}</span>
+   {overlayMessage?<span>{overlayMessage}</span>:null}
   </div>
   {stats?<div className={styles.engineNotes}>
     <span>{stats.volumeLabel}. {stats.vwapLabel}.</span>
