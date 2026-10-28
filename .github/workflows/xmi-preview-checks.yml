@@ -7,6 +7,9 @@ on:
       - 'lib/xmiWorkspace.mjs'
       - 'lib/xmiLive*.mjs'
       - 'lib/xmiStructure*.mjs'
+      - 'lib/xmiChartTools.mjs'
+      - 'lib/xmiDrawingPrimitive.mjs'
+      - 'tests/xmi-chart-tools.test.mjs'
       - 'tests/xmi-structure.test.mjs'
       - 'tests/xmi-live-engine.test.mjs'
       - 'tests/xmi-chart-lifecycle.test.mjs'
@@ -39,6 +42,8 @@ jobs:
           node --check lib/xmiLiveMath.mjs
           node --check lib/xmiStructure.mjs
           node --check lib/xmiStructureOverlay.mjs
+          node --check lib/xmiChartTools.mjs
+          node --check lib/xmiDrawingPrimitive.mjs
           node --check lib/xmiLiveProvider.mjs
           node --check app/api/xmi/live/route.js
           node --check lib/xmiDeskState.mjs
