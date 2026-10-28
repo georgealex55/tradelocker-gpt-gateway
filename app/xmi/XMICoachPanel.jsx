@@ -1,5 +1,5 @@
 "use client";
-import {useState} from "react";
+import {useEffect,useState} from "react";
 import styles from "./xmi.module.css";
 import XMICloudSync from "./XMICloudSync";
 import {importTrades,normalizeTrade,fingerprint,coachSummary} from "../../lib/xmiJournal.mjs";
@@ -10,7 +10,7 @@ function localISO(value){
  if(!Number.isFinite(ms))throw Error("Invalid trade time");
  return new Date(ms).toISOString();
 }
-export default function XMICoachPanel({ticker}){
+export default function XMICoachPanel({ticker,openCloud=false}){
  const [rows,setRows]=useState([]);
  const [mode,setMode]=useState("manual");
  const [report,setReport]=useState("This is your private, tab-only journal. Nothing uploads automatically.");
@@ -18,6 +18,13 @@ export default function XMICoachPanel({ticker}){
  const [notes,setNotes]=useState("");
  const [setup,setSetup]=useState("");
  const stats=coachSummary(rows);
+ useEffect(()=>{if(openCloud)setMode("cloud");},[openCloud]);
+ useEffect(()=>{
+  if(!rows.length)return;
+  const warn=(event)=>{event.preventDefault();event.returnValue="";};
+  window.addEventListener("beforeunload",warn);
+  return ()=>window.removeEventListener("beforeunload",warn);
+ },[rows.length]);
  function mergeTrades(previous,trades,source){
   const known=new Set(previous.map(fingerprint)),next=[...previous];
   for(const t of trades){
