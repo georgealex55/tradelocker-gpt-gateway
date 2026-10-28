@@ -22,6 +22,21 @@
 4. Store personal coaching memory in a separately authenticated, row-level-secured datastore, not in widget configurations, browser-readable service secrets, or public GitHub code.
 5. Treat direct repository merging as a separate, explicit decision after reviewing whether the combined repository must be PRIVATE. Do not merge branches or move private code in this stage.
 
+## Phase 2: actual public-feed + local journal connection
+
+- `/api/xmi/context` is a **same-origin, server-side GET-only adapter** to fixed public `https://xmi-terminal.vercel.app/api/xmi`; no arbitrary upstream URL, XMI database credential, TradeLocker key, or personal journal data is sent.
+- The source is the existing PUBLIC XMI terminal snapshot, returning at most 80 latest news items. It is NOT the complete historical XMI archive. Date and ticker filtering require `Published / Event Time` and XMI `Timestamp` (first observed) to precede the range end; macro headlines are labeled broader-market and not presented as direct ticker catalysts.
+- The `/xmi` news panel requires a manual start/end time because hosted TradingView widgets do not expose chart-region selections. It shows both timestamps and the archive coverage limitation. XMI upstream errors return 503 and no invented headlines.
+- The `/xmi` coach now supports in-memory import of one-trade-per-row CSV files (2 MB / 5,000 rows), manual entries with notes, rule annotations, local descriptive flags, and user-initiated JSON export. Raw BUY/SELL broker fills are rejected. No journal data is transmitted or persisted by default.
+- **Authenticated cloud memory is not connected or activated.** The XMI private PR has a Neon preview branch with RLS, but the identity provider and limited database login are not configured and the XMI private service is not deployed. Do NOT route personal trade records through the TradeLocker database or public XMI feed.
+- Existing TradeLocker routes, crons, and order-execution guards remain unchanged. No repository merge or production deployment is authorized.
+
+## Verified release gates still open
+
+- A Vercel preview BUILD alone does not prove external news fetches or TradingView UI worked in a real browser. Perform browser-level and network QA.
+- Establish a private OIDC identity provider and an isolated least-privilege private journal API. Confirm two-user isolation before any account sync.
+- For full historical coverage, deploy and test a dedicated read-only XMI archive endpoint with bounded, timestamp-qualified queries; the current recent-feed adapter must not be treated as a backfill.
+- For TradingView chart-region annotations and coach handoff, use an appropriately licensed programmable chart API or the private XMI Lightweight Charts implementation, not widget internals.
 ## QA gates before production
 
 - Confirm TradingView widget actually loads on a Vercel preview, on desktop and mobile.
