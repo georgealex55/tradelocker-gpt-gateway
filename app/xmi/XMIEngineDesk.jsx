@@ -1,5 +1,6 @@
 "use client";
 import {useEffect,useMemo,useRef,useState} from "react";
+import {CHART_UI_KEY,normalizeChartUI} from "../../lib/xmiWorkspaceState.mjs";
 import styles from "./xmi.module.css";
 import XMILiveChart from "./XMILiveChart";
 import XMIChartErrorBoundary from "./XMIChartErrorBoundary";
@@ -16,8 +17,8 @@ import {DEFAULT_CHART_SETTINGS,DEFAULT_TECH,resolveChartSettings,
  validateDrawings,serializeWorkspace,deserializeWorkspace,drawingsForSymbol,samePatternEvents} from "../../lib/xmiChartTools.mjs";
 const START=["EURUSD","GBPUSD","USDJPY","USDCHF","AUDUSD","NASDAQ:AAPL","AMEX:SPY"];
 const DEFAULT=START.map(parseInstrument),KEY="xmi-chart-workbench-v1";
-export default function XMIEngineDesk({selected,onSelected,onResearch,active=true,focusMode=false,onFocusMode,strategyId="day",onStrategyChange,onResearchModel,onWorkspaceChange,remoteWorkspace,remotePatterns,strategyEdits={}}){
- const root=useRef(null),counter=useRef(0);
+export default function XMIEngineDesk({selected,onSelected,onResearch,active=true,focusMode=false,onFocusMode,strategyId="day",onStrategyChange,onResearchModel,onWorkspaceChange,remoteWorkspace,remotePatterns,remoteChartUI,strategyEdits={}}){
+ const root=useRef(null),counter=useRef(0),presetHydrated=useRef(false);
  const [watchlist,setWatchlist]=useState(DEFAULT),[watchInput,setWatchInput]=useState(""),[error,setError]=useState("");
  const [layout,setLayout]=useState(1),[focus,setFocus]=useState(0);
  const [watchOpen,setWatchOpen]=useState(true),[watchVisible,setWatchVisible]=useState(true);
@@ -54,8 +55,31 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
     setGlobalSettings(data.settings);setChartOverride(data.overrides);setTech(data.technical);}
   }catch{ /* Private browsing / older schema: fail closed to default settings. */ }
   try{const value=JSON.parse(window.localStorage.getItem("xmi-pattern-types-v1")||"null");if(value&&typeof value==="object"&&Object.keys(value).every(k=>TOOL_CATALOG.Patterns.includes(k)))setPatternEnabled(value);}catch{}
+  try{
+   const raw=window.localStorage.getItem(CHART_UI_KEY);
+   if(raw){
+    const ui=normalizeChartUI(JSON.parse(raw));
+    setWatchlist(ui.watchlist.map(parseInstrument));setChartKeys(ui.chartKeys);
+    setResolutions(ui.resolutions);setLayout(ui.layout);setFocus(ui.focus);
+    setWatchOpen(ui.watchOpen);setWatchVisible(ui.watchVisible);
+    setIntelOpen(ui.intelOpen);setIntelVisible(ui.intelVisible);
+    setLeftView(ui.leftView);setOrientation(ui.orientation);
+    setAutoPatterns(ui.autoPatterns);setAutoFib(ui.autoFib);
+    setMaximized(ui.maximized);onSelected?.(ui.chartKeys[ui.focus]);
+   }
+  }catch{setError("Saved chart layout could not be restored. Using safe defaults.");}
   setLoaded(true);
  },[]);
+ useEffect(()=>{
+  if(!loaded)return;
+  try{
+   const ui=normalizeChartUI({watchlist:watchlist.map(item=>item.key),chartKeys,resolutions,
+    layout,focus,watchOpen,watchVisible,intelOpen,intelVisible,leftView,orientation,
+    autoPatterns,autoFib,maximized});
+   window.localStorage.setItem(CHART_UI_KEY,JSON.stringify(ui));
+  }catch{setError("Chart layout could not be saved in this browser.");}
+ },[loaded,watchlist,chartKeys,resolutions,layout,focus,watchOpen,watchVisible,
+    intelOpen,intelVisible,leftView,orientation,autoPatterns,autoFib,maximized]);
  useEffect(()=>{
   if(!loaded)return;
   try{window.localStorage.setItem(KEY,serializeWorkspace(savedDrawings,globalSettings,tech,chartOverride));}
@@ -63,6 +87,19 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
  },[loaded,savedDrawings,globalSettings,tech,chartOverride]);
  useEffect(()=>{if(loaded)onWorkspaceChange?.(serializeWorkspace(savedDrawings,globalSettings,tech,chartOverride));},
   [loaded,savedDrawings,globalSettings,tech,chartOverride,onWorkspaceChange]);
+ useEffect(()=>{
+  if(!remoteChartUI||!loaded)return;
+  try{
+   const ui=normalizeChartUI(remoteChartUI);
+   setWatchlist(ui.watchlist.map(parseInstrument));setChartKeys(ui.chartKeys);
+   setResolutions(ui.resolutions);setLayout(ui.layout);setFocus(ui.focus);
+   setWatchOpen(ui.watchOpen);setWatchVisible(ui.watchVisible);
+   setIntelOpen(ui.intelOpen);setIntelVisible(ui.intelVisible);
+   setLeftView(ui.leftView);setOrientation(ui.orientation);
+   setAutoPatterns(ui.autoPatterns);setAutoFib(ui.autoFib);
+   setMaximized(ui.maximized);onSelected?.(ui.chartKeys[ui.focus]);
+  }catch{setError("Encrypted chart layout restore rejected. Current layout retained.");}
+ },[remoteChartUI,loaded,onSelected]);
  useEffect(()=>{if(remotePatterns&&typeof remotePatterns==="object")
   setPatternEnabled(Object.fromEntries(TOOL_CATALOG.Patterns.map(name=>[name,remotePatterns[name]!==false])));},[remotePatterns]);
  useEffect(()=>{if(!remoteWorkspace)return;try{
@@ -71,6 +108,8 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
   setChartOverride(record.overrides);setTech(record.technical);
  }catch{setError("Saved account workspace is invalid; local settings retained.");}},[remoteWorkspace]);
  useEffect(()=>{
+  if(!loaded)return;
+  if(!presetHydrated.current){presetHydrated.current=true;return;}
   const preset=strategyById(strategyId);
   if(!preset||preset.unscored)return;
   setResolutions(old=>old.map((r,i)=>i===focus?edit.timeframe:r));
@@ -84,7 +123,7 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
    delete current.candleTimer;
    return {...old,[focus]:current};
   });
- },[strategyId,edit.timeframe]);
+ },[loaded,strategyId,edit.timeframe]);
  useEffect(()=>{if(loaded)try{window.localStorage.setItem("xmi-pattern-types-v1",JSON.stringify(patternEnabled));}catch{}},[loaded,patternEnabled]);
  useEffect(()=>{
   const change=()=>setBrowserFullscreen(document.fullscreenElement===root.current);

@@ -2,8 +2,9 @@
 import {useEffect,useState} from "react";
 import styles from "./xmi.module.css";
 import {usernameKey,storageKey,register,unlock,reseal} from "../../lib/xmiLocalVault.mjs";
+import {CHART_UI_KEY,normalizeChartUI,normalizeShellUI} from "../../lib/xmiWorkspaceState.mjs";
 
-export default function XMIAccountSettings({workspace,strategyId,layout,strategyEdits={},onRestore}){
+export default function XMIAccountSettings({workspace,strategyId,layout,strategyEdits={},workspaceUI,onRestore}){
  const [open,setOpen]=useState(false),[session,setSession]=useState(null);
  const [mode,setMode]=useState("login"),[username,setUsername]=useState("");
  const [password,setPassword]=useState(""),[confirm,setConfirm]=useState("");
@@ -15,9 +16,14 @@ export default function XMIAccountSettings({workspace,strategyId,layout,strategy
   let pins={},patterns={};
   try{pins=JSON.parse(localStorage.getItem("xmi-news-pins-v1")||"{}");}catch{}
   try{patterns=JSON.parse(localStorage.getItem("xmi-pattern-types-v1")||"{}");}catch{}
+  let chartUI=null;
+  try{
+   const raw=localStorage.getItem(CHART_UI_KEY);
+   if(raw)chartUI=normalizeChartUI(JSON.parse(raw));
+  }catch{}
   return {workspace:typeof workspace==="string"?workspace:"",
    strategyId,layout:{showBanner:layout?.showBanner!==false,showTabs:layout?.showTabs!==false},
-   pins,patterns,strategyEdits};
+   pins,patterns,strategyEdits,chartUI,workspaceUI:normalizeShellUI(workspaceUI)};
  }
  async function enter(event){
   event.preventDefault();if(busy)return;
@@ -58,7 +64,7 @@ export default function XMIAccountSettings({workspace,strategyId,layout,strategy
  }
  function signOut(){
   if(!window.confirm("Sign out and clear unencrypted working chart settings from this device? Save your encrypted account settings first."))return;
-  for(const name of ["xmi-chart-workbench-v1","xmi-pattern-types-v1","xmi-news-pins-v1","xmi-layout-ui-v2"]){
+  for(const name of ["xmi-chart-workbench-v1",CHART_UI_KEY,"xmi-workspace-ui-v3","xmi-pattern-types-v1","xmi-news-pins-v1","xmi-layout-ui-v2","xmi-strategy-edits-v1"]){
    try{localStorage.removeItem(name);}catch{}
   }
   setSession(null);setPassword("");setConfirm("");window.location.assign("/xmi");

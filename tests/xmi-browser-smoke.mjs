@@ -63,6 +63,54 @@ try{
  assert.equal(v.maxWidth,"none","Gateway 900px width cap must be removed");
  assert.ok(v.shellWidth>=v.viewport*.94,"Chart workstation must use almost full viewport width");
  assert.notEqual(v.background,"rgb(255, 255, 255)","White page background must be removed");
+ // Milestone 1A: dedicated journal and individual workspace maximize/collapse behavior.
+ const navigation=page.getByRole("navigation",{name:"XMI workspaces"});
+ assert.equal(await navigation.getByRole("button").count(),5,"All five workspaces are navigable");
+ await navigation.getByRole("button",{name:/Trading Journal/}).click();
+ await page.getByRole("heading",{name:"Personal trade journal"}).waitFor();
+ assert.equal(await page.getByRole("heading",{name:"System & access overview"}).isVisible().catch(()=>false),false);
+ await page.getByRole("button",{name:"Maximize Trading Journal workspace"}).click();
+ const expandedJournal=page.locator('[class*="workspaceMaximized"]').filter({has:page.getByRole("button",{name:"Restore Trading Journal workspace"})});
+ assert.equal(await expandedJournal.count(),1,"Journal maximizes to a full viewport panel");
+ const area=await expandedJournal.evaluate(element=>({
+  position:getComputedStyle(element).position,
+  width:Math.round(element.getBoundingClientRect().width),
+  viewport:window.innerWidth
+ }));
+ assert.equal(area.position,"fixed");
+ assert.ok(area.width>=area.viewport-2,"Maximized journal spans the full viewport");
+ await page.getByRole("button",{name:"Collapse Trading Journal workspace"}).click();
+ assert.equal(await page.getByRole("heading",{name:"Personal trade journal"}).isVisible(),false,
+  "Collapsing retains but hides the journal rather than removing it");
+ await page.getByRole("button",{name:"Expand Trading Journal workspace"}).click();
+ await page.getByRole("heading",{name:"Personal trade journal"}).waitFor();
+ await page.getByRole("button",{name:"Restore Trading Journal workspace"}).click();
+ await navigation.getByRole("button",{name:/Admin/}).click();
+ await page.getByRole("heading",{name:"System & access overview"}).waitFor();
+ assert.equal(await page.locator('[aria-label="Personal trade journal"]').count(),1,
+  "Journal remains mounted while switching to Admin");
+ await page.reload({waitUntil:"domcontentloaded"});
+ await page.getByRole("heading",{name:"System & access overview"}).waitFor({timeout:15000});
+ assert.equal(await page.locator('[aria-label="Personal trade journal"]').count(),1);
+ await page.getByRole("navigation",{name:"XMI workspaces"}).getByRole("button",{name:/Live Chart/}).click();
+ await page.getByText("CANDLES RECEIVING",{exact:true}).first().waitFor({timeout:30000});
+ await page.getByRole("button",{name:"2 charts"}).click();
+ assert.equal(await page.getByRole("button",{name:"2 charts"}).getAttribute("aria-pressed"),"true");
+ await page.waitForFunction(()=>{try{return JSON.parse(localStorage.getItem("xmi-chart-ui-v1")||"{}").layout===2;}catch{return false;}},{timeout:12000});
+ const savedChartUI=await page.evaluate(()=>JSON.parse(localStorage.getItem("xmi-chart-ui-v1")||"null"));
+ assert.equal(savedChartUI?.layout,2,"Two-chart layout persists in validated local storage");
+ assert.deepEqual(savedChartUI?.chartKeys.slice(0,2),["FX:EURUSD","FX:GBPUSD"]);
+ await page.reload({waitUntil:"domcontentloaded"});
+ await page.getByRole("button",{name:"2 charts"}).waitFor({timeout:15000});
+ await page.waitForFunction(()=>{
+  const buttons=[...document.querySelectorAll("button")];
+  return buttons.some(b=>b.textContent.trim()==="2 charts"&&b.getAttribute("aria-pressed")==="true");
+ },null,{timeout:15000});
+ assert.equal(await page.getByRole("button",{name:"2 charts"}).getAttribute("aria-pressed"),"true",
+  "Saved two-chart layout is restored after React hydration");
+ await page.getByText("CANDLES RECEIVING",{exact:true}).first().waitFor({timeout:30000});
+
+
  await page.locator('button[title="Indicators"]').click();
  await page.getByPlaceholder("Search indicators, patterns or market structure…").waitFor();
  await page.getByPlaceholder("Search indicators, patterns or market structure…").fill("BOS");
