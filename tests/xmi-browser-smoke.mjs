@@ -102,8 +102,12 @@ try{
  assert.deepEqual(savedChartUI?.chartKeys.slice(0,2),["FX:EURUSD","FX:GBPUSD"]);
  await page.reload({waitUntil:"domcontentloaded"});
  await page.getByRole("button",{name:"2 charts"}).waitFor({timeout:15000});
+ await page.waitForFunction(()=>{
+  const buttons=[...document.querySelectorAll("button")];
+  return buttons.some(b=>b.textContent.trim()==="2 charts"&&b.getAttribute("aria-pressed")==="true");
+ },null,{timeout:15000});
  assert.equal(await page.getByRole("button",{name:"2 charts"}).getAttribute("aria-pressed"),"true",
-  "Saved two-chart layout is restored after reload");
+  "Saved two-chart layout is restored after React hydration");
  await page.getByText("CANDLES RECEIVING",{exact:true}).first().waitFor({timeout:30000});
 
 
