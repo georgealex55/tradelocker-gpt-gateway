@@ -12,9 +12,10 @@ const candles=Array.from({length:260},(_,i)=>{
 });
 const now=start+261*step;
 function inspect(rows=candles,options={}){
- const stats=computeFive(rows,"1m",now,"broker-tick");
+ const clock=options.now??now;
+ const stats=computeFive(rows,"1m",clock,"broker-tick");
  const quality=inspectCandleQuality({bars:stats.bars,overlays:stats.overlays,
-  resolution:"1m",asOf:now,now,sourceQuality:"CURRENT",...options});
+  resolution:"1m",asOf:clock,now:clock,sourceQuality:"CURRENT",...options});
  return {stats,quality};
 }
 test("Full closed-bar dataset reports indicator readiness without fabricating candles",()=>{
@@ -31,9 +32,9 @@ test("Full closed-bar dataset reports indicator readiness without fabricating ca
 });
 test("Forming candle values never satisfy readiness or alter closed-bar strategy",()=>{
  const closed=inspect();
- const forming={...candles.at(-1),time:(start+260*step)/1000,
+ const forming={...candles.at(-1),time:(start+261*step)/1000,
   open:5,close:5,high:5,low:5,volume:1};
- const {stats,quality}=inspect([...candles,forming],{asOf:now-500});
+ const {stats,quality}=inspect([...candles,forming]);
  assert.equal(stats.latest.closed,false);
  assert.equal(quality.lastClosedTime,candles.at(-1).time);
  assert.equal(quality.closedBars,260);
@@ -43,7 +44,7 @@ test("Forming candle values never satisfy readiness or alter closed-bar strategy
  assert.equal(current.barTime,previous.barTime);
 });
 test("Warmup indicator availability is measured at latest CLOSED bar",()=>{
- const short=inspect(candles.slice(0,30));
+ const short=inspect(candles.slice(0,30),{now:start+31*step});
  assert.equal(short.quality.indicatorStatus.ema200,false);
  assert.equal(short.quality.indicatorStatus.macd,false);
  assert.equal(short.quality.indicatorStatus.rsi14,true);
