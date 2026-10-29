@@ -1,6 +1,6 @@
 "use client";
 import {useCallback,useEffect,useState} from "react";
-import {SHELL_UI_KEY,TABS as TAB_IDS,DEFAULT_SHELL_UI,normalizeShellUI} from "../../lib/xmiWorkspaceState.mjs";
+import {SHELL_UI_KEY,DEFAULT_SHELL_UI,normalizeShellUI} from "../../lib/xmiWorkspaceState.mjs";
 import styles from "./xmi.module.css";
 import XMIEngineDesk from "./XMIEngineDesk";
 import XMITickerNews from "./XMITickerNews";
