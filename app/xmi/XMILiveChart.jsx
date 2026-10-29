@@ -158,6 +158,8 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
    const local=offline?.symbol===symbol&&offline?.resolution===resolution?offline:null;
    if(!local&&document.visibilityState==="hidden"){schedule();return;}
    abort=local?null:new AbortController();
+   const requestTimeout=abort?setTimeout(()=>abort.abort(
+    new DOMException("Read-only candle request exceeded 15 seconds","TimeoutError")),15000):null;
    try{
     let data;
     if(local){
@@ -173,6 +175,8 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
     }
     const stats=computeFive(data.bars,resolution,Date.parse(data.asOf),data.volumeBasis);
     if(!running)return;
+    const quality=local?"HISTORICAL":quoteState(stats.lastClosed,Date.parse(data.asOf),resolution);
+    if(quality==="INVALID_TIME")throw Error("Broker candle timestamps are invalid; no current signal may be inferred");
     const mapped=stats.bars.map(({time,open,high,low,close})=>({time,open,high,low,close}));
     if(mapped.length){
      all.candle.setData(chartSeriesData(mapped,chartSettings.chartType));
@@ -186,8 +190,6 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
       fitted=true;
      }
     }
-    const quality=local?"HISTORICAL":quoteState(stats.lastClosed,Date.parse(data.asOf),resolution);
-    if(quality==="INVALID_TIME")throw Error("Broker candle timestamps are invalid; no current signal may be inferred");
     failures=0;
     lastSuccessAt=Date.now();
     lastClosedAt=stats.lastClosed?.time?stats.lastClosed.time*1000:null;
@@ -208,7 +210,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
      failures,lastCheckedAt:Date.now(),lastSuccessAt,lastClosedAt,
      nextRefreshMs:null}));
     if(!retryable)running=false;
-   }finally{if(running&&!local)schedule();}
+   }finally{if(requestTimeout)clearTimeout(requestTimeout);if(running&&!local)schedule();}
   }
   setFeed({phase:"loading",message:"Loading verified broker candles…",last:null,stats:null,asOf:null,
    quality:"UNAVAILABLE",failures:0,lastCheckedAt:null,lastSuccessAt:null,lastClosedAt:null,nextRefreshMs:null});
