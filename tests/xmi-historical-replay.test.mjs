@@ -76,3 +76,13 @@ test("Local import rejects symbol/timeframe mismatch and uses no live endpoint",
  assert.throws(()=>replayHistoricalJson(text,{...opts,symbol:"GBPUSD"}),/symbol does not match/);
  assert.throws(()=>replayHistoricalJson(text,{...opts,resolution:"5m"}),/timeframe differs/);
 });
+
+test("Import at the forming candle excludes it instead of peeking at its eventual close",()=>{
+ const values=candles(70);
+ const now=(values.at(-1).time+10)*1000;
+ const input=JSON.stringify({symbol:"EURUSD",resolution:"1m",bars:values});
+ const r=replayHistoricalJson(input,{symbol:"EURUSD",resolution:"1m",now});
+ assert.equal(r.excludedFormingBars,1);
+ assert.equal(r.totalBars,69);
+ assert.equal(r.lastCandle,values.at(-2).time);
+});
