@@ -53,6 +53,10 @@ export default function XMIWorkstation(){
   <div hidden={tab!=="strategy"} className={styles.nonChartWorkspace}>
    <div className={styles.workspaceHeading}><div><p className={styles.eyebrow}>STRATEGY LAB</p><h2>Custom strategy builder</h2></div>
      <span className={styles.previewTag}>Next milestone</span></div>
+   <section className={styles.infoCard}><h3>Verified historical research</h3>
+    <p>Use the offline XMI 2.0 Chart Studio for imported, closed-candle OHLC analysis, confirmed historical patterns and annotation tools. Broker feeds and execution are not available in this workspace.</p>
+    <p><a href="/xmi2/chart-studio.html" style={{display:"inline-block",padding:"11px 18px",border:"1px solid #64bedf",borderRadius:8,color:"#a1eaff",fontWeight:700}}>Open Historical Chart Studio · Import Only</a></p>
+   </section>
    <section className={styles.infoCard}><h3>Deterministic strategy confirmation</h3>
     <p>The new indicator engine is built. Strategy rules, activation, backtests and candle-close signal markers remain
     unconfigured. Until a validated user strategy is active, the live chart displays <strong>NO ACTIVE STRATEGY</strong>.</p>

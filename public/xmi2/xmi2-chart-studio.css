@@ -1,0 +1,97 @@
+:root{color-scheme:dark;--bg:#07111f;--panel:#0c1b30;--edge:#29425e;--txt:#e1f0ff;--muted:#8faac8;--accent:#5bc6e6;--green:#34c7a2;--red:#e87b84}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;width:100%;background:var(--bg);color:var(--txt);font:13px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+button,select,input{font:inherit}button,select{background:#172b45;color:#d7e9ff;border:1px solid #385571;border-radius:7px;padding:7px 10px;cursor:pointer}
+button:hover,select:hover{border-color:#65bbda}button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid #5bc6e6;outline-offset:2px}
+button[aria-pressed=true],.primary{background:#174b64;border-color:#4badd3;color:#fff}
+button:disabled{opacity:.5;cursor:default}input{background:#071525;color:#e3f2ff;border:1px solid #365271;border-radius:6px;padding:9px;width:100%;min-width:0}
+a{color:#83c7ef}.studio{min-height:100dvh;display:flex;flex-direction:column;padding:5px 7px;gap:5px;background:var(--bg);width:100%;max-width:none}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--edge);padding:6px 8px 9px}
+.brand{display:flex;align-items:center;gap:10px}.brand>div{display:grid}.brand strong{font-size:16px;letter-spacing:.04em}.brand small{font-size:9px;color:var(--muted);letter-spacing:.08em}
+.logo{font-size:20px;font-weight:900;padding:5px 11px;border:1px solid #3894b4;background:#12425e;border-radius:8px}.back{font-size:11px;text-decoration:none;white-space:nowrap}
+.top-actions{display:flex;flex-wrap:wrap;align-items:center;gap:5px}.top-actions button{font-size:10px;padding:6px 9px}
+.status{font-size:10px;color:#efcc92;border:1px solid #7c6542;background:#322b21;padding:7px 10px;border-radius:999px;max-width:380px}
+.workspace{display:grid;grid-template-columns:204px minmax(0,1fr) 230px;gap:6px;flex:1;align-items:start;min-width:0}
+.workspace.no-watch{grid-template-columns:minmax(0,1fr) 230px}
+.workspace.no-intel{grid-template-columns:204px minmax(0,1fr)}
+.workspace.no-watch.no-intel{grid-template-columns:minmax(0,1fr)}
+.rail{background:var(--panel);border:1px solid var(--edge);border-radius:10px;padding:10px;min-width:0;max-height:calc(100dvh - 95px);overflow:auto;scrollbar-width:thin;scrollbar-color:#43647d #0c1b30}
+.rail-head{display:flex;align-items:center;justify-content:space-between;gap:6px}.rail h2{font-size:14px;margin:3px 0}.rail-head h2 span{color:var(--muted);font-size:10px}.rail-head button{font-size:10px;padding:5px 8px}
+.help{color:var(--muted);font-size:10px;line-height:1.6}.watchlist{display:grid;gap:5px;max-height:260px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding:2px 4px 3px 0}
+.watch-item{display:flex;gap:4px;align-items:center;background:#0c223a;border:1px solid #25445f;border-radius:8px;min-height:46px}
+.watch-item button:first-child{flex:1;min-width:0;text-align:left;background:transparent;border:0}.watch-item button:first-child strong{display:block;font-size:12px}.watch-item small{font-size:9px;color:#8faac8}.watch-item button:last-child{background:transparent;border:0;color:#92afc6;padding:6px}
+.watch-item.active{border-color:var(--accent);background:#16415b}.add-form{display:grid;gap:6px;margin-top:12px}.add-form label{font-size:11px;color:#bcd6ee}
+.inline{display:flex;align-items:center;gap:5px;flex-wrap:wrap}.inline input{flex:1}.primary{width:100%;margin-top:9px}
+.studio-main{display:flex;min-width:0;gap:4px;align-items:stretch}.tool-dock{position:relative;z-index:10;display:flex;flex:0 0 auto;align-items:flex-start;gap:4px;min-width:0}
+.toolbar{display:flex;flex-direction:column;gap:3px;padding:3px;background:#10263c;border:1px solid var(--edge);border-radius:9px}
+.toolbar button{width:55px;min-height:45px;background:transparent;border-color:transparent;font-size:19px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 3px;line-height:1.1}
+.toolbar button small{font-size:8px;margin-top:4px;overflow-wrap:anywhere}.toolbar button.selected{border-color:#62b5d8;background:#194a67}
+.tool-dock.horizontal,.studio-main:has(.tool-dock.horizontal){flex-direction:column}.tool-dock.horizontal .toolbar{flex-direction:row;flex-wrap:wrap}
+.tool-popup{width:min(315px,78vw);display:flex;flex-direction:column;max-height:75dvh;border:1px solid #477393;border-radius:10px;background:#0b243c;box-shadow:0 14px 35px #0009;position:absolute;left:100%;top:0;z-index:100}
+.tool-dock.horizontal .tool-popup{left:0;top:100%}.tool-popup[hidden]{display:none!important}
+.tool-dock.docked .tool-popup{position:relative;box-shadow:none;max-height:calc(100dvh - 160px)}
+.tool-dock.horizontal.docked .tool-popup{width:100%;max-height:270px}
+.tool-head{padding:8px;border-bottom:1px solid var(--edge);display:flex;justify-content:space-between;align-items:center;gap:5px}
+.tool-head strong{font-size:12px}.tool-head button{font-size:10px;padding:5px}.tool-scroll{overflow:auto;padding:9px;scrollbar-width:thin;min-height:0}
+.tool-scroll>label,.tool-row{display:flex;align-items:center;gap:7px;padding:6px 3px;font-size:11px}
+.tool-row>label{display:flex;align-items:center;flex:1;gap:5px;min-width:0}.tool-row label span{overflow-wrap:anywhere}.tool-row select{width:65px;padding:4px 2px}
+.tool-scroll input[type=checkbox]{accent-color:#56bfc7;width:auto}.tool-scroll input[type=text]{margin:6px 0 10px}
+.tool-group{border:1px solid #29465f;border-radius:7px;margin-bottom:8px;padding:7px;max-height:290px;overflow:auto}
+.tool-group>strong{display:block;font-size:11px;border-bottom:1px solid #30485f;padding-bottom:6px;margin-bottom:6px}
+.tool-pick{display:block;width:100%;text-align:left;margin:4px 0}.tool-tip{font-size:10px;color:#9eb9d0;line-height:1.6}.tool-actions{display:flex;gap:4px;flex-wrap:wrap}.tool-actions button{flex:1;font-size:10px}
+.chart-surface{flex:1;min-width:0;background:#0b1729;border:1px solid var(--edge);border-radius:10px;overflow:hidden}
+.chart-controls{display:flex;justify-content:space-between;flex-wrap:wrap;align-items:center;gap:7px;padding:9px;border-bottom:1px solid #2b465f}
+.chart-controls>div:first-child{display:grid;gap:3px}.chart-controls strong{font-size:11px}.chart-controls span{font-size:10px;color:var(--muted)}
+.chart-controls label{font-size:10px;color:var(--muted)}.chart-controls select{font-size:11px;padding:5px;max-width:145px}
+.chart-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:5px;padding:5px;min-height:360px}
+.chart-grid.layout-2,.chart-grid.layout-4{grid-template-columns:repeat(2,minmax(0,1fr))}
+.chart-tile{background:#0b1729;min-width:0;border:1px solid #314a64;border-radius:7px;position:relative;overflow:hidden}
+.chart-tile.active{border-color:#62b5d8}.chart-label{position:absolute;left:9px;top:8px;z-index:2;background:#091a2cc9;padding:5px 8px;font-size:10px;pointer-events:none}
+.chart-viewport{height:540px;width:100%}.layout-2 .chart-viewport,.layout-4 .chart-viewport{height:340px}
+.tile-empty{position:absolute;inset:0;display:grid;place-content:center;padding:25px;text-align:center;background:#111e2d;color:#b8cbe0;font-size:13px;line-height:1.7;z-index:1}
+.tile-empty[hidden]{display:none}.notice{font-size:11px;padding:8px 12px;background:#12364c;border-top:1px solid #2d5571;color:#d3e9f8}
+.attribution{color:#85a2b9;font-size:9px;padding:3px 10px}.eyebrow{font-size:9px;letter-spacing:.1em;color:#91b6cc}.info-row{border-bottom:1px solid #253f5b;display:grid;gap:6px;padding:11px 0}
+.info-row span{font-size:10px;color:#8fa9c7}.info-row strong{font-size:11px}.event-list{display:grid;gap:6px;font-size:10px;color:#bdd1df;max-height:220px;overflow:auto}.event{border:1px solid #29445b;border-radius:6px;padding:8px;background:#10253a}.event strong{display:block;color:#d8eafb;margin-bottom:3px}
+.intelligence h3{font-size:12px;margin:16px 0 8px}.secondary-link{display:block;border:1px solid var(--edge);border-radius:7px;padding:9px;text-decoration:none;font-size:11px}
+.bottom{font-size:9px;color:#7d9eb4;padding:4px 8px}.error{background:#3d202d;color:#ffcad4;padding:8px 12px;margin:0;border:1px solid #ae6a79}.error[hidden]{display:none}
+.studio.focus .topbar,.studio.focus .bottom,.studio.focus .rail{display:none!important}.studio.focus .workspace{grid-template-columns:minmax(0,1fr)}
+.studio.focus .toolbar button small{display:none}
+.studio.maximized{position:fixed;inset:0;z-index:900;width:100vw;height:100dvh;overflow:auto}
+.studio.maximized .chart-viewport,.studio:fullscreen .chart-viewport{height:min(78dvh,950px)}
+.studio:fullscreen{height:100dvh;overflow:auto;background:#07111f}
+@media(max-width:1220px){.workspace{grid-template-columns:175px minmax(0,1fr)}.intelligence{grid-column:1/-1;max-height:350px}.workspace.no-watch{grid-template-columns:1fr}.workspace.no-intel{grid-template-columns:175px 1fr}.workspace.no-watch.no-intel{grid-template-columns:1fr}}
+@media(max-width:700px){.workspace,.workspace.no-watch,.workspace.no-intel{grid-template-columns:1fr}.studio-main{grid-row:1}.left-rail{grid-row:2}.intelligence{grid-row:3}.toolbar button{width:41px;font-size:16px}.toolbar button small{display:none}.chart-grid.layout-2,.chart-grid.layout-4{grid-template-columns:1fr}.chart-viewport{height:410px}.tool-popup{width:min(290px,75vw)}}
+
+/* Hidden controls must override the specific flex/grid declarations. */
+[hidden]{display:none!important}
+body:has(.studio.maximized){overflow:hidden}
+
+/* Restore is independently accessible after full workspace chrome disappears. */
+.exit-focus{position:fixed;right:16px;top:12px;z-index:950;background:#174b64!important;
+ border:1px solid #5bc6e6!important;color:#fff!important;padding:10px 14px!important;
+ box-shadow:0 6px 20px #0008}
+
+/* Explicit read-only source connection is separate from file-import research. */
+.broker-tools{display:grid;gap:5px;padding:8px;margin:10px 0;border:1px solid #355673;
+ border-radius:8px;background:#102941}
+.broker-tools button{font-size:11px;padding:9px 8px;border-color:#5b9bbc;color:#e5f9ff}
+.broker-tools #brokerRefresh{background:#153e4d}
+.broker-tools .help{margin:2px 0;color:#abc0d2}
+
+/* Price/time drawing canvas is independent of the TradingView axes and series.
+   When inactive, the chart keeps native pan/zoom/wheel and crosshair events. */
+.chart-viewport{position:relative;overflow:hidden}
+.xmi-drawing-overlay{position:absolute;inset:0;width:100%;height:100%;z-index:8;
+ pointer-events:none;overflow:visible}
+.xmi-drawing-overlay.interactive{pointer-events:auto;cursor:crosshair;touch-action:none}
+.xmi-drawing-overlay[data-active-tool="Select / Edit"]{cursor:move}
+.xmi-drawing-overlay circle[data-handle]{cursor:grab}
+.tool-scroll .tool-pick[aria-pressed="true"]{background:#225774;border-color:#72c8e3}
+.tool-scroll .tool-group label{display:flex;gap:7px;align-items:center;font-size:11px}
+.tool-scroll input[type=color]{width:38px;height:28px;padding:0}
+.tool-scroll .tool-actions{margin-top:8px}
+.tool-scroll .tool-actions button{min-width:66px}
+
+/* SVG defaults can restrict events to painted strokes. Active edit tools must
+   accept pointer input anywhere in the price pane, including transparent space. */
+.xmi-drawing-overlay.interactive,
+.xmi-drawing-overlay.interactive *{pointer-events:all}
