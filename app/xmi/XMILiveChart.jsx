@@ -1,6 +1,7 @@
 "use client";
 import {useEffect,useRef,useState} from "react";
 import {computeFive,FX_RESOLUTIONS,quoteState} from "../../lib/xmiLiveMath.mjs";
+import {parseHistoricalFile} from "../../lib/xmiHistoricalFile.mjs";
 import styles from "./xmi.module.css";
 import {defaultStructureSettings,requiredStructureTimeframes,detectStructure,assembleStructure} from "../../lib/xmiStructure.mjs";
 import {StructureOverlayPrimitive,toStructureMarkers} from "../../lib/xmiStructureOverlay.mjs";
@@ -15,6 +16,8 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
  chartSettings=DEFAULT_CHART_SETTINGS,drawTool=null,savedDrawings=[],onDrawing,
  autoPatterns=true,autoFib=false,onPatterns,patternEnabled={},onAnalysis,strategyName="No preset"}){
  const el=useRef(null),chart=useRef(null),series=useRef(null),drawings=useRef(null);
+ const importInput=useRef(null);
+ const [offline,setOffline]=useState(null),[refreshNonce,setRefreshNonce]=useState(0);
  const interaction=useRef({points:[],stroke:[],count:0});
  const [pendingCount,setPendingCount]=useState(0);
  const [drawingError,setDrawingError]=useState("");
@@ -130,51 +133,62 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   // No synthetic candles or broker-order requests. Refresh a bounded OHLC snapshot.
   async function refresh(){
    if(!running)return;
-   if(document.visibilityState==="hidden"){timer=setTimeout(refresh,20000);return;}
-   abort=new AbortController();
+   const local=offline?.symbol===symbol&&offline?.resolution===resolution?offline:null;
+   if(!local&&document.visibilityState==="hidden"){timer=setTimeout(refresh,20000);return;}
+   abort=local?null:new AbortController();
    try{
-    const u="/api/xmi/live?"+new URLSearchParams({symbol,resolution});
-    const res=await fetch(u,{cache:"no-store",signal:abort.signal});
-    const data=await res.json();
-    if(!res.ok||!data.ok)throw Error(data.error||"Broker candles unavailable");
+    let data;
+    if(local){
+     data={ok:true,bars:local.bars,asOf:new Date().toISOString(),
+      delivery:"manual historical import",volumeBasis:"provider",readOnly:true};
+    }else{
+     const u="/api/xmi/live?"+new URLSearchParams({symbol,resolution});
+     const res=await fetch(u,{cache:"no-store",signal:abort.signal});
+     data=await res.json();
+     if(!res.ok||!data.ok){
+      const e=new Error(data.error||"Candle source unavailable");e.code=data.code;throw e;
+     }
+    }
     const stats=computeFive(data.bars,resolution,Date.parse(data.asOf),data.volumeBasis);
     if(!running)return;
     const mapped=stats.bars.map(({time,open,high,low,close})=>({time,open,high,low,close}));
     if(mapped.length){
      all.candle.setData(chartSeriesData(mapped,chartSettings.chartType));
-     for(const key of ["ema20","ema50","ema200","vwap","rsi","macd","macdSignal"]){
+     for(const key of ["ema20","ema50","ema200","vwap","rsi","macd","macdSignal"])
       all[key].setData(stats.overlays[key]);
-     }
      all.histogram.setData(stats.overlays.macdHistogram.map(p=>({...p,color:p.value>=0?"#339a9a":"#b66c84"})));
      all.volume.setData(stats.overlays.volume);
      if(!fitted){
-      // Showing all 320 candles compresses them into an almost invisible strip.
-      // Start on the last ~70 actual bars, preserving the user's pan/zoom thereafter.
       const last=mapped.length-1;
-      chart.current?.timeScale().setVisibleLogicalRange({
-       from:Math.max(0,last-69),to:last+5
-      });
+      chart.current?.timeScale().setVisibleLogicalRange({from:Math.max(0,last-69),to:last+5});
       fitted=true;
      }
     }
-    const quality=quoteState(stats.lastClosed,Date.parse(data.asOf),resolution);
-    setFeed({phase:quality==="STALE"?"stale":mapped.length?"ready":"empty",
-     message:mapped.length?(quality==="CURRENT"?"Read-only candles · "+data.delivery:"Broker candles are not recent"):"No candles returned",
+    const quality=local?"HISTORICAL":quoteState(stats.lastClosed,Date.parse(data.asOf),resolution);
+    setFeed({phase:local?"historical":quality==="STALE"?"stale":mapped.length?"ready":"empty",
+     message:local?"Imported historical OHLC · device only · no broker connection":
+      mapped.length?(quality==="CURRENT"?"Read-only candles · "+data.delivery:"Broker candles are not recent"):"No candles returned",
      stats,asOf:data.asOf,last:stats.latest,quality});
-   }catch(e){if(!running||e.name==="AbortError")return;
-    setFeed(prev=>({...prev,phase:"error",message:e.message,stats:null,last:null,quality:"UNAVAILABLE"}));
-   }finally{if(running)timer=setTimeout(refresh,20000);}
+   }catch(e){
+    if(!running||e.name==="AbortError")return;
+    const disabled=e.code==="FEED_DISABLED";
+    setFeed(prev=>({...prev,phase:disabled?"disabled":"error",
+     message:disabled?"Production broker feed is intentionally disabled. Import OHLC JSON or open Historical Chart Studio.":e.message,
+     stats:null,last:null,quality:"UNAVAILABLE"}));
+    if(disabled)running=false;
+   }finally{if(running&&!local)timer=setTimeout(refresh,20000);}
   }
   setFeed({phase:"loading",message:"Loading verified broker candles…",last:null,stats:null,asOf:null});
   // Clear stale previous symbol history immediately.
   for(const key of Object.keys(all))all[key].setData([]);
   refresh();
   return ()=>{running=false;abort?.abort();if(timer)clearTimeout(timer);};
- },[symbol,resolution,libReady,active,chartSettings.chartType]);
+ },[symbol,resolution,libReady,active,chartSettings.chartType,offline,refreshNonce]);
  // Additional timeframes use the same protected, read-only candle API.
  // Each distinct selected timeframe is fetched once; settings are shared by all charts.
  useEffect(()=>{
-  if(!active||!libReady||!extraKey)return;
+  if(!active||!libReady||!extraKey||
+   (offline?.symbol===symbol&&offline?.resolution===resolution))return;
   let running=true,timer=null;
   const controllers=[];
   async function load(){
@@ -199,7 +213,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   }
   load();
   return ()=>{running=false;if(timer)clearTimeout(timer);controllers.forEach(c=>c.abort());};
- },[symbol,active,libReady,extraKey]);
+ },[symbol,resolution,active,libReady,extraKey,offline]);
  useEffect(()=>{
   const overlay=drawings.current;
   if(!libReady||!overlay)return;
@@ -251,6 +265,16 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   primitive.setDrawings([...manual,...patterns,...fibDrawings]);
   if(selected)onPatternsRef.current?.(detected.slice(0,8));
  },[feed.stats,libReady,savedDrawings,autoPatterns,autoFib,drawTool,symbol,selected,patternEnabled]);
+ async function importHistory(event){
+  const file=event.target.files?.[0];
+  event.target.value="";
+  if(!file)return;
+  if(file.size>900000){setFeed(p=>({...p,message:"Historical file too large (900 KB maximum)"}));return;}
+  try{
+   const parsed=parseHistoricalFile(await file.text(),{symbol,resolution});
+   setOffline(parsed);setRefreshNonce(n=>n+1);
+  }catch(e){setFeed(p=>({...p,message:"Import rejected: "+e.message}));}
+ }
  function pointerPoint(e){
   const root=el.current,seriesApi=series.current?.candle,chartApi=chart.current;
   if(!root||!seriesApi||!chartApi)return null;
@@ -313,6 +337,12 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
       onChange={e=>onResolution(e.target.value)}>{TIMEFRAMES.map(t=><option value={t} key={t}>{t}</option>)}</select>
     <button type="button" aria-pressed={selected} onClick={onFocus}
       className={selected?styles.activeFocus:styles.focusButton}>{selected?"Research chart":"Focus"}</button>
+     <button type="button" aria-label={"Refresh "+symbol+" chart"} onClick={()=>setRefreshNonce(n=>n+1)}>↻ Refresh chart</button>
+     <input ref={importInput} type="file" accept=".json,application/json" hidden
+       aria-label={"Import "+symbol+" historical OHLC JSON"} onChange={importHistory}/>
+     <button type="button" onClick={()=>importInput.current?.click()}>Import OHLC JSON</button>
+     {offline?.symbol===symbol&&offline?.resolution===resolution?
+      <button type="button" onClick={()=>{setOffline(null);setRefreshNonce(n=>n+1);}}>Clear import</button>:null}
    </div>
   </div>
   <div className={styles.engineDrawingCaption}>
@@ -335,9 +365,12 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   </div>:null}
   <div className={styles.engineFooter}>
    <span className={feed.phase==="ready"?styles.liveOk:styles.feedWarn}>
-    {ready?"CANDLES RECEIVING":feed.phase==="loading"?"CONNECTING":feed.phase==="stale"?"STALE DATA":"NOT LIVE"}
+    {feed.phase==="historical"?"IMPORTED HISTORY":ready?"CANDLES RECEIVING":
+      feed.phase==="loading"?"CONNECTING":feed.phase==="stale"?"STALE DATA":
+      feed.phase==="disabled"?"FEED DISABLED":"NOT LIVE"}
    </span>
    <span role="status">{feed.message}</span>
+   {feed.phase==="disabled"?<a href="/xmi2/chart-studio.html">Open offline Historical Chart Studio</a>:null}
    <span>{feed.last?(feed.last.closed?"Last bar closed":"Last bar forming")+" · "+new Date(feed.last.time*1000).toLocaleString():"No verified price"}</span>
    {stats?.bars?.length?<span className={styles.candleReadout}>
     {stats.bars.length} verified candles · O {feed.last.open.toFixed(5)} · H {feed.last.high.toFixed(5)} · L {feed.last.low.toFixed(5)} · C {feed.last.close.toFixed(5)}
@@ -346,7 +379,9 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   </div>
   {stats?<div className={styles.engineNotes}>
     <span>{stats.volumeLabel}. {stats.vwapLabel}.</span>
-    <span>Indicators may use a forming candle. Confirmed signals require an activated strategy and a closed candle.</span>
+    <span>{feed.phase==="historical"?
+      "Imported history is not a live quote. Research signals use confirmed closed candles only.":
+      "Indicators may use a forming candle. Confirmed signals require an activated strategy and a closed candle."}</span>
    </div>:null}
   <div className={styles.engineSignal}>
    <strong>Strategy monitor</strong><span>{strategyName} · RESEARCH ONLY</span>

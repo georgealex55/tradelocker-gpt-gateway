@@ -8,6 +8,8 @@ export default function XMIAccountSettings({workspace,strategyId,layout,onRestor
  const [mode,setMode]=useState("login"),[username,setUsername]=useState("");
  const [password,setPassword]=useState(""),[confirm,setConfirm]=useState("");
  const [busy,setBusy]=useState(false),[status,setStatus]=useState("Sign in to a local device account to save encrypted research preferences.");
+ const [hydrated,setHydrated]=useState(false);
+ useEffect(()=>setHydrated(true),[]);
  useEffect(()=>{if(!open){setPassword("");setConfirm("");}},[open]);
  function currentPreferences(){
   let pins={},patterns={};
@@ -31,7 +33,7 @@ export default function XMIAccountSettings({workspace,strategyId,layout,onRestor
     setSession({username:name,key:created.key});
     setStatus("Local account created. Your encrypted settings backup is saved on this device.");
    }else{
-    if(!saved)throw Error("No such local account on this device. Create one first.");
+    if(!saved)throw Error("No local account at this site in this browser. Preview and production accounts are separate; choose Create account here.");
     const unlocked=await unlock(name,password,JSON.parse(saved));
     setSession({username:name,key:unlocked.key});
     onRestore?.(unlocked.preferences);
@@ -62,10 +64,10 @@ export default function XMIAccountSettings({workspace,strategyId,layout,onRestor
   setSession(null);setPassword("");setConfirm("");window.location.assign("/xmi");
  }
  return <div className={styles.accountSettings}>
-  <button type="button" onClick={()=>setOpen(x=>!x)} aria-expanded={open}>
+  <button type="button" disabled={!hydrated} onClick={()=>setOpen(x=>!x)} aria-expanded={open}>
    {session?"Local account · "+session.username:"Local login / Settings"}
   </button>
-  <button type="button" onClick={save} disabled={busy}>{busy?"Working…":"Save settings"}</button>
+  <button type="button" onClick={save} disabled={busy||!hydrated}>{busy?"Working…":"Save settings"}</button>
   {open?<section className={styles.accountWall} aria-label="Local account settings">
    <div><strong>Device-local account</strong><button type="button" aria-label="Close account settings" onClick={()=>setOpen(false)}>×</button></div>
    <p role="status">{status}</p>
@@ -85,7 +87,7 @@ export default function XMIAccountSettings({workspace,strategyId,layout,onRestor
       <button type="submit" disabled={busy}>{busy?"Checking…":mode==="create"?"Create encrypted account":"Unlock local account"}</button>
      </form>
     </>}
-   <small>Accounts and encrypted settings exist only in this browser on this device. Passwords are not sent to a server or stored. There is no Google sign-in, cloud synchronization or password-recovery service. Losing your password or clearing browser storage makes this backup unrecoverable. Existing guest chart caches may remain visible on the device.</small>
+   <small>Sign-in is for this website and browser profile only. A login created on a preview URL will not automatically work at the production URL. Accounts and encrypted settings exist only in this browser on this device. Passwords are not sent to a server or stored. There is no Google sign-in, cloud synchronization or password-recovery service. Losing your password or clearing browser storage makes this backup unrecoverable. Existing guest chart caches may remain visible on the device.</small>
   </section>:null}
  </div>;
 }
