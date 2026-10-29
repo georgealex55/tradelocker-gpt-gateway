@@ -234,7 +234,7 @@
 .engineTop>div:first-child{display:grid;gap:3px}
 .engineSymbol{font-size:15px;letter-spacing:.02em}
 .engineTop small{font-size:10px;color:#8da6c3}
-.engineActions{display:flex;align-items:center;gap:7px}
+.engineActions{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end;min-width:0}
 .engineActions select{min-width:63px}
 .indicatorControls{display:flex;gap:6px;flex-wrap:wrap;padding:8px 10px;
  border-top:1px solid #26374d;background:#101e31}
@@ -526,3 +526,6 @@
 .localLoginForm input{width:100%;box-sizing:border-box;min-width:0;padding:9px 10px;border:1px solid #42627c;border-radius:7px;background:#071829;color:#e4f5ff}
 .localLoginForm input:focus-visible{outline:2px solid #72c6df;outline-offset:2px}
 .localLoginForm button{width:100%;padding:10px!important;background:#164e69!important;border-color:#60bedf!important}
+
+/* Manual refresh/import controls must remain usable on narrow chart layouts. */
+@media(max-width:750px){.engineTop{flex-wrap:wrap}.engineActions{justify-content:flex-start;width:100%}}
