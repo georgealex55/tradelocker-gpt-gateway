@@ -4,13 +4,17 @@ import styles from "./xmi.module.css";
 import XMILiveChart from "./XMILiveChart";
 import XMIChartErrorBoundary from "./XMIChartErrorBoundary";
 import XMIToolbox from "./XMIToolbox";
+import XMIContext from "./XMIContext";
+import XMIStrategyEngine from "./XMIStrategyEngine";
+import {STRATEGIES,strategyById,evaluateStrategy} from "../../lib/xmiStrategyPresets.mjs";
+import {TOOL_CATALOG} from "../../lib/xmiChartTools.mjs";
 import {parseInstrument,validateWatchlist} from "../../lib/xmiLiveMath.mjs";
 import {defaultStructureSettings,STRUCTURE_CONCEPTS} from "../../lib/xmiStructure.mjs";
 import {DEFAULT_CHART_SETTINGS,DEFAULT_TECH,resolveChartSettings,
  validateDrawings,serializeWorkspace,deserializeWorkspace,drawingsForSymbol,samePatternEvents} from "../../lib/xmiChartTools.mjs";
 const START=["EURUSD","GBPUSD","USDJPY","USDCHF","AUDUSD","NASDAQ:AAPL","AMEX:SPY"];
 const DEFAULT=START.map(parseInstrument),KEY="xmi-chart-workbench-v1";
-export default function XMIEngineDesk({selected,onSelected,onResearch,active=true,focusMode=false,onFocusMode}){
+export default function XMIEngineDesk({selected,onSelected,onResearch,active=true,focusMode=false,onFocusMode,strategyId="day",onStrategyChange}){
  const root=useRef(null),counter=useRef(0);
  const [watchlist,setWatchlist]=useState(DEFAULT),[watchInput,setWatchInput]=useState(""),[error,setError]=useState("");
  const [layout,setLayout]=useState(1),[focus,setFocus]=useState(0);
@@ -24,6 +28,8 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
  const [chartOverride,setChartOverride]=useState({});
  const [drawTool,setDrawTool]=useState(null),[savedDrawings,setSavedDrawings]=useState([]);
  const [loaded,setLoaded]=useState(false),[autoPatterns,setAutoPatterns]=useState(true),[autoFib,setAutoFib]=useState(false);
+ const [patternEnabled,setPatternEnabled]=useState(()=>Object.fromEntries(TOOL_CATALOG.Patterns.map(x=>[x,true])));
+ const [strategyReports,setStrategyReports]=useState({});
  const [observations,setObservations]=useState({}),[patterns,setPatterns]=useState({});
  const [maximized,setMaximized]=useState(false),[browserFullscreen,setBrowserFullscreen]=useState(false);
  const [chartKeys,setChartKeys]=useState(()=>[DEFAULT[0].key,DEFAULT[1].key,DEFAULT[2].key,DEFAULT[3].key]);
@@ -43,6 +49,7 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
    if(raw){const data=deserializeWorkspace(raw);setSavedDrawings(data.drawings);
     setGlobalSettings(data.settings);setChartOverride(data.overrides);setTech(data.technical);}
   }catch{ /* Private browsing / older schema: fail closed to default settings. */ }
+  try{const value=JSON.parse(window.localStorage.getItem("xmi-pattern-types-v1")||"null");if(value&&typeof value==="object"&&Object.keys(value).every(k=>TOOL_CATALOG.Patterns.includes(k)))setPatternEnabled(value);}catch{}
   setLoaded(true);
  },[]);
  useEffect(()=>{
@@ -50,6 +57,7 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
   try{window.localStorage.setItem(KEY,serializeWorkspace(savedDrawings,globalSettings,tech,chartOverride));}
   catch{setError("Local drawing storage unavailable. Export JSON to retain this session.");}
  },[loaded,savedDrawings,globalSettings,tech,chartOverride]);
+ useEffect(()=>{if(loaded)try{window.localStorage.setItem("xmi-pattern-types-v1",JSON.stringify(patternEnabled));}catch{}},[loaded,patternEnabled]);
  useEffect(()=>{
   const change=()=>setBrowserFullscreen(document.fullscreenElement===root.current);
   document.addEventListener("fullscreenchange",change);
@@ -119,6 +127,9 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
  }
  const current=parseInstrument(chartKeys[focus]),report=observations[focus+"|"+current.key+"|"+resolutions[focus]];
  const patternReport=patterns[focus+"|"+current.key+"|"+resolutions[focus]]||[];
+ const activeReport=strategyReports[focus+"|"+current.key+"|"+resolutions[focus]];
+ const strategyResult=evaluateStrategy(strategyId,activeReport?.stats,activeReport?.quality);
+ const strategyInfo=strategyById(strategyId);
  const count=STRUCTURE_CONCEPTS.filter(x=>structure[x.id].enabled).length;
  const showLeft=watchVisible&&!focusMode,showRight=intelVisible&&!focusMode;
  const deskClass=[styles.studioDesk,maximized?styles.studioMaximized:"",
@@ -166,7 +177,8 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
      docked={docked} setDocked={setDocked} pinned={pinned} setPinned={setPinned}
      tech={tech} setTech={setTech} structure={structure} setStructure={setStructure}
      drawTool={drawTool} setDrawTool={setDrawTool} autoPatterns={autoPatterns}
-     setAutoPatterns={setAutoPatterns} autoFib={autoFib} setAutoFib={setAutoFib}
+     setAutoPatterns={setAutoPatterns} patternEnabled={patternEnabled} setPatternEnabled={setPatternEnabled}
+     autoFib={autoFib} setAutoFib={setAutoFib}
      globalSettings={globalSettings} setGlobalSettings={setGlobalSettings}
      chartOverride={chartOverride} setChartOverride={setChartOverride} slot={focus}
      onUndo={undo} onClear={clear} onExport={exportJson} onImport={importJson}
@@ -186,7 +198,12 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
          chartSettings={chartSettingsBySlot[index]}
          drawTool={index===focus?drawTool:null} onDrawing={d=>onChartDrawing(item.symbol,d)}
          savedDrawings={chartDrawingMap[item.symbol]}
-         autoPatterns={autoPatterns} autoFib={autoFib}
+         autoPatterns={autoPatterns} autoFib={autoFib} patternEnabled={patternEnabled}
+         onAnalysis={result=>setStrategyReports(old=>{
+          const id=index+"|"+key+"|"+resolutions[index];
+          if(old[id]?.stats===result.stats&&old[id]?.quality===result.quality)return old;
+          return {...old,[id]:result};
+         })}
          onPatterns={result=>setPatterns(old=>{
           const id=index+"|"+key+"|"+resolutions[index];
           return samePatternEvents(old[id],result)?old:{...old,[id]:result};
@@ -207,23 +224,39 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
       <button type="button" aria-expanded={intelOpen} onClick={()=>setIntelOpen(v=>!v)}>{intelOpen?"Collapse":"Expand"}</button>
      </div></div>
     {intelOpen?<><h3>{current.label}</h3>
-     <div className={styles.liveState}><span>Signal status</span><strong>NO ACTIVE STRATEGY</strong></div>
-     <div className={styles.liveState}><span>Market structure</span><strong>{count} enabled</strong></div>
-     <div className={styles.structureResults}>
-      {current.asset!=="forex"?<p className={styles.watchFoot}>Equity candles unavailable.</p>:
+     <div className={styles.liveState}><span>Signal status</span><strong>{strategyResult.state}</strong></div>
+     <div className={styles.liveState}><span>Strategy</span><strong>{strategyInfo?.name}</strong></div>
+     <label className={styles.strategyPick}>Research preset
+      <select aria-label="Choose live strategy" value={strategyId} onChange={e=>onStrategyChange?.(e.target.value)}>
+       {STRATEGIES.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
+      </select></label>
+     <details className={styles.intelDetails} open>
+      <summary>Strategy engine · {strategyResult.state}</summary>
+      <XMIStrategyEngine strategyId={strategyId} report={strategyResult} symbol={current.symbol}
+       resolution={resolutions[focus]}/>
+     </details>
+     <details className={styles.intelDetails} open>
+      <summary>Market structure · {count} enabled</summary>
+      <div className={styles.structureResults}>
+       {current.asset!=="forex"?<p className={styles.watchFoot}>Equity candles unavailable.</p>:
        report?.summaries?.length?report.summaries.slice(0,5).map(({concept,resolution,event})=>
         <div className={styles.structureFinding} key={concept+"|"+resolution}>
          <strong>{concept} <span>{resolution}</span></strong><p>{event.summary}</p>
          <small>Confirmed {new Date(event.confirmedAt*1000).toLocaleString()}</small>
-        </div>):<p className={styles.watchFoot}>No confirmed market structure found in available candles.</p>}
-     </div>
-     <div className={styles.liveState}><span>Automatic chart patterns</span>
-      <strong>{autoPatterns?patternReport.length+" price-pattern observations":"Detection hidden"}</strong></div>
-     {autoPatterns&&patternReport.slice(0,3).map(p=><div key={p.id} className={styles.structureFinding}>
-      <strong>{p.concept}</strong><p>{p.summary}</p>
-      <small>Observed after candle close</small></div>)}
-     <div className={styles.liveState}><span>Economic context</span>
-      <button type="button" onClick={onResearch} className={styles.newsJump}>News & Research</button></div>
+        </div>):<p className={styles.watchFoot}>No confirmed structure in the available candle set.</p>}
+      </div>
+     </details>
+     <details className={styles.intelDetails}>
+      <summary>Automatic chart patterns · {autoPatterns?patternReport.length+" observations":"off"}</summary>
+      {autoPatterns?patternReport.slice(0,5).map(p=><div key={p.id} className={styles.structureFinding}>
+       <strong>{p.concept}</strong><p>{p.summary}</p><small>Confirmed after candle close</small>
+      </div>):<p className={styles.watchFoot}>Detection disabled in Indicators.</p>}
+     </details>
+     <details className={styles.intelDetails}>
+      <summary>News & Research · ticker feed</summary>
+      <XMIContext ticker={current.key}/>
+      <button type="button" onClick={onResearch} className={styles.newsJump}>Open full research tab</button>
+     </details>
      <p className={styles.watchFoot}>Automatic patterns, Fibonacci levels and manual drawings are analytical only. No execution, actual fills or order placement.</p>
     </>:null}
     <button type="button" className={styles.studioHide} onClick={()=>setIntelVisible(false)}>Hide intelligence panel</button>
