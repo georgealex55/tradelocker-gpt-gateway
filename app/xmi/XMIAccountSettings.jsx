@@ -8,6 +8,8 @@ export default function XMIAccountSettings({workspace,strategyId,layout,onRestor
  const [mode,setMode]=useState("login"),[username,setUsername]=useState("");
  const [password,setPassword]=useState(""),[confirm,setConfirm]=useState("");
  const [busy,setBusy]=useState(false),[status,setStatus]=useState("Sign in to a local device account to save encrypted research preferences.");
+ const [hydrated,setHydrated]=useState(false);
+ useEffect(()=>setHydrated(true),[]);
  useEffect(()=>{if(!open){setPassword("");setConfirm("");}},[open]);
  function currentPreferences(){
   let pins={},patterns={};
@@ -62,10 +64,10 @@ export default function XMIAccountSettings({workspace,strategyId,layout,onRestor
   setSession(null);setPassword("");setConfirm("");window.location.assign("/xmi");
  }
  return <div className={styles.accountSettings}>
-  <button type="button" onClick={()=>setOpen(x=>!x)} aria-expanded={open}>
+  <button type="button" disabled={!hydrated} onClick={()=>setOpen(x=>!x)} aria-expanded={open}>
    {session?"Local account · "+session.username:"Local login / Settings"}
   </button>
-  <button type="button" onClick={save} disabled={busy}>{busy?"Working…":"Save settings"}</button>
+  <button type="button" onClick={save} disabled={busy||!hydrated}>{busy?"Working…":"Save settings"}</button>
   {open?<section className={styles.accountWall} aria-label="Local account settings">
    <div><strong>Device-local account</strong><button type="button" aria-label="Close account settings" onClick={()=>setOpen(false)}>×</button></div>
    <p role="status">{status}</p>
