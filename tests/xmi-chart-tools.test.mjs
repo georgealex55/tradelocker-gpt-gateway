@@ -115,7 +115,7 @@ test("Unified toolbar removed duplicate indicators from price chart and SMC side
  const shell=readFileSync(new URL("../app/xmi/XMIToolbox.jsx",import.meta.url),"utf8");
  assert.ok(!chart.includes('className={styles.indicatorControls}'));
  assert.ok(!desk.includes('aria-label="Smart money concept visibility"'));
- assert.match(shell,/Search technical or market structure/);
+ assert.match(shell,/Search indicators, patterns or market structure/);
  assert.match(shell,/Pop out/);
  assert.match(shell,/Focus Mode/);
  assert.match(desk,/requestFullscreen/);
