@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
 import {bridgeEnabled,validateBridgeParams,signBridge,authorizeBridge,signatureInput}
  from "../lib/xmiBridgeAuth.mjs";
 const secret="dummy-test-key-for-read-only-private-xmi-bridge-2026";
@@ -44,7 +45,6 @@ test("HMAC binds method/path/symbol/timeframe/freshness and rejects replay",()=>
  assert.match(signatureInput({...params,timestamp:now}),/GET\n\/api\/xmi\/bridge\nEURUSD\n5m/);
 });
 test("Bridge route cannot use order methods, leak broker metadata or allow production",()=>{
- const {readFileSync}=await import("node:fs");
  const route=readFileSync(new URL("../app/api/xmi/bridge/route.js",import.meta.url),"utf8");
  assert.match(route,/authorizeBridge/);
  assert.match(route,/bridgeEnabled/);
