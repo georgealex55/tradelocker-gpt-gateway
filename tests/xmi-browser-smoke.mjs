@@ -111,6 +111,34 @@ try{
  await page.getByText("CANDLES RECEIVING",{exact:true}).first().waitFor({timeout:30000});
 
 
+ // Milestone 2B: device-local named watchlists stay separate across a reload.
+ let lists=page.getByRole("group",{name:"Named watchlists"});
+ await lists.getByRole("textbox",{name:"New or renamed watchlist name"}).fill("Equity Research");
+ await lists.getByRole("button",{name:"New"}).click();
+ await page.waitForFunction(()=>JSON.parse(localStorage.getItem("xmi-chart-ui-v1")||"{}").watchlists?.length===2,null,{timeout:12000});
+ await page.getByLabel("Add instrument").fill("NASDAQ:MSFT");
+ await page.getByRole("button",{name:"Add symbol"}).click();
+ await lists.getByRole("textbox",{name:"New or renamed watchlist name"}).fill("Growth ETFs");
+ await lists.getByRole("button",{name:"Rename"}).click();
+ await lists.getByRole("combobox",{name:"Active watchlist"}).selectOption({label:"Main"});
+ await page.waitForFunction(()=>JSON.parse(localStorage.getItem("xmi-chart-ui-v1")||"{}").watchlist?.length===7,null,{timeout:12000});
+ await page.reload({waitUntil:"domcontentloaded"});
+ lists=page.getByRole("group",{name:"Named watchlists"});
+ await lists.getByRole("combobox",{name:"Active watchlist"}).selectOption({label:"Growth ETFs"});
+ await page.waitForFunction(()=>{
+  const ui=JSON.parse(localStorage.getItem("xmi-chart-ui-v1")||"{}");
+  return ui.watchlist?.includes("NASDAQ:MSFT")&&ui.watchlists?.length===2;
+ },null,{timeout:12000});
+ await lists.getByRole("combobox",{name:"Active watchlist"}).selectOption({label:"Main"});
+ await lists.getByRole("combobox",{name:"Active watchlist"}).selectOption({label:"Growth ETFs"});
+ page.once("dialog",dialog=>dialog.accept());
+ await lists.getByRole("button",{name:"Delete"}).click();
+ await page.waitForFunction(()=>{
+  const ui=JSON.parse(localStorage.getItem("xmi-chart-ui-v1")||"{}");
+  return ui.watchlists?.length===1&&ui.activeWatchlistId==="main";
+ },null,{timeout:12000});
+ await page.getByText("CANDLES RECEIVING",{exact:true}).first().waitFor({timeout:30000});
+
  await page.locator('button[title="Indicators"]').click();
  await page.getByPlaceholder("Search indicators, patterns or market structure…").waitFor();
  await page.getByPlaceholder("Search indicators, patterns or market structure…").fill("BOS");

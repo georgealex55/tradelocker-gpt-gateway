@@ -655,3 +655,14 @@
 .feedOverlayWarning span{font-size:10px;line-height:1.5;color:#ffdbb0}
 .feedDiagnostics{font-size:10px;color:#afc9da;overflow-wrap:anywhere}
 @media(max-width:650px){.feedOverlayWarning{top:5px;padding:5px 7px}.feedOverlayWarning span{font-size:9px}}
+
+/* Milestone 2B: bounded, device-local named watchlist controls. */
+.watchCollectionControls{display:grid;gap:6px;margin:7px 0 11px;
+ padding:7px;border:1px solid #34536a;border-radius:8px;background:#0b2436}
+.watchCollectionControls select,.watchCollectionControls input{width:100%;min-width:0;
+ box-sizing:border-box;padding:7px 8px;border-radius:6px;border:1px solid #38617b;
+ background:#071d2d;color:#d9eefc;font-size:11px}
+.watchCollectionControls>div{display:flex;gap:5px;flex-wrap:wrap}
+.watchCollectionControls button{flex:1;padding:6px 7px;border-radius:6px;
+ background:#164059;color:#ecf6ff;border:1px solid #436a80;font-size:11px}
+.watchCollectionControls button:disabled{opacity:.5;cursor:not-allowed}
