@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {createHash} from "node:crypto";
-import {NextRequest} from "next/server";
+import {NextRequest} from "next/server.js";
 import {COOKIE,productionFeedConfigured,verifyPassword,issueSession,verifySession,sameOrigin} from "../lib/xmiProductionFeedAuth.mjs";
 import {GET as candles} from "../app/api/xmi/live/route.js";
 import {GET as status,POST as login,DELETE as logout} from "../app/api/xmi/feed-session/route.js";

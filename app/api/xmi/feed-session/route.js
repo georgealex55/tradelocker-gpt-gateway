@@ -1,4 +1,4 @@
-import {NextResponse} from "next/server";
+import {NextResponse} from "next/server.js";
 import {COOKIE,productionFeedConfigured,verifyPassword,issueSession,verifySession,sameOrigin} from "../../../../lib/xmiProductionFeedAuth.mjs";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";

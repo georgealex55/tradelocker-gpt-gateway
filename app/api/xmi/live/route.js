@@ -1,4 +1,4 @@
-import {NextResponse} from "next/server";
+import {NextResponse} from "next/server.js";
 import {getLiveSnapshot,previewEnabled,validatedRequest} from "../../../../lib/xmiLiveProvider.mjs";
 import {COOKIE,productionFeedConfigured,verifySession,sameOrigin} from "../../../../lib/xmiProductionFeedAuth.mjs";
 export const dynamic="force-dynamic";
