@@ -85,7 +85,7 @@ test("UTC weekend exact counting covers long gaps without the previous 10k-slot 
 });
 test("Missing, reversed or unaligned session history is rejected",()=>{
  for(const bars of [[],[{time:100},{time:100}],
-  [{time:1600000020},{time:1600000080}], [{time:1600000200},{time:1600000140}]]){
+  [{time:1600000021},{time:1600000080}], [{time:1600000200},{time:1600000140}]]){
   assert.throws(()=>inspectResearchSessions(bars,"1m"));
  }
 });
