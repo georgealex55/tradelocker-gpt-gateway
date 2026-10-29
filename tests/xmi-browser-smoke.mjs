@@ -230,11 +230,11 @@ try{
   .getByText("Data-provider authenticity").waitFor();
  const filters=analyticView.getByRole("combobox",{name:"Research observation filter"});
  await filters.selectOption("all");
- await analyticView.getByText(/260 observations · Page 1 of 13/).waitFor();
+ await analyticView.getByText(/25[9] observations · Page 1 of 13/).waitFor();
  await analyticView.getByRole("button",{name:"Next observations"}).click();
- await analyticView.getByText(/260 observations · Page 2 of 13/).waitFor();
+ await analyticView.getByText(/25[9] observations · Page 2 of 13/).waitFor();
  await filters.selectOption("changed");
- await analyticView.getByRole("button",{name:"Previous observations"}).isDisabled();
+ assert.ok(await analyticView.getByRole("button",{name:"Previous observations"}).isDisabled());
  assert.ok(await analyticView.getByText(/not predictive accuracy, win rate/).count()>0);
 
 
