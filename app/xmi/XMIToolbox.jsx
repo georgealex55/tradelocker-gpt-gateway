@@ -15,18 +15,19 @@ const SETTINGS=[
  ["wicks","Candle wicks","check"],["borders","Candle borders","check"],
  ["priceLine","Last-price line","check"],["bidAsk","Bid / ask labels (only when supplied)","check"],
  ["syncTimeframes","Sync timeframes across charts","check"],
- ["indicatorDefaults","Show indicators by default","check"]
+ ["indicatorDefaults","Show indicators by default","check"],
+ ["candleTimer","Candle-close countdown (local clock)","check"]
 ];
 export default function XMIToolbox({
  activePanel,setActivePanel,orientation,setOrientation,docked,setDocked,pinned,setPinned,
  tech,setTech,structure,setStructure,drawTool,setDrawTool,
- autoPatterns,setAutoPatterns,autoFib,setAutoFib,
+ autoPatterns,setAutoPatterns,patternEnabled,setPatternEnabled,autoFib,setAutoFib,
  globalSettings,setGlobalSettings,chartOverride,setChartOverride,slot,
  onUndo,onClear,onExport,onImport,onFullscreen,onMaximize,maximized,
  onFocusMode,focusMode,drawingsCount
 }){
  const [search,setSearch]=useState("");
- const [groups,setGroups]=useState({technical:true,market:true});
+ const [groups,setGroups]=useState({technical:true,market:true,patterns:true});
  const [scope,setScope]=useState("global");
  const [settingsExpanded,setSettingsExpanded]=useState(true);
  const ref=useRef(null),upload=useRef(null);
@@ -89,12 +90,21 @@ export default function XMIToolbox({
    </div>
    <div className={styles.toolboxScroll}>
     {active==="Indicators"?<>
-     <input className={styles.toolboxSearch} placeholder="Search technical or market structure…"
+     <input className={styles.toolboxSearch} placeholder="Search indicators, patterns or market structure…"
       aria-label="Search indicators" value={search} onChange={e=>setSearch(e.target.value)} />
      {group("technical","Technical indicators",<div className={styles.toolboxRows}>
       {TECH.filter(x=>x.toLowerCase().includes(search.toLowerCase())).map(id=><label key={id}>
        <input type="checkbox" checked={tech[id]} onChange={e=>setTech(prev=>({...prev,[id]:e.target.checked}))}/>
        <span>{id==="EMA"?"EMA 20 / 50 / 200":id==="VWAP"?"VWAP (FX tick-volume proxy)":id}</span></label>)}
+     </div>)}
+     {group("patterns","Automatic chart patterns · per-type toggles",<div className={styles.toolboxRows}>
+      <label><input type="checkbox" checked={autoPatterns} onChange={e=>setAutoPatterns(e.target.checked)}/> Enable automatic detection</label>
+      {TOOL_CATALOG.Patterns.filter(x=>x.toLowerCase().includes(search.toLowerCase())).map(name=><div key={name} className={styles.toolboxIndicatorRow}>
+        <label><input type="checkbox" checked={patternEnabled[name]!==false}
+         onChange={e=>setPatternEnabled(old=>({...old,[name]:e.target.checked}))}/>{name}</label>
+        <button type="button" onClick={()=>chooseTool(name)} title={"Draw "+name}>Draw</button>
+       </div>)}
+      <p className={styles.toolboxNote}>Individual patterns use closed, confirmed pivots and are not validated entries. Draw uses the selected manual tool.</p>
      </div>)}
      {group("market","Market structure · close-confirmed",<div className={styles.toolboxRows}>
       <div className={styles.toolboxInline}>
