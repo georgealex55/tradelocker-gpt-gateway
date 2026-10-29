@@ -1,12 +1,17 @@
 import {NextResponse} from "next/server";
 import {getLiveSnapshot} from "../../../../lib/xmiLiveProvider.mjs";
 import {bridgeEnabled,validateBridgeParams,authorizeBridge} from "../../../../lib/xmiBridgeAuth.mjs";
+import {XMI_CROSS_PROJECT_BRIDGE_APPROVED} from "../../../../lib/xmiBridgePolicy.mjs";
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
 const headers={"Cache-Control":"private, no-store, max-age=0",
  "X-Content-Type-Options":"nosniff","Referrer-Policy":"no-referrer"};
 function json(data,status){return NextResponse.json(data,{status,headers});}
 export async function GET(req){
+ // Hard disabled while private XMI defers authentication (owner option C).
+ // Env switches and valid HMAC cannot override this code-reviewed policy.
+ if(!XMI_CROSS_PROJECT_BRIDGE_APPROVED)
+  return json({ok:false,code:"IMPORT_ONLY_POLICY",readOnly:true},503);
  if(!bridgeEnabled(process.env))
   return json({ok:false,code:"BRIDGE_DISABLED",readOnly:true},503);
  let params;
