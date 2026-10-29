@@ -145,3 +145,13 @@ test("Chart Studio memoizes array-valued child props across unrelated intelligen
  assert.match(desk,/samePatternEvents\(old\[id\],result\)\?old/);
  assert.match(chart,/if\(!feed.stats\)\{primitive.setDrawings\(\[\]\);if\(selected\)onPatternsRef.current\?\.\(\[\]\);return;\}/);
 });
+
+test("Price-widget failure is contained within the chart tile, not the XMI page",()=>{
+ const desk=readFileSync(new URL("../app/xmi/XMIEngineDesk.jsx",import.meta.url),"utf8");
+ const boundary=readFileSync(new URL("../app/xmi/XMIChartErrorBoundary.jsx",import.meta.url),"utf8");
+ assert.match(desk,/import XMIChartErrorBoundary from/);
+ assert.match(desk,/<XMIChartErrorBoundary key=\{key\+"\|"\+resolutions\[index\]\}>/);
+ assert.match(desk,/<\/XMIChartErrorBoundary>/);
+ assert.match(boundary,/getDerivedStateFromError/);
+ assert.match(boundary,/Retry chart/);
+});
