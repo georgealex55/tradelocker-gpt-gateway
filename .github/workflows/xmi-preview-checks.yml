@@ -13,6 +13,8 @@ on:
       - 'lib/xmiStrategyResearch.mjs'
       - 'lib/xmiResearchValidation.mjs'
       - 'lib/xmiResearchAnalytics.mjs'
+      - 'lib/xmiResearchHoldout.mjs'
+      - 'tests/xmi-research-holdout.test.mjs'
       - 'tests/xmi-research-analytics.test.mjs'
       - 'tests/xmi-research-validation.test.mjs'
       - 'tests/xmi-strategy-research.test.mjs'
@@ -74,6 +76,7 @@ jobs:
           node --check lib/xmiStrategyResearch.mjs
           node --check lib/xmiResearchValidation.mjs
           node --check lib/xmiResearchAnalytics.mjs
+          node --check lib/xmiResearchHoldout.mjs
           node --check lib/xmiStrategyPresets.mjs
           node --check lib/xmiWorkspaceState.mjs
           node --check lib/xmiWatchlistCollections.mjs

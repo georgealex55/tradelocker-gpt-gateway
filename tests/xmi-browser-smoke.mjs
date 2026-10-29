@@ -238,6 +238,22 @@ try{
  assert.ok(await analyticView.getByText(/not predictive accuracy, win rate/).count()>0);
 
 
+ // Milestone 2H: retrospective split and user-declared provenance remain local.
+ const holdoutPanel=versions.getByRole("region",{name:"Offline provenance and chronological holdout"});
+ await holdoutPanel.getByRole("combobox",{name:"Historical training partition"}).selectOption("70");
+ await holdoutPanel.getByRole("textbox",{name:"Claimed historical data source"}).fill("Unverified fixture");
+ await holdoutPanel.getByRole("button",{name:"Review provenance and holdout"}).click();
+ const holdoutResults=holdoutPanel.getByRole("group",{name:"Chronological holdout results"});
+ await holdoutResults.getByText(/RETROSPECTIVE REVIEW · 259/).waitFor({timeout:15000});
+ assert.ok(await holdoutResults.getByText(/Provider authenticated: NO/).count()>0);
+ assert.ok(await holdoutResults.getByText(/not independently pre-registered/i).count()>0);
+ const digest=await holdoutResults.locator("code").first().textContent();
+ assert.match(digest,/^[0-9a-f]{64}$/);
+ await holdoutPanel.getByRole("textbox",{name:"External expected dataset SHA-256"}).fill(digest);
+ await holdoutPanel.getByRole("button",{name:"Review provenance and holdout"}).click();
+ await holdoutResults.getByText(/Expected external hash: MATCH/).waitFor({timeout:15000});
+ assert.ok(await holdoutResults.getByText(/authenticity of the claimed source/i).count()>0);
+
  // 2F: actual downloaded JSON verifies locally; modified JSON must be rejected.
  const downloadWait=page.waitForEvent("download");
  await versions.getByRole("button",{name:"Export SHA-256 research report"}).click();
