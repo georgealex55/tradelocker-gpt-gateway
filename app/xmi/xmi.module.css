@@ -644,3 +644,136 @@
  .workspaceControls select{flex:1;max-width:unset;min-width:130px}
  .workspaceControls button{flex:1}
 }
+
+/* Milestone 2A: explicit source health and non-current chart overlay. */
+.feedOverlayWarning{position:absolute;top:12px;left:50%;transform:translateX(-50%);
+ z-index:7;pointer-events:none;display:grid;gap:4px;text-align:center;
+ max-width:calc(100% - 28px);width:min(530px,95%);box-sizing:border-box;padding:9px 13px;
+ background:rgba(43,31,24,.95);border:1px solid #bd8954;border-radius:8px;
+ color:#ffe9c8;box-shadow:0 5px 20px rgba(0,0,0,.28)}
+.feedOverlayWarning strong{font-size:11px;letter-spacing:.06em}
+.feedOverlayWarning span{font-size:10px;line-height:1.5;color:#ffdbb0}
+.feedDiagnostics{font-size:10px;color:#afc9da;overflow-wrap:anywhere}
+@media(max-width:650px){.feedOverlayWarning{top:5px;padding:5px 7px}.feedOverlayWarning span{font-size:9px}}
+
+/* Milestone 2B: bounded, device-local named watchlist controls. */
+.watchCollectionControls{display:grid;gap:6px;margin:7px 0 11px;
+ padding:7px;border:1px solid #34536a;border-radius:8px;background:#0b2436}
+.watchCollectionControls select,.watchCollectionControls input{width:100%;min-width:0;
+ box-sizing:border-box;padding:7px 8px;border-radius:6px;border:1px solid #38617b;
+ background:#071d2d;color:#d9eefc;font-size:11px}
+.watchCollectionControls>div{display:flex;gap:5px;flex-wrap:wrap}
+.watchCollectionControls button{flex:1;padding:6px 7px;border-radius:6px;
+ background:#164059;color:#ecf6ff;border:1px solid #436a80;font-size:11px}
+.watchCollectionControls button:disabled{opacity:.5;cursor:not-allowed}
+
+/* Milestone 2D: offline replay, isolated within the Strategy Lab. */
+.replayLab{display:grid;gap:10px;margin-top:14px;padding:16px;border:1px solid #355972;
+ border-radius:12px;background:#0b2234;color:#d9f1ff}
+.replayLabHeading{display:flex;gap:12px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+.replayLabHeading h3{margin:0 0 5px;font-size:17px}
+.replayLabHeading p{margin:5px 0;font-size:12px;line-height:1.5}
+.replayLabHeading>span{font-size:10px;letter-spacing:.07em;color:#ffe1b0;border:1px solid #8e7042;
+ border-radius:6px;padding:5px 8px}
+.replayLabControls{display:flex;align-items:end;gap:8px;flex-wrap:wrap}
+.replayLabControls label{font-size:12px;display:grid;gap:5px}
+.replayLabControls input{font-size:11px;max-width:250px}
+.replayLabControls button{padding:8px 10px;font-size:12px;border:1px solid #477b96;
+ border-radius:7px;color:#e4f6ff;background:#143b52}
+.replayLabControls button:disabled{opacity:.48;cursor:not-allowed}
+.replayError{color:#ffe1c6;border-left:3px solid #c88756;padding-left:10px}
+.replayResults{display:grid;gap:9px;font-size:12px}
+.replayResults p{margin:0;line-height:1.5}
+.replayCounts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.replayCounts>div{display:flex;flex-direction:column;align-items:center;padding:9px;
+ background:#112f44;border:1px solid #284d64;border-radius:7px;text-transform:capitalize}
+.replayCounts b{font-size:18px}.replayCounts span{font-size:11px}
+.replayHistory{display:grid;gap:3px;max-height:230px;overflow:auto}
+.replayHistory>div{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;
+ padding:6px 8px;border-bottom:1px solid #28465d;font-size:11px}
+@media(max-width:640px){.replayCounts{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .replayLab{padding:10px}}
+
+/* Milestone 2E: scoped, device-local strategy research comparisons. */
+.researchVersions{display:grid;gap:9px;margin-top:10px;padding:13px;
+ border:1px solid #3f627a;border-radius:10px;background:#0d2a3c;font-size:12px}
+.researchVersions h4{margin:0;font-size:15px;color:#dcefff}
+.researchVersions p{margin:0;line-height:1.6}
+.researchVersionControls{display:flex;align-items:end;flex-wrap:wrap;gap:9px}
+.researchVersionControls label{display:grid;flex:1;min-width:145px;gap:5px;font-size:11px}
+.researchVersionControls input,.researchVersionControls select{min-width:0;width:100%;
+ box-sizing:border-box;padding:8px;border:1px solid #47738b;border-radius:7px;
+ background:#091f2e;color:#e0f3ff;font-size:12px}
+.researchVersionControls button,.researchVersions .replayResults button{font-size:12px;
+ padding:8px 10px;background:#16445b;color:#e3f4ff;
+ border:1px solid #4c819b;border-radius:7px}
+.researchVersionControls button:disabled{opacity:.48;cursor:not-allowed}
+.researchVersions details{border-top:1px solid #345468;padding-top:9px}
+.researchVersions details p{padding:4px 0;font-size:11px;overflow-wrap:anywhere}
+@media(max-width:650px){.researchVersionControls{align-items:stretch}
+ .researchVersionControls button{flex:1}}
+
+/* Milestone 2F: integrity-verification is local; no trading semantics. */
+.researchReportCheck{display:grid;gap:8px;padding:11px;border-radius:8px;
+ background:#082537;border:1px solid #41647b}
+.researchReportCheck h4{margin:0;font-size:14px}
+.researchReportCheck label{display:grid;gap:5px;font-size:12px}
+.researchReportCheck input{font-size:11px;max-width:100%}
+.researchReportCheck strong{color:#b4e5db}
+.researchReportCheck p{margin:0;overflow-wrap:anywhere}
+
+/* Milestone 2G: local research analytics, never an execution dashboard. */
+.researchAnalytics{display:grid;gap:12px;margin-top:12px;padding:12px;
+ border:1px solid #4a6980;border-radius:10px;background:#0b2031}
+.researchAnalytics header h4{margin:0 0 6px;font-size:15px}
+.researchAnalytics header p{margin:0;font-size:12px;line-height:1.5}
+.analyticsMetrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.analyticsMetrics>div{display:grid;gap:4px;min-width:0;border:1px solid #3a5c75;
+ border-radius:7px;padding:9px;text-align:center;background:#13334a}
+.analyticsMetrics strong{font-size:20px;color:#e1f3ff}
+.analyticsMetrics span{font-size:10px;color:#bbd7e9;overflow-wrap:anywhere}
+.researchAnalytics h5{font-size:12px;margin:0 0 8px;color:#e0f3ff}
+.analyticsDistribution,.analyticsCoverage,.analyticsChecks,.analyticsHistory{display:grid;gap:7px;
+ padding:11px;background:#0d2a3e;border:1px solid #34566e;border-radius:8px}
+.analyticsCategoryRow{display:grid;grid-template-columns:100px minmax(0,1fr) 67px;
+ align-items:center;gap:8px;font-size:11px;text-transform:capitalize}
+.analyticsCategoryRow>div{display:grid;gap:3px}
+.analyticsCategoryRow small{text-align:right;color:#bcd5e8}
+.analyticsTrack{width:100%;height:8px;border-radius:6px;overflow:hidden;background:#091e2e}
+.analyticsTrack>div{height:100%;border-radius:6px}
+.researchAligned{background:#3cafa0}.researchConflicted{background:#b97776}
+.researchMixed{background:#b29b64}.researchNotReady{background:#688296}
+.analyticsChecks>div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;
+ padding:7px 0;border-bottom:1px solid #2a4960}
+.analyticsChecks>div:last-child{border-bottom:0}
+.analyticsChecks strong{font-size:11px}
+.analyticsChecks span{font-size:10px;color:#eed49e;font-weight:700}
+.analyticsChecks small{grid-column:1/-1;color:#bcd3e2;font-size:11px}
+.analyticsTableWrap{overflow:auto;max-height:310px}
+.analyticsTable{width:100%;border-collapse:collapse;font-size:11px}
+.analyticsTable th,.analyticsTable td{padding:7px 9px;border-bottom:1px solid #35536a;
+ text-align:left;white-space:nowrap}
+.analyticsTable th{position:sticky;top:0;background:#13364a;color:#d6edfa}
+.analyticsHistory .researchVersionControls>span{font-size:11px}
+@media(max-width:750px){
+ .analyticsMetrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .analyticsCategoryRow{grid-template-columns:75px minmax(0,1fr) 50px}
+}
+
+/* Milestone 2H: no broker connections or persisted third-party source assertions. */
+.holdoutLab{display:grid;gap:10px;padding:14px;margin-top:10px;border:1px solid #3c6175;
+ border-radius:10px;background:#0b2a39;font-size:12px}
+.holdoutLab h4{margin:0;font-size:15px}
+.holdoutLab p{margin:0;line-height:1.6}
+.holdoutHashLabel{display:grid;gap:5px;font-size:12px}
+.holdoutHashLabel input{width:100%;box-sizing:border-box;padding:8px;border:1px solid #47738b;
+ border-radius:7px;background:#091f2e;color:#e0f3ff;font-family:monospace;font-size:11px}
+.holdoutResults{display:grid;gap:9px;margin-top:4px;padding:11px;border:1px solid #4e6777;
+ border-radius:8px;background:#08202b;overflow-wrap:anywhere}
+.holdoutResults code{font-size:10px;user-select:all}
+.holdoutResults ul{margin:0;padding-left:20px;line-height:1.6}
+.holdoutResults strong{color:#d2ebef}
+.holdoutPair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.holdoutPair>div{padding:10px;background:#133649;border:1px solid #385d71;border-radius:8px}
+.holdoutPair h5{margin:0 0 7px;color:#d5efff;font-size:12px}
+@media(max-width:620px){.holdoutPair{grid-template-columns:1fr}.holdoutLab{padding:10px}}

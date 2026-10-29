@@ -4,6 +4,7 @@
  */
 import {chromium} from "playwright";
 import assert from "node:assert/strict";
+import {readFile} from "node:fs/promises";
 const root=process.env.XMI_SMOKE_ORIGIN||"http://127.0.0.1:3000";
 const browser=await chromium.launch({headless:true,args:["--no-sandbox"]});
 const page=await browser.newPage({viewport:{width:1500,height:900},deviceScaleFactor:1});
@@ -52,6 +53,15 @@ try{
   "All actual-price widgets must remain mounted");
  assert.equal(await page.getByText("Application error:").count(),0);
  assert.ok(await page.locator("canvas").count()>0,"Lightweight Charts must create real canvases");
+ const integrity=page.getByLabel("Closed-candle data integrity").first();
+ await integrity.waitFor({timeout:15000});
+ const integrityText=await integrity.textContent();
+ assert.match(integrityText,/VERIFIED CLOSED BARS/);
+ assert.match(integrityText,/EMA200 ready/);
+ assert.match(integrityText,/RSI ready/);
+ assert.match(integrityText,/MACD ready/);
+ assert.match(integrityText,/260 source candles|259 closed bars/);
+
  const v=await page.evaluate(()=>{
   const body=getComputedStyle(document.body),root=document.querySelector("[data-xmi-root]");
   return {marginTop:body.marginTop,paddingTop:body.paddingTop,maxWidth:body.maxWidth,
@@ -111,6 +121,34 @@ try{
  await page.getByText("CANDLES RECEIVING",{exact:true}).first().waitFor({timeout:30000});
 
 
+ // Milestone 2B: device-local named watchlists stay separate across a reload.
+ let lists=page.getByRole("group",{name:"Named watchlists"});
+ await lists.getByRole("textbox",{name:"New or renamed watchlist name"}).fill("Equity Research");
+ await lists.getByRole("button",{name:"New"}).click();
+ await page.waitForFunction(()=>JSON.parse(localStorage.getItem("xmi-chart-ui-v1")||"{}").watchlists?.length===2,null,{timeout:12000});
+ await page.getByLabel("Add instrument").fill("NASDAQ:MSFT");
+ await page.getByRole("button",{name:"Add symbol"}).click();
+ await lists.getByRole("textbox",{name:"New or renamed watchlist name"}).fill("Growth ETFs");
+ await lists.getByRole("button",{name:"Rename"}).click();
+ await lists.getByRole("combobox",{name:"Active watchlist"}).selectOption({label:"Main"});
+ await page.waitForFunction(()=>JSON.parse(localStorage.getItem("xmi-chart-ui-v1")||"{}").watchlist?.length===7,null,{timeout:12000});
+ await page.reload({waitUntil:"domcontentloaded"});
+ lists=page.getByRole("group",{name:"Named watchlists"});
+ await lists.getByRole("combobox",{name:"Active watchlist"}).selectOption({label:"Growth ETFs"});
+ await page.waitForFunction(()=>{
+  const ui=JSON.parse(localStorage.getItem("xmi-chart-ui-v1")||"{}");
+  return ui.watchlist?.includes("NASDAQ:MSFT")&&ui.watchlists?.length===2;
+ },null,{timeout:12000});
+ await lists.getByRole("combobox",{name:"Active watchlist"}).selectOption({label:"Main"});
+ await lists.getByRole("combobox",{name:"Active watchlist"}).selectOption({label:"Growth ETFs"});
+ page.once("dialog",dialog=>dialog.accept());
+ await lists.getByRole("button",{name:"Delete"}).click();
+ await page.waitForFunction(()=>{
+  const ui=JSON.parse(localStorage.getItem("xmi-chart-ui-v1")||"{}");
+  return ui.watchlists?.length===1&&ui.activeWatchlistId==="main";
+ },null,{timeout:12000});
+ await page.getByText("CANDLES RECEIVING",{exact:true}).first().waitFor({timeout:30000});
+
  await page.locator('button[title="Indicators"]').click();
  await page.getByPlaceholder("Search indicators, patterns or market structure…").waitFor();
  await page.getByPlaceholder("Search indicators, patterns or market structure…").fill("BOS");
@@ -161,7 +199,98 @@ try{
  await page.getByRole("button",{name:/Swing · EMA Structure/}).last().click();
  await page.getByRole("spinbutton",{name:"RSI positive threshold"}).fill("62");
  await page.getByRole("combobox",{name:"Edit strategy timeframe"}).selectOption("1D");
- assert.equal(await page.getByRole("combobox",{name:"Edit strategy timeframe"}).inputValue(),"1D");
+ assert.equal(await page.getByRole("combobox",{name:"Edit strategy timeframe"}).inputValue(),"1D"); 
+ // 2D: a real, local-only JSON file can be replayed in Strategy Lab.
+ const replayPanel=page.getByRole("region",{name:"Offline historical replay"});
+ await replayPanel.getByLabel("Historical replay OHLC JSON").setInputFiles({
+  name:"smoke-replay.json",mimeType:"application/json",
+  buffer:Buffer.from(JSON.stringify({symbol:"EURUSD",resolution:"1D",bars:barsFor("1D")}))
+ });
+ await replayPanel.getByRole("button",{name:"Replay closed candles"}).click();
+ await replayPanel.getByText("OFFLINE REPLAY",{exact:false}).first().waitFor({timeout:20000});
+ assert.ok(await replayPanel.getByText(/No entries, exits, fills/).count()>0,
+  "Replay must remain non-executing descriptive research");
+
+ // Milestone 2E: save two immutable research configs and compare exactly the
+ // same uploaded candles. Persist only summary metadata, never candle data.
+ const versions=page.getByRole("group",{name:"Versioned strategy research"});
+ await versions.getByRole("textbox",{name:"Strategy version label"}).fill("RSI 62 baseline");
+ await versions.getByRole("button",{name:"Save research version"}).click();
+ await versions.getByRole("textbox",{name:"Strategy version label"}).fill("Alternative research");
+ await versions.getByRole("button",{name:"Save research version"}).click();
+ await versions.getByRole("combobox",{name:"Baseline strategy version"}).selectOption("swing-v1");
+ await versions.getByRole("combobox",{name:"Candidate strategy version"}).selectOption("swing-v2");
+ await versions.getByRole("button",{name:"Compare saved versions"}).click();
+ await versions.getByRole("region",{name:"Version comparison results"}).getByText(/identical historical candles/).waitFor({timeout:20000});
+ // Milestone 2G: interactive historical research analytics remain read-only.
+ const analyticView=versions.getByRole("region",{name:"Historical research analytics"});
+ await analyticView.getByText("Historical research analytics · descriptive only").waitFor({timeout:15000});
+ await analyticView.getByRole("group",{name:"Historical data coverage"}).getByText(/UNVERIFIED/).waitFor();
+ await analyticView.getByRole("group",{name:"Research readiness checklist"})
+  .getByText("Data-provider authenticity").waitFor();
+ const filters=analyticView.getByRole("combobox",{name:"Research observation filter"});
+ await filters.selectOption("all");
+ await analyticView.getByText(/25[9] observations · Page 1 of 13/).waitFor();
+ await analyticView.getByRole("button",{name:"Next observations"}).click();
+ await analyticView.getByText(/25[9] observations · Page 2 of 13/).waitFor();
+ await filters.selectOption("changed");
+ assert.ok(await analyticView.getByRole("button",{name:"Previous observations"}).isDisabled());
+ assert.ok(await analyticView.getByText(/not predictive accuracy, win rate/).count()>0);
+
+
+ // Milestone 2H: retrospective split and user-declared provenance remain local.
+ const holdoutPanel=versions.getByRole("region",{name:"Offline provenance and chronological holdout"});
+ await holdoutPanel.getByRole("combobox",{name:"Historical training partition"}).selectOption("70");
+ await holdoutPanel.getByRole("textbox",{name:"Claimed historical data source"}).fill("Unverified fixture");
+ await holdoutPanel.getByRole("button",{name:"Review provenance and holdout"}).click();
+ const holdoutResults=holdoutPanel.getByRole("group",{name:"Chronological holdout results"});
+ await holdoutResults.getByText(/RETROSPECTIVE REVIEW · 259/).waitFor({timeout:15000});
+ assert.ok(await holdoutResults.getByText(/Provider authenticated: NO/).count()>0);
+ assert.ok(await holdoutResults.getByText(/not independently pre-registered/i).count()>0);
+ const digest=await holdoutResults.locator("code").first().textContent();
+ assert.match(digest,/^[0-9a-f]{64}$/);
+ await holdoutPanel.getByRole("textbox",{name:"External expected dataset SHA-256"}).fill(digest);
+ await holdoutPanel.getByRole("button",{name:"Review provenance and holdout"}).click();
+ await holdoutResults.getByText(/Expected external hash: MATCH/).waitFor({timeout:15000});
+ assert.ok(await holdoutResults.getByText(/authenticity of the claimed source/i).count()>0);
+
+ // 2F: actual downloaded JSON verifies locally; modified JSON must be rejected.
+ const downloadWait=page.waitForEvent("download");
+ await versions.getByRole("button",{name:"Export SHA-256 research report"}).click();
+ const downloaded=await downloadWait;
+ assert.match(downloaded.suggestedFilename(),/^xmi-research-/);
+ const reportBytes=await readFile(await downloaded.path());
+ const reportContent=JSON.parse(reportBytes.toString("utf8"));
+ assert.match(reportContent.body.dataset.sha256,/^[0-9a-f]{64}$/);
+ assert.match(reportContent.integrity.sha256,/^[0-9a-f]{64}$/);
+ assert.equal(reportBytes.toString("utf8").includes('"bars":'),false,
+  "Downloaded validation report must never include historical OHLC history");
+ const verifyControl=versions.getByLabel("Verify research report JSON");
+ await verifyControl.setInputFiles({name:"research-report.json",
+  mimeType:"application/json",buffer:reportBytes});
+ await versions.getByText("REPORT VERIFIED · SHA-256",{exact:false}).waitFor({timeout:15000});
+ reportContent.body.dataset.sha256="0".repeat(64);
+ await verifyControl.setInputFiles({name:"tampered-research-report.json",
+  mimeType:"application/json",buffer:Buffer.from(JSON.stringify(reportContent))});
+ await replayPanel.getByRole("alert").getByText(/checksum mismatch/).waitFor({timeout:15000});
+
+ await versions.getByRole("button",{name:"Save comparison summary locally"}).click();
+ await page.waitForFunction(()=>{
+  try{
+   const summaries=JSON.parse(localStorage.getItem("xmi-strategy-research-comparisons-v1")||"{}");
+   const configs=JSON.parse(localStorage.getItem("xmi-strategy-research-versions-v1")||"{}");
+   return summaries.records?.length===1&&configs.records?.length===2;
+  }catch{return false;}
+ },null,{timeout:12000});
+ const summaryStore=await page.evaluate(()=>localStorage.getItem("xmi-strategy-research-comparisons-v1"));
+ assert.equal(summaryStore.includes("observations"),false);
+ assert.equal(summaryStore.includes("bars\""),false);
+ await replayPanel.getByRole("button",{name:"Clear file"}).click();
+ await page.reload({waitUntil:"domcontentloaded"});
+ await page.getByRole("combobox",{name:"Switch XMI workspace"}).selectOption("strategy");
+ await versions.getByText("2/12 saved versions",{exact:false}).waitFor({timeout:15000});
+ assert.ok(await versions.getByText("Saved comparison summaries (1/8)").count()>0);
+
  await page.getByRole("button",{name:"Hide top banner"}).click();
  assert.equal(await page.getByText("Gateway home").isVisible(),false,"Banner visibility is independent on the strategy tab");
  await page.getByRole("combobox",{name:"Switch XMI workspace"}).selectOption("research");
@@ -190,6 +319,21 @@ try{
  // Production's read-only broker endpoint is intentionally disabled. The chart must
  // diagnose this honestly and accept actual user-supplied historical candles instead.
  const expected503Start=runtimeErrors.length;
+ // Milestone 2A: failed read-only requests retain the previously verified chart,
+ // visibly label it non-current, and do not present a valid strategy signal.
+ const outage=route=>route.fulfill({
+  status:503,contentType:"application/json",
+  body:JSON.stringify({ok:false,code:"SOURCE_UNAVAILABLE",error:"Read-only market data temporarily unavailable"})
+ });
+ await page.route("**/api/xmi/live?**",outage);
+ await page.getByRole("button",{name:"Refresh EURUSD chart"}).click();
+ await page.getByText("SOURCE UNAVAILABLE",{exact:true}).first().waitFor({timeout:15000});
+ await page.getByText("Retry attempts 1",{exact:false}).first().waitFor({timeout:15000});
+ await page.getByText("Last previously verified bar",{exact:false}).first().waitFor({timeout:15000});
+ await page.unroute("**/api/xmi/live?**",outage);
+ await page.getByRole("button",{name:"Refresh EURUSD chart"}).click();
+ await page.getByText("CANDLES RECEIVING",{exact:true}).first().waitFor({timeout:20000});
+
  await page.route("**/api/xmi/live?**",route=>route.fulfill({
   status:503,contentType:"application/json",
   body:JSON.stringify({ok:false,code:"FEED_DISABLED",error:"Feed not enabled in production"})

@@ -7,6 +7,25 @@ on:
       - 'lib/xmiWorkspace.mjs'
       - 'lib/xmiLive*.mjs'
       - 'lib/xmiProductionFeedAuth.mjs'
+      - 'lib/xmiFeedRecovery.mjs'
+      - 'lib/xmiDataQuality.mjs'
+      - 'lib/xmiHistoricalReplay.mjs'
+      - 'lib/xmiStrategyResearch.mjs'
+      - 'lib/xmiResearchValidation.mjs'
+      - 'lib/xmiResearchAnalytics.mjs'
+      - 'lib/xmiResearchHoldout.mjs'
+      - 'tests/xmi-research-holdout.test.mjs'
+      - 'tests/xmi-research-analytics.test.mjs'
+      - 'tests/xmi-research-validation.test.mjs'
+      - 'tests/xmi-strategy-research.test.mjs'
+      - 'lib/xmiHistoricalFile.mjs'
+      - 'tests/xmi-historical-replay.test.mjs'
+      - 'lib/xmiStrategyPresets.mjs'
+      - 'tests/xmi-data-quality.test.mjs'
+      - 'lib/xmiWorkspaceState.mjs'
+      - 'lib/xmiWatchlistCollections.mjs'
+      - 'tests/xmi-named-watchlists.test.mjs'
+      - 'tests/xmi-feed-recovery.test.mjs'
       - 'tests/xmi-production-feed-auth.test.mjs'
       - 'lib/xmiBridgeAuth.mjs'
       - 'tests/xmi-bridge-auth.test.mjs'
@@ -51,6 +70,16 @@ jobs:
           node --check lib/xmiChartTools.mjs
           node --check lib/xmiDrawingPrimitive.mjs
           node --check lib/xmiLiveProvider.mjs
+          node --check lib/xmiFeedRecovery.mjs
+          node --check lib/xmiDataQuality.mjs
+          node --check lib/xmiHistoricalReplay.mjs
+          node --check lib/xmiStrategyResearch.mjs
+          node --check lib/xmiResearchValidation.mjs
+          node --check lib/xmiResearchAnalytics.mjs
+          node --check lib/xmiResearchHoldout.mjs
+          node --check lib/xmiStrategyPresets.mjs
+          node --check lib/xmiWorkspaceState.mjs
+          node --check lib/xmiWatchlistCollections.mjs
           node --check lib/xmiProductionFeedAuth.mjs
           node --check app/api/xmi/feed-session/route.js
           node --check lib/xmiBridgeAuth.mjs

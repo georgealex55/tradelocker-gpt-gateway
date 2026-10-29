@@ -4,7 +4,7 @@ import {configuredAuth,configuredDatabase,allowedOrigin,restrictedLogin,XMI_COAC
 import {subjectOwner} from "../lib/xmiCloudIdentity.mjs";
 import {scopedTransaction,checkedTrades,fingerprintTrade,getJournal} from "../lib/xmiCloudStore.mjs";
 const auth={
- XMI_COACH_ENABLE_CLOUD:"true",XMI_IDP_ISSUER:"https://id.example.org/",
+ VERCEL_ENV:"preview",XMI_COACH_ENABLE_CLOUD:"true",XMI_IDP_ISSUER:"https://id.example.org/",
  XMI_IDP_AUTHORIZE_URL:"https://id.example.org/oauth/authorize",
  XMI_IDP_TOKEN_URL:"https://id.example.org/oauth/token",
  XMI_IDP_JWKS_URL:"https://id.example.org/.well-known/jwks.json",
@@ -12,7 +12,7 @@ const auth={
  XMI_COACH_PUBLIC_ORIGIN:"https://xmi-preview.example.org/"
 };
 const db={
- XMI_COACH_ENABLE_CLOUD:"true",
+ VERCEL_ENV:"preview",XMI_COACH_ENABLE_CLOUD:"true",
  XMI_COACH_DATABASE_URL:"postgresql://xmi_coach_gateway_login:sample@ep-preview-neon.c-12.us-east-1.aws.neon.tech/neondb?sslmode=require",
  DATABASE_URL:"postgresql://tradelocker_gateway:secret@otherhost.neon.tech/otherdb?sslmode=require",
  XMI_COACH_EXPECTED_BRANCH_ID:XMI_COACH_PREVIEW_BRANCH,XMI_COACH_ENVIRONMENT:"preview"
@@ -37,6 +37,14 @@ test("Production broker DB cannot substitute for the isolated preview store",()=
  assert.equal(configuredDatabase({...db,XMI_COACH_DATABASE_URL:"postgresql://neondb_owner:pass@ep-preview.neon.tech/db?sslmode=require"}),null);
  assert.equal(configuredDatabase({...db,XMI_COACH_DATABASE_URL:"postgresql://xmi:pass@unknown.example.org/db?sslmode=require"}),null);
  assert.equal(configuredDatabase(db)?.branch,XMI_COACH_PREVIEW_BRANCH);
+});
+test("Even fully configured preview-only cloud journal is blocked in production",()=>{
+ for(const environment of ["production","development",undefined]){
+  assert.equal(configuredAuth({...auth,VERCEL_ENV:environment}),null);
+  assert.equal(configuredDatabase({...db,VERCEL_ENV:environment}),null);
+ }
+ assert.equal(configuredAuth(auth)?.origin,"https://xmi-preview.example.org");
+ assert.equal(configuredDatabase(db)?.environment,"preview");
 });
 test("Cross-origin mutation and privileged Neon login are rejected",()=>{
  assert.equal(allowedOrigin("https://xmi-preview.example.org","https://xmi-preview.example.org"),true);
