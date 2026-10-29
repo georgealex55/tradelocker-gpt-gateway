@@ -8,6 +8,7 @@ import {STRATEGY_VERSIONS_KEY,RESEARCH_COMPARISONS_KEY,
 import {createResearchReport,verifyResearchReport} from "../../lib/xmiResearchValidation.mjs";
 import {analyzeResearchComparison} from "../../lib/xmiResearchAnalytics.mjs";
 import XMIResearchAnalytics from "./XMIResearchAnalytics";
+import XMIResearchHoldout from "./XMIResearchHoldout";
 import styles from "./xmi.module.css";
 
 /* Research files remain in browser memory. Only explicit version configs and
@@ -145,7 +146,7 @@ export default function XMIHistoricalReplay({symbol,resolution,strategyId,edit})
   setResult(null);setComparison(null);setAnalytics(null);setReportStatus(null);setError("");setNotice("");}
  return <section className={styles.replayLab} aria-label="Offline historical replay">
   <div className={styles.replayLabHeading}>
-   <div><p className={styles.eyebrow}>MILESTONE 2G · DEVICE ONLY</p>
+   <div><p className={styles.eyebrow}>MILESTONE 2H · DEVICE ONLY</p>
     <h3>Closed-candle historical replay</h3>
     <p>Load 2–400 genuine OHLC candles for {symbol} · {resolution}. Recompute each bar using only candles closed by that moment. No market connection or order execution.</p>
    </div><span>RESEARCH ONLY</span>
@@ -221,6 +222,8 @@ export default function XMIHistoricalReplay({symbol,resolution,strategyId,edit})
    </div>:null}
    {analytics?<XMIResearchAnalytics key={analytics.datasetLabel+"-"+analytics.baselineId+"-"+analytics.candidateId}
     analytics={analytics}/>:null}
+   {analytics?<XMIResearchHoldout source={source} symbol={symbol}
+    resolution={resolution} analytics={analytics} now={capturedAt}/>:null}
    <section className={styles.researchReportCheck} aria-label="Research report verification">
     <h4>Verify an exported report</h4>
     <p>Choose a downloaded XMI report JSON file. SHA-256 detects changes relative to the checksum inside the file; it does not prove a feed is genuine. No file is uploaded.</p>
