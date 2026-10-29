@@ -4,7 +4,7 @@ import {readFileSync} from "node:fs";
 import {TOOL_CATALOG,PANEL_NAMES,CHART_TYPES,DEFAULT_TECH,DEFAULT_CHART_SETTINGS,
  validateChartSettings,validateChartOverrides,resolveChartSettings,heikinAshi,
  chartSeriesData,requiredClicks,drawingPoint,validateDrawings,drawingsForSymbol,
- serializeWorkspace,deserializeWorkspace,detectedPivots,autoFibonacci,detectClassicPatterns}
+ serializeWorkspace,deserializeWorkspace,detectedPivots,autoFibonacci,detectClassicPatterns,samePatternEvents}
  from "../lib/xmiChartTools.mjs";
 import {XMIDrawingPrimitive,drawingTooltip} from "../lib/xmiDrawingPrimitive.mjs";
 const t=Date.parse("2026-10-28T12:00:00Z")/1000;
@@ -119,4 +119,29 @@ test("Unified toolbar removed duplicate indicators from price chart and SMC side
  assert.match(shell,/Pop out/);
  assert.match(shell,/Focus Mode/);
  assert.match(desk,/requestFullscreen/);
+});
+
+test("Unchanged pattern feedback never causes a new parent state update",()=>{
+ const first=[{id:"double-top:300",confirmedAt:300,points:[]}];
+ assert.equal(samePatternEvents(undefined,[]),false);
+ assert.equal(samePatternEvents([],[]),true);
+ assert.equal(samePatternEvents(first,[{id:"double-top:300",confirmedAt:300,points:[]}]),true);
+ assert.equal(samePatternEvents(first,[{id:"double-top:300",confirmedAt:301,points:[]}]),false);
+ const update=(old,events)=>samePatternEvents(old["1|FX:EURUSD|5m"],events)?
+  old:{...old,["1|FX:EURUSD|5m"]:events};
+ const firstState=update({},[]);
+ assert.equal(update(firstState,[]),firstState,"Repeated empty initial responses must preserve identity");
+ const next=update(firstState,first);
+ assert.equal(update(next,[{...first[0]}]),next,"Repeated detections must preserve state identity");
+});
+test("Chart Studio memoizes array-valued child props across unrelated intelligence renders",()=>{
+ const desk=readFileSync(new URL("../app/xmi/XMIEngineDesk.jsx",import.meta.url),"utf8");
+ const chart=readFileSync(new URL("../app/xmi/XMILiveChart.jsx",import.meta.url),"utf8");
+ assert.match(desk,/chartDrawingMap=useMemo\(/);
+ assert.match(desk,/chartSettingsBySlot=useMemo\(/);
+ assert.match(desk,/savedDrawings=\{chartDrawingMap\[item.symbol\]\}/);
+ assert.match(desk,/chartSettings=\{chartSettingsBySlot\[index\]\}/);
+ assert.doesNotMatch(desk,/savedDrawings=\{drawingsForSymbol\(/);
+ assert.match(desk,/samePatternEvents\(old\[id\],result\)\?old/);
+ assert.match(chart,/if\(!feed.stats\)\{primitive.setDrawings\(\[\]\);if\(selected\)onPatternsRef.current\?\.\(\[\]\);return;\}/);
 });
