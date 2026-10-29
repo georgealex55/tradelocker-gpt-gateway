@@ -85,6 +85,14 @@ try{
  await page.getByRole("button",{name:"Show top banner"}).click();
  await page.getByRole("button",{name:"Hide tabs"}).click();
  assert.ok(await page.getByRole("combobox",{name:"Switch XMI workspace"}).isVisible());
+ await page.getByRole("combobox",{name:"Switch XMI workspace"}).selectOption("strategy");
+ assert.ok(await page.getByText("Strategy presets & 9-cell engine").isVisible(),"The strategy tab remains accessible while tabs are hidden");
+ await page.getByRole("button",{name:"Hide top banner"}).click();
+ assert.equal(await page.getByText("Gateway home").isVisible(),false,"Banner visibility is independent on the strategy tab");
+ await page.getByRole("combobox",{name:"Switch XMI workspace"}).selectOption("research");
+ assert.ok(await page.getByRole("textbox",{name:"Search ticker news"}).count()>0,"Ticker search is available with tabs hidden");
+ await page.getByRole("combobox",{name:"Switch XMI workspace"}).selectOption("live");
+ await page.getByRole("button",{name:"Show top banner"}).click();
  await page.getByRole("button",{name:"Show tabs"}).click();
  await page.locator('button[title="Focus Mode"]').click();
  assert.equal(await page.getByText("Gateway home").isVisible(),false,"Focus mode hides navigation");
