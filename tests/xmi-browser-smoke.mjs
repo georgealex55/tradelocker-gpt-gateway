@@ -232,12 +232,11 @@ try{
  const summaryStore=await page.evaluate(()=>localStorage.getItem("xmi-strategy-research-comparisons-v1"));
  assert.equal(summaryStore.includes("observations"),false);
  assert.equal(summaryStore.includes("bars\""),false);
+ await replayPanel.getByRole("button",{name:"Clear file"}).click();
  await page.reload({waitUntil:"domcontentloaded"});
  await page.getByRole("combobox",{name:"Switch XMI workspace"}).selectOption("strategy");
  await versions.getByText("2/12 saved versions",{exact:false}).waitFor({timeout:15000});
  assert.ok(await versions.getByText("Saved comparison summaries (1/8)").count()>0);
-
- await replayPanel.getByRole("button",{name:"Clear file"}).click();
 
  await page.getByRole("button",{name:"Hide top banner"}).click();
  assert.equal(await page.getByText("Gateway home").isVisible(),false,"Banner visibility is independent on the strategy tab");
