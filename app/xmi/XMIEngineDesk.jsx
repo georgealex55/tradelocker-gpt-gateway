@@ -6,7 +6,7 @@ import XMIToolbox from "./XMIToolbox";
 import {parseInstrument,validateWatchlist} from "../../lib/xmiLiveMath.mjs";
 import {defaultStructureSettings,STRUCTURE_CONCEPTS} from "../../lib/xmiStructure.mjs";
 import {DEFAULT_CHART_SETTINGS,DEFAULT_TECH,resolveChartSettings,
- validateDrawings,serializeWorkspace,deserializeWorkspace,drawingsForSymbol} from "../../lib/xmiChartTools.mjs";
+ validateDrawings,serializeWorkspace,deserializeWorkspace,drawingsForSymbol,samePatternEvents} from "../../lib/xmiChartTools.mjs";
 const START=["EURUSD","GBPUSD","USDJPY","USDCHF","AUDUSD","NASDAQ:AAPL","AMEX:SPY"];
 const DEFAULT=START.map(parseInstrument),KEY="xmi-chart-workbench-v1";
 export default function XMIEngineDesk({selected,onSelected,onResearch,active=true,focusMode=false,onFocusMode}){
@@ -185,7 +185,10 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
          drawTool={index===focus?drawTool:null} onDrawing={d=>onChartDrawing(item.symbol,d)}
          savedDrawings={chartDrawingMap[item.symbol]}
          autoPatterns={autoPatterns} autoFib={autoFib}
-         onPatterns={result=>setPatterns(old=>({...old,[index+"|"+key+"|"+resolutions[index]]:result}))}
+         onPatterns={result=>setPatterns(old=>{
+          const id=index+"|"+key+"|"+resolutions[index];
+          return samePatternEvents(old[id],result)?old:{...old,[id]:result};
+         })}
          onStructure={result=>setObservations(old=>({...old,[index+"|"+key+"|"+resolutions[index]]:result}))}
          compact={layout>1} active={active}/>:
          <div className={styles.feedMissing}><h3>{item.label}</h3><p>Stock/ETF feed pending; no synthetic candles.</p>
