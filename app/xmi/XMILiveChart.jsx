@@ -39,7 +39,8 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
  const extraKey=extraRes.join("|");
  const [feed,setFeed]=useState({phase:"loading",message:"Waiting for read-only forex data",
   last:null,stats:null,asOf:null,quality:"UNAVAILABLE",failures:0,
-  lastCheckedAt:null,lastSuccessAt:null,lastClosedAt:null,nextRefreshMs:null});
+  lastCheckedAt:null,lastSuccessAt:null,lastClosedAt:null,nextRefreshMs:null,
+  sourceSymbol:symbol,sourceResolution:resolution});
  useEffect(()=>{if(selected)onAnalysisRef.current?.({stats:feed.stats,quality:feed.quality||"UNAVAILABLE",asOf:feed.asOf});},[feed.stats,feed.quality,feed.asOf,selected]);
  const [libReady,setLibReady]=useState(false);
  useEffect(()=>{interaction.current={points:[],stroke:[],count:0};setPendingCount(0);setDrawingError("");},[drawTool,symbol]);
@@ -197,7 +198,8 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
      message:local?"Imported historical OHLC · device only · no broker connection":
       mapped.length?(quality==="CURRENT"?"Read-only candles · "+data.delivery:"Broker candles are not recent"):"No candles returned",
      stats,asOf:data.asOf,last:stats.latest,quality,failures:0,
-     lastCheckedAt:Date.now(),lastSuccessAt,lastClosedAt,nextRefreshMs:null});
+     lastCheckedAt:Date.now(),lastSuccessAt,lastClosedAt,nextRefreshMs:null,
+     sourceSymbol:symbol,sourceResolution:resolution});
    }catch(e){
     if(!running||e.name==="AbortError")return;
     const disabled=e.code==="FEED_DISABLED",locked=e.code==="FEED_LOCKED";
@@ -207,13 +209,22 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
      message:locked?"Feed is locked. Use Unlock read-only feed in the top toolbar, then refresh.":
       disabled?"Production broker feed is not configured. Import OHLC JSON or open Historical Chart Studio.":e.message,
      stats:null,last:prev.last,quality:"UNAVAILABLE",asOf:prev.asOf,
-     failures,lastCheckedAt:Date.now(),lastSuccessAt,lastClosedAt,
+     failures,lastCheckedAt:Date.now(),
+     lastSuccessAt:lastSuccessAt||prev.lastSuccessAt,
+     lastClosedAt:lastClosedAt||prev.lastClosedAt,
      nextRefreshMs:null}));
     if(!retryable)running=false;
    }finally{if(requestTimeout)clearTimeout(requestTimeout);if(running&&!local)schedule();}
   }
-  setFeed({phase:"loading",message:"Loading verified broker candles…",last:null,stats:null,asOf:null,
-   quality:"UNAVAILABLE",failures:0,lastCheckedAt:null,lastSuccessAt:null,lastClosedAt:null,nextRefreshMs:null});
+  setFeed(prev=>{
+   const same=prev.sourceSymbol===symbol&&prev.sourceResolution===resolution;
+   return {phase:"loading",message:"Loading verified broker candles…",
+    last:same?prev.last:null,stats:null,asOf:same?prev.asOf:null,
+    quality:"UNAVAILABLE",failures:0,lastCheckedAt:null,
+    lastSuccessAt:same?prev.lastSuccessAt:null,
+    lastClosedAt:same?prev.lastClosedAt:null,
+    nextRefreshMs:null,sourceSymbol:symbol,sourceResolution:resolution};
+  });
   // Clear stale previous symbol history immediately.
   for(const key of Object.keys(all))all[key].setData([]);
   refresh();
