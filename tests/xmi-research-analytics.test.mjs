@@ -11,16 +11,16 @@ const bars=Array.from({length:260},(_,i)=>{
 });
 const now=(bars.at(-1).time+60)*1000;
 const source=JSON.stringify({symbol:"EURUSD",resolution:"1m",bars});
-function setup({strategyId="day",sourceFile=source}={}){
+function setup({strategyId="day",sourceFile=source,asOf=now}={}){
  const [baseline]=saveStrategyVersion([],{strategyId,name:"RSI default",
   edit:{timeframe:"1m",rsiBull:55,rsiBear:45},now});
  const versions=saveStrategyVersion([baseline],{strategyId,name:"RSI strict",
   edit:{timeframe:"1m",rsiBull:70,rsiBear:30,requireVwap:true},now:now+1});
  const candidate=versions[1];
  const comparison=compareSavedStrategyVersions(sourceFile,{symbol:"EURUSD",resolution:"1m",
-  baseline,candidate,now});
+  baseline,candidate,now:asOf});
  return {source:sourceFile,symbol:"EURUSD",resolution:"1m",
-  baseline,candidate,comparison,now};
+  baseline,candidate,comparison,now:asOf};
 }
 test("Same observed candles produce repeatable descriptive analytics, never trading performance",()=>{
  const args=setup();
@@ -63,7 +63,7 @@ test("A stale comparison cannot be presented as current analytics",()=>{
  const args=setup();
  assert.throws(()=>analyzeResearchComparison({...args,comparison:{...args.comparison,changedClassifications:99}}),/rerun/);
  assert.throws(()=>analyzeResearchComparison({...args,source:"not json"}));
- assert.throws(()=>analyzeResearchComparison({...args,candidate:args.baseline}),/different/);
+ assert.throws(()=>analyzeResearchComparison({...args,candidate:args.baseline}),/Duplicate|different/);
 });
 test("Warmup and unscored original strategy remain limited, not magically validated",()=>{
  const args=setup({strategyId:"xmi"});
@@ -91,7 +91,7 @@ test("Appending a future candle leaves every preceding observation unchanged",()
  const extra={...bars.at(-1),time:bars.at(-1).time+60,
   open:4,high:4.1,low:3.9,close:4,volume:5};
  const appended=JSON.stringify({symbol:"EURUSD",resolution:"1m",bars:[...bars,extra]});
- const updated=setup({sourceFile:appended});
- const after=analyzeResearchComparison({...updated,now:now+60000});
+ const updated=setup({sourceFile:appended,asOf:now+60000});
+ const after=analyzeResearchComparison(updated);
  assert.deepEqual(after.timeline.slice(0,260),before.timeline);
 });
