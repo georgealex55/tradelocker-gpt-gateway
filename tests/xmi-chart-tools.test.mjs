@@ -155,3 +155,22 @@ test("Price-widget failure is contained within the chart tile, not the XMI page"
  assert.match(boundary,/getDerivedStateFromError/);
  assert.match(boundary,/Retry chart/);
 });
+
+
+test("Unified chart indicator effect only references the controlled technicalEnabled prop",()=>{
+ const chart=readFileSync(new URL("../app/xmi/XMILiveChart.jsx",import.meta.url),"utf8");
+ assert.doesNotMatch(chart,/\benabled\.(EMA|VWAP|RSI|MACD|Volume)\b/,
+  "A removed enabled variable makes the chart throw a ReferenceError");
+ for(const name of ["EMA","VWAP","RSI","MACD","Volume"])
+  assert.match(chart,new RegExp("technicalEnabled\\."+name+"\\b"));
+});
+test("XMI edge-to-edge reset is route-scoped and leaves the gateway root intact",()=>{
+ const root=readFileSync(new URL("../app/xmi/xmi-root.css",import.meta.url),"utf8");
+ const page=readFileSync(new URL("../app/xmi/page.js",import.meta.url),"utf8");
+ const component=readFileSync(new URL("../app/xmi/XMIWorkstation.jsx",import.meta.url),"utf8");
+ assert.match(root,/body:has\(\[data-xmi-root\]\)/);
+ assert.match(root,/max-width: none !important/);
+ assert.match(root,/background: #070e1a !important/);
+ assert.match(component,/data-xmi-root="true"/);
+ assert.match(page,/import "\.\/xmi-root\.css"/);
+});
