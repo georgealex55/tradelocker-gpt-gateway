@@ -2,7 +2,7 @@
 import {useState} from "react";
 import styles from "./xmi.module.css";
 import {STRATEGIES,snapshotSummary} from "../../lib/xmiStrategyPresets.mjs";
-export default function XMIStrategyEngine({strategyId,report,symbol,resolution,compact=false}){
+export default function XMIStrategyEngine({strategyId,report,symbol,resolution,compact=false,showSnapshot=true}){
  const [busy,setBusy]=useState(false),[summary,setSummary]=useState(""),[message,setMessage]=useState("");
  const name=STRATEGIES.find(s=>s.id===strategyId)?.name||"No preset selected";
  const rows=["Bullish trend","Mixed trend","Bearish trend"];
@@ -52,10 +52,10 @@ export default function XMIStrategyEngine({strategyId,report,symbol,resolution,c
   {!compact&&report?.inputs?.length?<div className={styles.strategyInputs}>
    {report.inputs.map(x=><span key={x.name}>{x.name}: {x.value===null?"N/A":x.value>0?"positive":x.value<0?"negative":"neutral"}</span>)}
   </div>:null}
-  <div className={styles.strategySnap}>
+  {showSnapshot?<div className={styles.strategySnap}>
    <button type="button" disabled={busy} onClick={snapshot}>{busy?"Capturing…":"Snapshot screen & summarize"}</button>
    {message?<small role="status">{message}</small>:null}
-  </div>
+  </div>:null}
   {summary?<pre className={styles.strategySummary}>{summary}</pre>:null}
   <small className={styles.strategyNote}>No orders, entries, targets, stops, fill simulations or predictive win rates are generated.</small>
  </section>;
