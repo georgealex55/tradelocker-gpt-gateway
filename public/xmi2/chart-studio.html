@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#07111f">
+  <title>XMI 2.0 — Private Forex Chart Studio Preview</title>
+  <link rel="stylesheet" href="/xmi2/xmi2-chart-studio.css">
+</head>
+<body>
+<div id="studio" class="studio">
+  <header class="topbar">
+    <div class="brand"><a href="/xmi" title="Back to XMI dashboard" class="back">‹ Dashboard</a>
+      <span class="logo">X</span>
+      <div><strong>XMI CHART STUDIO</strong><small>XMI 2.0 · HISTORICAL IMPORT-ONLY PREVIEW</small></div>
+    </div>
+    <div class="top-actions">
+      <span class="status" id="sourceStatus" role="status">HISTORICAL IMPORT ONLY · NO LIVE FEED</span>
+      <button id="toggleWatch" type="button">Hide watchlist</button>
+      <button id="toggleIntel" type="button">Hide intelligence</button>
+      <button id="focusButton" type="button">Focus mode</button>
+      <button id="maximizeButton" type="button">Maximize</button>
+      <button id="fullscreenButton" type="button">Fullscreen</button>
+    </div>
+  </header>
+  <button type="button" id="exitFocus" class="exit-focus" hidden>Exit Focus Mode</button>
+  <div class="workspace">
+    <aside id="watchPanel" class="rail left-rail" aria-label="Market watchlist">
+      <div class="rail-head"><h2>Watchlist <span id="watchCount"></span></h2><button type="button" id="watchCollapse">Collapse</button></div>
+      <div id="watchBody">
+        <p class="help">5 visible rows; up to 10 FX pairs. Use imported source data only.</p>
+        <div id="watchList" class="watchlist" role="list"></div>
+        <form id="addSymbolForm" class="add-form">
+          <label for="newSymbol">Add forex pair</label>
+          <div class="inline"><input id="newSymbol" placeholder="EURGBP" maxlength="9" autocomplete="off">
+            <button>Add</button></div>
+        </form>
+        <div class="broker-tools" aria-label="Source availability">
+          <strong>Historical import only</strong>
+          <p class="help" id="brokerHelp">Owner option C: no broker connection, background polling, or user authentication has been enabled. Import timestamped OHLC files for chart research.</p>
+        </div>
+        <button id="importButton" class="primary" type="button">Import historical OHLC JSON</button>
+        <input id="importFile" type="file" accept=".json,application/json" hidden>
+        <input id="drawingImport" type="file" accept=".json,application/json" hidden aria-label="Import drawing collection">
+        <p class="help">JSON imports stay in this browser tab. No candles are invented or fetched automatically. File must declare symbol, timeframe and asOf.</p>
+      </div>
+    </aside>
+    <div class="studio-main">
+      <div class="tool-dock" id="toolDock">
+        <nav id="toolBar" class="toolbar" aria-label="Chart tool groups">
+          <button type="button" data-panel="Indicators">∑<small>Indicators</small></button>
+          <button type="button" data-panel="Annotations">✎<small>Annotations</small></button>
+          <button type="button" data-panel="Patterns">◇<small>Patterns</small></button>
+          <button type="button" data-panel="Fibonacci">φ<small>Fibonacci</small></button>
+          <button type="button" data-panel="Lines">／<small>Lines</small></button>
+          <button type="button" data-panel="Measurements">↔<small>Measure</small></button>
+          <button type="button" data-panel="Chart Settings">⚙<small>Settings</small></button>
+          <button type="button" id="moveToolbar" title="Change toolbar orientation">⇄<small>Position</small></button>
+          <button type="button" id="closeToolbar" title="Hide the chart toolbar">×<small>Hide</small></button>
+        </nav>
+        <button id="restoreToolbar" type="button" hidden>Show tools</button>
+        <section id="toolPopup" class="tool-popup" hidden role="dialog" aria-label="Chart tools">
+          <div class="tool-head"><strong id="toolTitle">Indicators</strong>
+            <div><button id="dockPanel" type="button">Dock</button>
+              <button id="pinPanel" type="button">Pin</button>
+              <button id="closePanel" type="button" aria-label="Close tool panel">×</button>
+            </div>
+          </div>
+          <div id="toolContents" class="tool-scroll"></div>
+        </section>
+      </div>
+      <section class="chart-surface" aria-label="Research charts">
+        <div class="chart-controls">
+          <div><strong>CHART WORKSPACE</strong><span id="focusedName">EUR/USD · 5m</span></div>
+          <div class="inline">
+            <label for="layoutSelect">Layout</label><select id="layoutSelect"><option value="1">1 chart</option><option value="2">2 charts</option><option value="4">4 charts</option></select>
+            <label for="timeframeSelect">Timeframe</label><select id="timeframeSelect"><option>1m</option><option selected>5m</option><option>15m</option><option>30m</option><option>1H</option><option>4H</option><option>1D</option></select>
+            <label for="chartTypeSelect">Type</label><select id="chartTypeSelect"><option>Candlesticks</option><option>Hollow Candles</option><option>Heikin Ashi</option><option>OHLC Bars</option><option>Line</option><option>Area</option></select>
+          </div>
+        </div>
+        <div id="chartGrid" class="chart-grid layout-1">
+          <article class="chart-tile active" data-slot="0"><div class="chart-label"></div><div class="chart-viewport"></div><div class="tile-empty"></div></article>
+          <article class="chart-tile" data-slot="1" hidden><div class="chart-label"></div><div class="chart-viewport"></div><div class="tile-empty"></div></article>
+          <article class="chart-tile" data-slot="2" hidden><div class="chart-label"></div><div class="chart-viewport"></div><div class="tile-empty"></div></article>
+          <article class="chart-tile" data-slot="3" hidden><div class="chart-label"></div><div class="chart-viewport"></div><div class="tile-empty"></div></article>
+        </div>
+        <div id="chartNotice" class="notice" role="status">Import verified historical candle data to view prices. No broker feed is connected in this integration stage.</div>
+        <p class="attribution">Charting library by <a href="https://www.tradingview.com/" rel="noopener noreferrer" target="_blank">TradingView</a> · Lightweight Charts v5 · User imports are not source-verified by XMI.</p>
+      </section>
+    </div>
+    <aside id="intelPanel" class="rail intelligence" aria-label="Market intelligence">
+      <div class="rail-head"><h2>Intelligence</h2><button type="button" id="intelCollapse">Collapse</button></div>
+      <div id="intelBody">
+        <p class="eyebrow">FOCUSED MARKET</p><h2 id="intelSymbol">EUR/USD</h2>
+        <div class="info-row"><span>Trading status</span><strong>NO ACTIVE STRATEGY</strong></div>
+        <div class="info-row"><span>Source / provenance</span><strong id="intelSource">Not connected</strong></div>
+        <div class="info-row"><span>Latest close</span><strong id="intelLast">—</strong></div>
+        <div class="info-row"><span>Closed-candle analysis</span><strong id="intelAnalysis">Awaiting OHLC import</strong></div>
+        <h3>Structure observations</h3><div id="intelEvents" class="event-list">None — no source candles yet.</div>
+        <h3>Chart patterns</h3><div id="intelPatterns" class="event-list">None confirmed.</div>
+        <p class="help">Price-action heuristics are not economic fundamentals or trade signals. Consult the main XMI dashboard for Neon-backed news evidence.</p>
+        <a class="secondary-link" href="/xmi">Return to gateway XMI workspace</a>
+      </div>
+    </aside>
+  </div>
+  <footer class="bottom">XMI 2.0 · Gateway preview · imported historical research · Historical chart research only · No orders · No synthetic live prices</footer>
+  <p id="error" class="error" role="alert" hidden></p>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js" defer></script>
+<script src="/xmi2/xmi2-chart-core.js" defer></script>
+<script src="/xmi2/xmi2-auto-patterns.js" defer></script>
+<script src="/xmi2/xmi2-drawings.js" defer></script>
+<script src="/xmi2/xmi2-drawing-layer.js" defer></script>
+<script src="/xmi2/xmi2-chart-studio.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+name: XMI read-only chart checks
+on:
+  pull_request:
+    paths:
+      - 'app/xmi/**'
+      - 'app/api/xmi/**'
+      - 'lib/xmiWorkspace.mjs'
+      - 'lib/xmiLive*.mjs'
+      - 'lib/xmiBridgeAuth.mjs'
+      - 'tests/xmi-bridge-auth.test.mjs'
+      - 'lib/xmiStructure*.mjs'
+      - 'lib/xmiChartTools.mjs'
+      - 'lib/xmiDrawingPrimitive.mjs'
+      - 'tests/xmi-chart-tools.test.mjs'
+      - 'tests/xmi-browser-smoke.mjs'
+      - 'app/xmi/xmi-root.css'
+      - 'tests/xmi-structure.test.mjs'
+      - 'tests/xmi-live-engine.test.mjs'
+      - 'tests/xmi-chart-lifecycle.test.mjs'
+      - 'lib/xmiDeskState.mjs'
+      - 'tests/xmi-desk.test.mjs'
+      - 'lib/xmiContext.mjs'
+      - 'lib/xmiJournal.mjs'
+      - 'lib/xmiCloud*.mjs'
+      - 'package.json'
+      - 'tests/xmi-cloud.test.mjs'
+      - 'tests/xmi-context.test.mjs'
+      - 'tests/xmi-journal.test.mjs'
+      - 'tests/xmi-workspace.test.mjs'
+      - '.github/workflows/xmi-preview-checks.yml'
+permissions:
+  contents: read
+jobs:
+  chart-workspace:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout proposed branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Install pinned app dependencies for cloud-identity tests
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Syntax-check the chart settings
+        run: |
+          node --check lib/xmiWorkspace.mjs
+          node --check lib/xmiLiveMath.mjs
+          node --check lib/xmiStructure.mjs
+          node --check lib/xmiStructureOverlay.mjs
+          node --check lib/xmiChartTools.mjs
+          node --check lib/xmiDrawingPrimitive.mjs
+          node --check lib/xmiLiveProvider.mjs
+          node --check lib/xmiBridgeAuth.mjs
+          node --check app/api/xmi/bridge/route.js
+          node --check app/api/xmi/live/route.js
+          node --check lib/xmiDeskState.mjs
+          node --check lib/xmiContext.mjs
+          node --check lib/xmiJournal.mjs
+          node --check lib/xmiCloudConfig.mjs
+          node --check lib/xmiCloudIdentity.mjs
+          node --check lib/xmiCloudStore.mjs
+          node --check lib/xmiCloudBrowser.mjs
+          node --check app/api/xmi/auth/config/route.js
+          node --check app/api/xmi/auth/exchange/route.js
+          node --check app/api/xmi/journal/route.js
+          node --check app/api/xmi/context/route.js
+      - name: Test equity boundaries and widget configuration
+        run: node --test tests/xmi-*.test.mjs
+      - name: Install Chromium for client-side chart smoke tests
+        run: |
+          npm install --no-save --ignore-scripts --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Browser smoke test actual chart mount and edge-to-edge layout
+        timeout-minutes: 8
+        run: |
+          npm run dev -- --hostname 127.0.0.1 --port 3000 > /tmp/xmi-next.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          READY=0
+          for i in $(seq 1 90); do
+            if curl --silent --fail http://127.0.0.1:3000/xmi >/dev/null; then
+              READY=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$READY" -ne 1 ]; then
+            cat /tmp/xmi-next.log
+            exit 1
+          fi
+          if ! node tests/xmi-browser-smoke.mjs; then
+            cat /tmp/xmi-next.log
+            exit 1
+          fi

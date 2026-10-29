@@ -1,0 +1,16 @@
+/* Route-scoped override: the gateway app's root layout sets a 900px body,
+   40px auto margins, 20px padding and a white browser background.
+   XMI alone is a full-viewport chart workspace; other gateway routes keep
+   the original layout. */
+html:has([data-xmi-root]),
+body:has([data-xmi-root]) {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  min-height: 100vh !important;
+  background: #070e1a !important;
+  overflow-x: hidden;
+}
+body:has([data-xmi-root]) { color-scheme: dark; }
