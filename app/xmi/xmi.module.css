@@ -477,8 +477,8 @@
 .strategyEngineHead strong{font-size:12px}.strategyEngineHead small{font-size:10px;color:#8fb5cc}
 .engineReadiness{font-size:9px;font-weight:750;letter-spacing:.04em;color:#a2d7e9;
  padding:4px 6px;border-radius:5px;background:#17364c}
-.strategyMatrix{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;
- aspect-ratio:1.35/1;max-width:330px;margin:12px auto}
+.strategyMatrix{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:5px;
+ width:min(100%,330px);aspect-ratio:1/1;max-width:330px;margin:12px auto}
 .strategyCell{display:grid;place-items:center;border:1px solid #405268;border-radius:6px;
  background:#1d3545;color:#abc9dd;position:relative;min-width:0}
 .strategyCell:nth-child(-n+3){background:#1a413b;color:#7fdabc}
@@ -520,3 +520,9 @@
 @media(max-width:700px){.layoutSwitch{position:relative;gap:5px;padding:7px}
  .accountSettings{margin-left:0;flex-wrap:wrap}.strategyCards{grid-template-columns:1fr}
  .accountWall{left:0;right:auto}.strategyMatrix{max-width:270px}}
+
+.localLoginForm{display:grid;gap:10px;margin-top:13px}
+.localLoginForm label{display:grid;gap:5px;font-size:12px;color:#b9d7eb}
+.localLoginForm input{width:100%;box-sizing:border-box;min-width:0;padding:9px 10px;border:1px solid #42627c;border-radius:7px;background:#071829;color:#e4f5ff}
+.localLoginForm input:focus-visible{outline:2px solid #72c6df;outline-offset:2px}
+.localLoginForm button{width:100%;padding:10px!important;background:#164e69!important;border-color:#60bedf!important}
