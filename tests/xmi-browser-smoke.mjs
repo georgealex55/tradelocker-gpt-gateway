@@ -96,6 +96,7 @@ try{
  await page.getByText("CANDLES RECEIVING",{exact:true}).first().waitFor({timeout:30000});
  await page.getByRole("button",{name:"2 charts"}).click();
  assert.equal(await page.getByRole("button",{name:"2 charts"}).getAttribute("aria-pressed"),"true");
+ await page.waitForFunction(()=>{try{return JSON.parse(localStorage.getItem("xmi-chart-ui-v1")||"{}").layout===2;}catch{return false;}},{timeout:12000});
  const savedChartUI=await page.evaluate(()=>JSON.parse(localStorage.getItem("xmi-chart-ui-v1")||"null"));
  assert.equal(savedChartUI?.layout,2,"Two-chart layout persists in validated local storage");
  assert.deepEqual(savedChartUI?.chartKeys.slice(0,2),["FX:EURUSD","FX:GBPUSD"]);
