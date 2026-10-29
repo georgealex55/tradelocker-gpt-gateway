@@ -31,7 +31,7 @@ export default function XMIAccountSettings({workspace,strategyId,layout,onRestor
     setSession({username:name,key:created.key});
     setStatus("Local account created. Your encrypted settings backup is saved on this device.");
    }else{
-    if(!saved)throw Error("No such local account on this device. Create one first.");
+    if(!saved)throw Error("No local account at this site in this browser. Preview and production accounts are separate; choose Create account here.");
     const unlocked=await unlock(name,password,JSON.parse(saved));
     setSession({username:name,key:unlocked.key});
     onRestore?.(unlocked.preferences);
@@ -85,7 +85,7 @@ export default function XMIAccountSettings({workspace,strategyId,layout,onRestor
       <button type="submit" disabled={busy}>{busy?"Checking…":mode==="create"?"Create encrypted account":"Unlock local account"}</button>
      </form>
     </>}
-   <small>Accounts and encrypted settings exist only in this browser on this device. Passwords are not sent to a server or stored. There is no Google sign-in, cloud synchronization or password-recovery service. Losing your password or clearing browser storage makes this backup unrecoverable. Existing guest chart caches may remain visible on the device.</small>
+   <small>Sign-in is for this website and browser profile only. A login created on a preview URL will not automatically work at the production URL. Accounts and encrypted settings exist only in this browser on this device. Passwords are not sent to a server or stored. There is no Google sign-in, cloud synchronization or password-recovery service. Losing your password or clearing browser storage makes this backup unrecoverable. Existing guest chart caches may remain visible on the device.</small>
   </section>:null}
  </div>;
 }
