@@ -11,7 +11,11 @@ export default function XMIContext({ticker}){
  const [pins,setPins]=useState({});
  const [state,setState]=useState({phase:"idle",data:null,message:"Select a range, then review XMI's recent public evidence."});
  const pending=useRef(0);
- useEffect(()=>{try{const old=JSON.parse(localStorage.getItem("xmi-news-pins-v1")||"{}");if(old&&typeof old==="object"&&!Array.isArray(old))setPins(old);}catch{}},[]);
+ useEffect(()=>{
+  const reload=()=>{try{const old=JSON.parse(localStorage.getItem("xmi-news-pins-v1")||"{}");if(old&&typeof old==="object"&&!Array.isArray(old))setPins(old);}catch{}};
+  reload();window.addEventListener("xmi:preferences-restored",reload);
+  return ()=>window.removeEventListener("xmi:preferences-restored",reload);
+ },[]);
  function togglePin(url){setPins(previous=>{const group=Array.isArray(previous[ticker])?previous[ticker]:[];
   const list=group.includes(url)?group.filter(x=>x!==url):[...group,url].slice(-40);
   const next={...previous,[ticker]:list};try{localStorage.setItem("xmi-news-pins-v1",JSON.stringify(next));}catch{}return next;});}
