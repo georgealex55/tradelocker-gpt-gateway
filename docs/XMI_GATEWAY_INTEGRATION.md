@@ -171,3 +171,9 @@ The canonical XMI application is in private `georgealex55/XMI-terminal` Draft PR
 - Source output excludes broker credentials, account identifiers, order route metadata, journal state and secrets.
 - The separate server-side deployment-protection and source-entitlement review must precede enabling any private cross-project requests. A protected preview alone does not establish a user's broker data rights.
 - **No environment flags, secrets, preview protection settings, trade execution, production deployment or PR merge are changed in this commit.**
+
+## Cross-project access decision C — historical import only (October 28, 2026)
+
+The private XMI owner selected **C: no broker data and no authentication rollout yet**. The signed cross-project route `/api/xmi/bridge` is therefore **code-locked** by `lib/xmiBridgePolicy.mjs` and returns `503 IMPORT_ONLY_POLICY` before reading any environment settings or calling the TradeLocker adapter. A future reviewed owner-approved change must lift that hold; configuration secrets alone cannot.
+
+The existing, independent same-origin gateway chart preview and its read-only logic are **not** changed by this decision. Production, orders, Neon, and Draft PR merge status remain unchanged.
