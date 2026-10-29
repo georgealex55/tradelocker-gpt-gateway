@@ -190,6 +190,21 @@ try{
  // Production's read-only broker endpoint is intentionally disabled. The chart must
  // diagnose this honestly and accept actual user-supplied historical candles instead.
  const expected503Start=runtimeErrors.length;
+ // Milestone 2A: failed read-only requests retain the previously verified chart,
+ // visibly label it non-current, and do not present a valid strategy signal.
+ const outage=route=>route.fulfill({
+  status:503,contentType:"application/json",
+  body:JSON.stringify({ok:false,code:"SOURCE_UNAVAILABLE",error:"Read-only market data temporarily unavailable"})
+ });
+ await page.route("**/api/xmi/live?**",outage);
+ await page.getByRole("button",{name:"Refresh EURUSD chart"}).click();
+ await page.getByText("SOURCE UNAVAILABLE",{exact:true}).first().waitFor({timeout:15000});
+ await page.getByText("Retry attempts 1",{exact:false}).first().waitFor({timeout:15000});
+ await page.getByText("Last previously verified bar",{exact:false}).first().waitFor({timeout:15000});
+ await page.unroute("**/api/xmi/live?**",outage);
+ await page.getByRole("button",{name:"Refresh EURUSD chart"}).click();
+ await page.getByText("CANDLES RECEIVING",{exact:true}).first().waitFor({timeout:20000});
+
  await page.route("**/api/xmi/live?**",route=>route.fulfill({
   status:503,contentType:"application/json",
   body:JSON.stringify({ok:false,code:"FEED_DISABLED",error:"Feed not enabled in production"})
