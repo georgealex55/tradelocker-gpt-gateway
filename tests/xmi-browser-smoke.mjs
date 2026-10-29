@@ -53,7 +53,7 @@ try{
  await page.getByPlaceholder("Search technical or market structure…").fill("BOS");
  assert.ok(await page.getByLabel("BOS timeframe").count()===1);
  await page.locator('button[title="Chart Settings"]').click();
- await page.getByText("Chart type",{exact:true}).waitFor();
+ await page.getByLabel("Chart type").waitFor({timeout:15000});
  await page.getByLabel("Chart type").selectOption("Line");
  await page.waitForTimeout(950);
  assert.equal(await page.getByText("Chart display unavailable").count(),0,
