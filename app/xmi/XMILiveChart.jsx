@@ -225,8 +225,11 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
     lastClosedAt:same?prev.lastClosedAt:null,
     nextRefreshMs:null,sourceSymbol:symbol,sourceResolution:resolution};
   });
-  // Clear stale previous symbol history immediately.
-  for(const key of Object.keys(all))all[key].setData([]);
+  // Clear only when switching symbols or timeframes. A manual refresh retains
+  // the last verified plotted bars, prominently flagged as not current, while
+  // analytical stats are invalidated until fresh data is verified.
+  const retained=feed.sourceSymbol===symbol&&feed.sourceResolution===resolution&&!!feed.last;
+  if(!retained)for(const key of Object.keys(all))all[key].setData([]);
   refresh();
   return ()=>{running=false;document.removeEventListener("visibilitychange",onVisible);
    abort?.abort();if(timer)clearTimeout(timer);};
