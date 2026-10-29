@@ -99,6 +99,19 @@ try{
  await page.locator('button[title="Focus Mode"]').click();
  assert.equal(await page.getByText("Gateway home").isVisible(),true,"Focus mode restores navigation");
  await page.waitForTimeout(850);
+ // Local account replaces Google auth; encrypted vault works without network credentials.
+ await page.getByRole("button",{name:"Local login / Settings"}).click();
+ await page.getByRole("button",{name:"Create account"}).click();
+ await page.getByRole("textbox",{name:"Username"}).fill("smoketest");
+ await page.getByLabel("Password",{exact:true}).fill("example-browser-test-password-123");
+ await page.getByLabel("Confirm password").fill("example-browser-test-password-123");
+ await page.getByRole("button",{name:"Create encrypted account"}).click();
+ await page.getByText("Local account created.",{exact:false}).waitFor({timeout:12000});
+ await page.getByRole("button",{name:"Save settings"}).click();
+ await page.getByText("Encrypted preferences saved on this device.",{exact:false}).waitFor({timeout:12000});
+ const account=await page.evaluate(()=>localStorage.getItem("xmi-device-account-v1:smoketest"));
+ assert.ok(account&&account.includes("AES-256-GCM"),"Encrypted local backup is stored");
+ assert.ok(!account.includes("example-browser-test-password"),"Password is never saved");
  assert.deepEqual(runtimeErrors,[],"Client console and page must have no runtime errors");
  console.log("PASS XMI browser: candles mounted, tool settings switched, focus restored, body edge-to-edge");
 }finally{await browser.close();}
