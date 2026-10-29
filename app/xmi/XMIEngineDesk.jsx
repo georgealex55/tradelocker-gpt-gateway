@@ -193,6 +193,7 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
      orientation={orientation} setOrientation={setOrientation}
      docked={docked} setDocked={setDocked} pinned={pinned} setPinned={setPinned}
      tech={tech} setTech={setTech} structure={structure} setStructure={setStructure}
+     strategyId={strategyId} onStrategyChange={onStrategyChange}
      drawTool={drawTool} setDrawTool={setDrawTool} autoPatterns={autoPatterns}
      setAutoPatterns={setAutoPatterns} patternEnabled={patternEnabled} setPatternEnabled={setPatternEnabled}
      autoFib={autoFib} setAutoFib={setAutoFib}

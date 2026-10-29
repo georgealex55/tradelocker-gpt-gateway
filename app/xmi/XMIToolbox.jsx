@@ -1,11 +1,12 @@
 "use client";
 import {useEffect,useRef,useState} from "react";
 import styles from "./xmi.module.css";
+import {STRATEGIES} from "../../lib/xmiStrategyPresets.mjs";
 import {TOOL_CATALOG,PANEL_NAMES,CHART_TYPES} from "../../lib/xmiChartTools.mjs";
 import {STRUCTURE_CONCEPTS,STRUCTURE_TIMEFRAMES,setStructureOption,defaultStructureSettings} from "../../lib/xmiStructure.mjs";
 const TECH=["EMA","VWAP","RSI","MACD","Volume"];
 const DEFAULT_INDICATORS={EMA:true,VWAP:true,RSI:true,MACD:true,Volume:true};
-const ICONS={"Indicators":"∑","Annotations":"✎","Patterns":"◇","Fibonacci":"φ","Lines":"／","Measurements":"↔","Chart Settings":"⚙"};
+const ICONS={"Strategy":"▦","Indicators":"∑","Annotations":"✎","Patterns":"◇","Fibonacci":"φ","Lines":"／","Measurements":"↔","Chart Settings":"⚙"};
 const SETTINGS=[
  ["theme","Theme","select",["dark","light"]],["bull","Up color","color"],["bear","Down color","color"],
  ["grid","Grid lines","check"],["crosshair","Crosshair","check"],
@@ -20,7 +21,7 @@ const SETTINGS=[
 ];
 export default function XMIToolbox({
  activePanel,setActivePanel,orientation,setOrientation,docked,setDocked,pinned,setPinned,
- tech,setTech,structure,setStructure,drawTool,setDrawTool,
+ tech,setTech,structure,setStructure,drawTool,setDrawTool,strategyId,onStrategyChange,
  autoPatterns,setAutoPatterns,patternEnabled,setPatternEnabled,autoFib,setAutoFib,
  globalSettings,setGlobalSettings,chartOverride,setChartOverride,slot,
  onUndo,onClear,onExport,onImport,onFullscreen,onMaximize,maximized,
@@ -89,6 +90,16 @@ export default function XMIToolbox({
     </div>
    </div>
    <div className={styles.toolboxScroll}>
+    {active==="Strategy"?<section className={styles.toolboxGroup}>
+      <strong>Choose an educational strategy preset</strong>
+      <p className={styles.toolboxNote}>Switching presets applies matching indicators and a suggested timeframe to the focused chart; it cannot place trades.</p>
+      <div className={styles.toolboxRows}>
+       {STRATEGIES.map(preset=><button key={preset.id} type="button"
+        aria-pressed={strategyId===preset.id} onClick={()=>onStrategyChange?.(preset.id)}>
+        {preset.name} · {preset.timeframe}{preset.unscored?" · not validated":""}</button>)}
+      </div>
+      <p className={styles.toolboxNote}>The live Intelligence panel contains the collapsible 9-cell research engine, plus snapshot controls. Scores use the last verified closed bar only.</p>
+     </section>:null}
     {active==="Indicators"?<>
      <input className={styles.toolboxSearch} placeholder="Search indicators, patterns or market structure…"
       aria-label="Search indicators" value={search} onChange={e=>setSearch(e.target.value)} />
