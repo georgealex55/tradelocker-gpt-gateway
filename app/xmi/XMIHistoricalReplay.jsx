@@ -39,6 +39,7 @@ export default function XMIHistoricalReplay({symbol,resolution,strategyId,edit})
  },[versionsReady,summaries]);
  useEffect(()=>{setResult(null);setComparison(null);setError("");setNotice("");},
   [symbol,resolution,strategyId,edit?.rsiBull,edit?.rsiBear,edit?.requireMacd,edit?.requireVwap]);
+ useEffect(()=>{setBaselineId("");setCandidateId("");},[strategyId,resolution]);
  const relevant=versions.filter(x=>x.strategyId===strategyId);
  const comparable=relevant.filter(x=>x.edit.timeframe===resolution);
  function fail(e){setError(String(e?.message||"Research action failed").slice(0,220));setNotice("");}
