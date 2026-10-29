@@ -28,6 +28,13 @@ test("Manual historical import rejects fake symbols, timeframe and malformed can
  assert.throws(()=>parseHistoricalFile("not-json",{symbol:"EURUSD",resolution:"1m",now}));
  assert.throws(()=>parseHistoricalFile("x".repeat(900001),{symbol:"EURUSD",resolution:"1m",now}));
 });
+test("Raw imported duplicate timestamps reject rather than hide OHLC differences",()=>{
+ const input=bars(),copy={...input[55],high:input[55].high+0.00005};
+ for(const duplicate of [copy,{...copy,time:input[55].time*1000}]){
+  const data=JSON.stringify({symbol:"EURUSD",resolution:"1m",bars:[...input.slice(0,56),duplicate,...input.slice(56)]});
+  assert.throws(()=>parseHistoricalFile(data,{symbol:"EURUSD",resolution:"1m",now}),/Duplicate imported candle timestamps/);
+ }
+});
 test("Production live-broker adapter remains locked; refresh does not enable trading",async()=>{
  const {previewEnabled}=await import("../lib/xmiLiveProvider.mjs");
  assert.equal(previewEnabled({VERCEL_ENV:"production",XMI_READONLY_MARKET_DATA_ENABLED:"true"}),false);
