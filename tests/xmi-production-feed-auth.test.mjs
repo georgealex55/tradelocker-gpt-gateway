@@ -34,7 +34,8 @@ test("Sessions expire, resist tampering and cannot be replayed with another key"
  const token=issueSession(env,now);
  assert.equal(verifySession(token,env,now+1000),true);
  assert.equal(verifySession(token,env,now+8*3600000+1),false);
- assert.equal(verifySession(token.replace(/.$/,"0"),env,now+1000),false);
+ const tampered=token.slice(0,-1)+(token.endsWith("0")?"1":"0");
+ assert.equal(verifySession(tampered,env,now+1000),false);
  assert.equal(verifySession(token,{...env,XMI_FEED_SESSION_SECRET:env.XMI_FEED_SESSION_SECRET+"altered"},now+1000),false);
  assert.equal(verifySession(token,{...env,VERCEL_ENV:"preview"},now+1000),false);
  assert.ok(token.startsWith("v1."));
