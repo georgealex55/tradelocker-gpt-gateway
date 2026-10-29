@@ -112,8 +112,8 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
  useEffect(()=>{
   const all=series.current;if(!all)return;
   const visible={
-   ema20:technicalEnabled.EMA,ema50:enabled.EMA,ema200:enabled.EMA,vwap:technicalEnabled.VWAP,
-   rsi:technicalEnabled.RSI,macd:technicalEnabled.MACD,macdSignal:enabled.MACD,histogram:enabled.MACD,
+   ema20:technicalEnabled.EMA,ema50:technicalEnabled.EMA,ema200:technicalEnabled.EMA,vwap:technicalEnabled.VWAP,
+   rsi:technicalEnabled.RSI,macd:technicalEnabled.MACD,macdSignal:technicalEnabled.MACD,histogram:technicalEnabled.MACD,
    volume:technicalEnabled.Volume
   };
   for(const [key,on] of Object.entries(visible))all[key].applyOptions({visible:on});
