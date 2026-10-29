@@ -222,7 +222,7 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
          <XMILiveChart symbol={item.symbol} resolution={resolutions[index]}
          onResolution={v=>setResolution(index,v)}
          selected={index===focus} onFocus={()=>{setFocus(index);onSelected(key);}}
-         structureSettings={structure} technicalEnabled={tech}
+         structureSettings={structure} technicalEnabled={tech} strategyName={strategyInfo?.name||"No preset"}
          chartSettings={chartSettingsBySlot[index]}
          drawTool={index===focus?drawTool:null} onDrawing={d=>onChartDrawing(item.symbol,d)}
          savedDrawings={chartDrawingMap[item.symbol]}
