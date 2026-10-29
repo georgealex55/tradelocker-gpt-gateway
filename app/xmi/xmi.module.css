@@ -644,3 +644,14 @@
  .workspaceControls select{flex:1;max-width:unset;min-width:130px}
  .workspaceControls button{flex:1}
 }
+
+/* Milestone 2A: explicit source health and non-current chart overlay. */
+.feedOverlayWarning{position:absolute;top:12px;left:50%;transform:translateX(-50%);
+ z-index:7;pointer-events:none;display:grid;gap:4px;text-align:center;
+ max-width:calc(100% - 28px);width:min(530px,95%);box-sizing:border-box;padding:9px 13px;
+ background:rgba(43,31,24,.95);border:1px solid #bd8954;border-radius:8px;
+ color:#ffe9c8;box-shadow:0 5px 20px rgba(0,0,0,.28)}
+.feedOverlayWarning strong{font-size:11px;letter-spacing:.06em}
+.feedOverlayWarning span{font-size:10px;line-height:1.5;color:#ffdbb0}
+.feedDiagnostics{font-size:10px;color:#afc9da;overflow-wrap:anywhere}
+@media(max-width:650px){.feedOverlayWarning{top:5px;padding:5px 7px}.feedOverlayWarning span{font-size:9px}}
