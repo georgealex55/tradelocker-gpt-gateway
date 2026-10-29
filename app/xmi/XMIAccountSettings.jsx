@@ -11,6 +11,7 @@ export default function XMIAccountSettings({workspace,strategyId,onRestore}){
  async function load(){
   const r=await fetch("/api/xmi/preferences",{cache:"no-store"});
   const data=await r.json();
+  if(r.status===401)setSignedIn(false);
   if(!r.ok||!data.ok)throw Error(data.error||"Cloud preferences unavailable");
   if(data.preferences){onRestore(data.preferences);setStatus("Private settings restored from your account.");}
   else setStatus("Account connected; no saved settings yet.");
@@ -64,7 +65,8 @@ export default function XMIAccountSettings({workspace,strategyId,onRestore}){
    const result=await fetch("/api/xmi/preferences",{method:"PUT",credentials:"same-origin",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({workspace,strategyId,pins,patterns})});
-   const data=await result.json();if(!result.ok||!data.ok)throw Error(data.error||"Save failed");
+   const data=await result.json();if(result.status===401)setSignedIn(false);
+   if(!result.ok||!data.ok)throw Error(data.error||"Save failed");
    setStatus("Account settings saved in the isolated, owner-scoped preview database.");
   }catch(e){setStatus("Cloud save failed: "+String(e.message).slice(0,130));}finally{setBusy(false);}
  }
