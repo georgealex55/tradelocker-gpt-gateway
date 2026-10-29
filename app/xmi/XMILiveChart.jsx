@@ -136,7 +136,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
  },[technicalEnabled,libReady]);
  useEffect(()=>{
   if(!libReady||!series.current||!active)return;
-  let running=true,abort=null,timer=null,failures=0;
+  let running=true,abort=null,timer=null,failures=0,inFlight=false;
   let lastSuccessAt=null,lastClosedAt=null;
   const all=series.current;
   let fitted=false;
@@ -148,16 +148,17 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
    timer=setTimeout(refresh,delay);
   }
   function onVisible(){
-   if(document.visibilityState!=="visible"||!running)return;
+   if(document.visibilityState!=="visible"||!running||inFlight)return;
    if(timer)clearTimeout(timer);
    timer=setTimeout(refresh,250);
   }
   document.addEventListener("visibilitychange",onVisible);
   // No synthetic candles or broker-order requests. Refresh a bounded OHLC snapshot.
   async function refresh(){
-   if(!running)return;
+   if(!running||inFlight)return;
    const local=offline?.symbol===symbol&&offline?.resolution===resolution?offline:null;
    if(!local&&document.visibilityState==="hidden"){schedule();return;}
+   inFlight=true;
    abort=local?null:new AbortController();
    const requestTimeout=abort?setTimeout(()=>abort.abort(
     new DOMException("Read-only candle request exceeded 15 seconds","TimeoutError")),15000):null;
@@ -214,7 +215,9 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
      lastClosedAt:lastClosedAt||prev.lastClosedAt,
      nextRefreshMs:null}));
     if(!retryable)running=false;
-   }finally{if(requestTimeout)clearTimeout(requestTimeout);if(running&&!local)schedule();}
+   }finally{if(requestTimeout)clearTimeout(requestTimeout);
+    inFlight=false;
+    if(running&&!local)schedule();}
   }
   setFeed(prev=>{
    const same=prev.sourceSymbol===symbol&&prev.sourceResolution===resolution;
