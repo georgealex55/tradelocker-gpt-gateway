@@ -21,12 +21,14 @@ export default function XMIWorkstation(){
  const [openCloud,setOpenCloud]=useState(false);
  const [showBanner,setShowBanner]=useState(true),[showTabs,setShowTabs]=useState(true);
  const [strategyId,setStrategyId]=useState("day"),[workspaceDraft,setWorkspaceDraft]=useState("");
- const [restoreWorkspace,setRestoreWorkspace]=useState(null),[engineView,setEngineView]=useState(null);
+ const [restoreWorkspace,setRestoreWorkspace]=useState(null),[remotePatterns,setRemotePatterns]=useState(null),[engineView,setEngineView]=useState(null);
  const onRestore=useCallback(prefs=>{
   if(typeof prefs.workspace==="string")setRestoreWorkspace(prefs.workspace);
   if(STRATEGIES.some(s=>s.id===prefs.strategyId))setStrategyId(prefs.strategyId);
   if(prefs.pins&&typeof prefs.pins==="object")try{localStorage.setItem("xmi-news-pins-v1",JSON.stringify(prefs.pins));}catch{}
-  if(prefs.patterns&&typeof prefs.patterns==="object")try{localStorage.setItem("xmi-pattern-types-v1",JSON.stringify(prefs.patterns));}catch{}
+  if(prefs.patterns&&typeof prefs.patterns==="object"){setRemotePatterns(prefs.patterns);
+   try{localStorage.setItem("xmi-pattern-types-v1",JSON.stringify(prefs.patterns));}catch{}}
+  window.dispatchEvent(new Event("xmi:preferences-restored"));
  },[]);
  useEffect(()=>{try{const old=JSON.parse(localStorage.getItem("xmi-layout-ui-v2")||"{}");
   if(typeof old.showBanner==="boolean")setShowBanner(old.showBanner);
@@ -72,7 +74,7 @@ export default function XMIWorkstation(){
     focusMode={focusMode} onFocusMode={()=>setFocusMode(v=>!v)}
     strategyId={strategyId} onStrategyChange={setStrategyId}
     onResearchModel={setEngineView} onWorkspaceChange={setWorkspaceDraft}
-    remoteWorkspace={restoreWorkspace}/></div>
+    remoteWorkspace={restoreWorkspace} remotePatterns={remotePatterns}/></div>
   <div hidden={tab!=="research"} className={styles.nonChartWorkspace}>
    <div className={styles.workspaceHeading}><div><p className={styles.eyebrow}>RESEARCH</p>
     <h2>{item.label} · market evidence</h2><p className={styles.muted}>Source-verified market context, not a promise of causation.</p></div></div>
