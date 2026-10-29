@@ -135,6 +135,8 @@ try{
  await page.getByText("FEED DISABLED",{exact:true}).first().waitFor({timeout:15000});
  // A device-local account must survive a browser reload without contacting any auth API.
  await page.reload({waitUntil:"domcontentloaded"});
+ // Next.js can paint SSR buttons before their client event handlers are hydrated.
+ await page.getByText("FEED DISABLED",{exact:true}).first().waitFor({timeout:30000});
  await page.getByRole("button",{name:"Local login / Settings"}).click();
  await page.getByRole("textbox",{name:"Username"}).fill("smoketest");
  await page.getByLabel("Password",{exact:true}).fill("example-browser-test-password-123");
