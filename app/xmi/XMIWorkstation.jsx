@@ -83,6 +83,7 @@ export default function XMIWorkstation(){
    <div className={styles.workspaceHeading}><div><p className={styles.eyebrow}>STRATEGY LAB · RESEARCH ONLY</p>
     <h2>Strategy presets & 9-cell engine</h2>
     <p className={styles.muted}>Choose one of three educational indicator configurations. The active live chart's timeframe and indicator overlays update automatically.</p></div></div>
+   <p><a href="/xmi2/chart-studio.html" className={styles.historyStudioLink}>Historical Chart Studio · Import Only</a></p>
    <section className={styles.strategyCards}>
     {STRATEGIES.map(preset=><button type="button" key={preset.id} aria-pressed={strategyId===preset.id}
      className={styles.strategyCard} onClick={()=>{setStrategyId(preset.id);setTab("live");}}>
