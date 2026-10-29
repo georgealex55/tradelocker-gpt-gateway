@@ -1,5 +1,5 @@
 import {NextResponse} from "next/server";
-import {COOKIE,productionFeedConfigured,verifyPassword,issueSession,verifySession,sameOrigin} from "../../../../../lib/xmiProductionFeedAuth.mjs";
+import {COOKIE,productionFeedConfigured,verifyPassword,issueSession,verifySession,sameOrigin} from "../../../../lib/xmiProductionFeedAuth.mjs";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 const security={"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff"};
