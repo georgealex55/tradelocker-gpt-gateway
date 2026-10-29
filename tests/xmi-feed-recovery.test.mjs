@@ -47,6 +47,7 @@ test("Unauthorized/disabled/origin-denied feed errors never trigger automatic re
 test("Chart invalidates old analysis on failures and displays last verified timestamps",()=>{
  const code=readFileSync(new URL("../app/xmi/XMILiveChart.jsx",import.meta.url),"utf8");
  assert.match(code,/stats:null,last:prev.last,quality:"UNAVAILABLE"/);
+ assert.match(code,/if\(!retained\)for\(const key of Object\.keys\(all\)\)all\[key\]\.setData\(\[\]\)/);
  assert.match(code,/health\.warning\?<div className=\{styles\.feedOverlayWarning\}/);
  assert.match(code,/document\.addEventListener\("visibilitychange",onVisible\)/);
  assert.match(code,/clearTimeout\(requestTimeout\)/);
