@@ -39,7 +39,7 @@ export default function XMITickerNews({ticker="FX:EURUSD",watchlist=[],active=tr
  return <section className={styles.tickerNews} aria-label="Ticker news and research">
   <form onSubmit={choose} className={styles.tickerSearchForm} role="search">
    <label htmlFor={compact?"news-search-sidebar":"news-search-main"} className={styles.srOnly}>Search news ticker</label>
-   <input id={compact?"news-search-sidebar":"news-search-main"} type="search" value={input}
+   <input id={compact?"news-search-sidebar":"news-search-main"} aria-label="Search news ticker" type="search" value={input}
     onChange={e=>setInput(e.target.value)} placeholder="Search EURUSD, NASDAQ:AAPL…" list={compact?"ticker-news-sidebar-list":"ticker-news-main-list"} maxLength={24}/>
    <datalist id={compact?"ticker-news-sidebar-list":"ticker-news-main-list"}>
     {watchlist.map(x=><option key={x.key||x} value={x.key||x}/>)}
