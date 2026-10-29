@@ -4,6 +4,7 @@
  */
 import {chromium} from "playwright";
 import assert from "node:assert/strict";
+import {readFile} from "node:fs/promises";
 const root=process.env.XMI_SMOKE_ORIGIN||"http://127.0.0.1:3000";
 const browser=await chromium.launch({headless:true,args:["--no-sandbox"]});
 const page=await browser.newPage({viewport:{width:1500,height:900},deviceScaleFactor:1});
@@ -221,6 +222,27 @@ try{
  await versions.getByRole("combobox",{name:"Candidate strategy version"}).selectOption("swing-v2");
  await versions.getByRole("button",{name:"Compare saved versions"}).click();
  await versions.getByRole("region",{name:"Version comparison results"}).getByText(/identical historical candles/).waitFor({timeout:20000});
+
+ // 2F: actual downloaded JSON verifies locally; modified JSON must be rejected.
+ const downloadWait=page.waitForEvent("download");
+ await versions.getByRole("button",{name:"Export SHA-256 research report"}).click();
+ const downloaded=await downloadWait;
+ assert.match(downloaded.suggestedFilename(),/^xmi-research-/);
+ const reportBytes=await readFile(await downloaded.path());
+ const reportContent=JSON.parse(reportBytes.toString("utf8"));
+ assert.match(reportContent.body.dataset.sha256,/^[0-9a-f]{64}$/);
+ assert.match(reportContent.integrity.sha256,/^[0-9a-f]{64}$/);
+ assert.equal(reportBytes.toString("utf8").includes('"bars":'),false,
+  "Downloaded validation report must never include historical OHLC history");
+ const verifyControl=versions.getByLabel("Verify research report JSON");
+ await verifyControl.setInputFiles({name:"research-report.json",
+  mimeType:"application/json",buffer:reportBytes});
+ await versions.getByText("REPORT VERIFIED · SHA-256",{exact:false}).waitFor({timeout:15000});
+ reportContent.body.dataset.sha256="0".repeat(64);
+ await verifyControl.setInputFiles({name:"tampered-research-report.json",
+  mimeType:"application/json",buffer:Buffer.from(JSON.stringify(reportContent))});
+ await versions.getByRole("alert").getByText(/checksum mismatch/).waitFor({timeout:15000});
+
  await versions.getByRole("button",{name:"Save comparison summary locally"}).click();
  await page.waitForFunction(()=>{
   try{
