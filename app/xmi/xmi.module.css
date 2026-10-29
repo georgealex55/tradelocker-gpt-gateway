@@ -712,3 +712,12 @@
 .researchVersions details p{padding:4px 0;font-size:11px;overflow-wrap:anywhere}
 @media(max-width:650px){.researchVersionControls{align-items:stretch}
  .researchVersionControls button{flex:1}}
+
+/* Milestone 2F: integrity-verification is local; no trading semantics. */
+.researchReportCheck{display:grid;gap:8px;padding:11px;border-radius:8px;
+ background:#082537;border:1px solid #41647b}
+.researchReportCheck h4{margin:0;font-size:14px}
+.researchReportCheck label{display:grid;gap:5px;font-size:12px}
+.researchReportCheck input{font-size:11px;max-width:100%}
+.researchReportCheck strong{color:#b4e5db}
+.researchReportCheck p{margin:0;overflow-wrap:anywhere}
