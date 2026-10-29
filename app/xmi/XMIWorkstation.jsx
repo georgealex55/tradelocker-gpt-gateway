@@ -28,10 +28,11 @@ export default function XMIWorkstation(){
  const [collapsed,setCollapsed]=useState({...DEFAULT_SHELL_UI.collapsed});
  const [maximized,setMaximized]=useState({...DEFAULT_SHELL_UI.maximized});
  const [strategyId,setStrategyId]=useState("day"),[workspaceDraft,setWorkspaceDraft]=useState("");
- const [restoreWorkspace,setRestoreWorkspace]=useState(null),[remotePatterns,setRemotePatterns]=useState(null),[engineView,setEngineView]=useState(null);
+ const [restoreWorkspace,setRestoreWorkspace]=useState(null),[remotePatterns,setRemotePatterns]=useState(null),[remoteChartUI,setRemoteChartUI]=useState(null),[engineView,setEngineView]=useState(null);
  const [strategyEdits,setStrategyEdits]=useState({}),[editsLoaded,setEditsLoaded]=useState(false);
  const onRestore=useCallback(prefs=>{
   if(typeof prefs.workspace==="string")setRestoreWorkspace(prefs.workspace);
+  if(prefs.chartUI&&typeof prefs.chartUI==="object")setRemoteChartUI(prefs.chartUI);
   if(prefs.strategyEdits&&typeof prefs.strategyEdits==="object")setStrategyEdits(sanitizeStrategyEdits(prefs.strategyEdits));
   if(STRATEGIES.some(s=>s.id===prefs.strategyId))setStrategyId(prefs.strategyId);
   if(prefs.layout&&typeof prefs.layout==="object"){
@@ -135,7 +136,7 @@ export default function XMIWorkstation(){
     focusMode={focusMode} onFocusMode={()=>setFocusMode(v=>!v)}
     strategyId={strategyId} onStrategyChange={setStrategyId}
     onResearchModel={setEngineView} onWorkspaceChange={setWorkspaceDraft}
-    remoteWorkspace={restoreWorkspace} remotePatterns={remotePatterns} strategyEdits={strategyEdits}/></div></div>
+    remoteWorkspace={restoreWorkspace} remotePatterns={remotePatterns} remoteChartUI={remoteChartUI} strategyEdits={strategyEdits}/></div></div>
   <div hidden={tab!=="research"} className={styles.nonChartWorkspace+" "+styles.workspaceShell+(maximized.research?" "+styles.workspaceMaximized:"")}>
    {workspaceControls("research")}
    <div hidden={collapsed.research}>
