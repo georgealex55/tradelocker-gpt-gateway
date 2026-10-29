@@ -13,12 +13,16 @@ const NO_STRUCTURE=defaultStructureSettings();
 export default function XMILiveChart({symbol,resolution,onResolution,selected,onFocus,compact=false,active=true,
  structureSettings=NO_STRUCTURE,onStructure,technicalEnabled=DEFAULT_TECH,
  chartSettings=DEFAULT_CHART_SETTINGS,drawTool=null,savedDrawings=[],onDrawing,
- autoPatterns=true,autoFib=false,onPatterns}){
+ autoPatterns=true,autoFib=false,onPatterns,patternEnabled={},onAnalysis}){
  const el=useRef(null),chart=useRef(null),series=useRef(null),drawings=useRef(null);
  const interaction=useRef({points:[],stroke:[],count:0});
  const [pendingCount,setPendingCount]=useState(0);
  const [drawingError,setDrawingError]=useState("");
  const onPatternsRef=useRef(onPatterns);onPatternsRef.current=onPatterns;
+ const onAnalysisRef=useRef(onAnalysis);onAnalysisRef.current=onAnalysis;
+ const [clock,setClock]=useState(()=>Date.now());
+ useEffect(()=>{if(!chartSettings.candleTimer)return;const id=setInterval(()=>setClock(Date.now()),1000);return ()=>clearInterval(id);},[chartSettings.candleTimer]);
+ useEffect(()=>{if(selected)onAnalysisRef.current?.({stats:feed.stats,quality:feed.quality||"UNAVAILABLE",asOf:feed.asOf});},[feed.stats,feed.quality,feed.asOf,selected]);
  const onDrawingRef=useRef(onDrawing);onDrawingRef.current=onDrawing;
  const onStructureRef=useRef(onStructure);onStructureRef.current=onStructure;
  const [auxData,setAuxData]=useState({});
@@ -237,7 +241,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   };
   const project=d=>({...d,points:d.points.map(p=>({...p,time:nearest(p.time)}))});
   const manual=savedDrawings.map(project);
-  const detected=autoPatterns?detectClassicPatterns(bars):[];
+  const detected=autoPatterns?detectClassicPatterns(bars).filter(x=>patternEnabled[x.concept]!==false):[];
   const patterns=detected.slice(0,16).map(p=>project({
    id:p.id,tool:p.concept,symbol,auto:true,points:p.points
   }));
@@ -246,7 +250,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   const fibDrawings=fib?[project({...fib,id:"fib:auto",symbol,auto:true})]:[];
   primitive.setDrawings([...manual,...patterns,...fibDrawings]);
   if(selected)onPatternsRef.current?.(detected.slice(0,8));
- },[feed.stats,libReady,savedDrawings,autoPatterns,autoFib,drawTool,symbol,selected]);
+ },[feed.stats,libReady,savedDrawings,autoPatterns,autoFib,drawTool,symbol,selected,patternEnabled]);
  function pointerPoint(e){
   const root=el.current,seriesApi=series.current?.candle,chartApi=chart.current;
   if(!root||!seriesApi||!chartApi)return null;
@@ -297,6 +301,8 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);
  }
  const stats=feed.stats;const ready=feed.phase==="ready";
+ const untilClose=Math.ceil((FX_RESOLUTIONS[resolution]*1000-clock%(FX_RESOLUTIONS[resolution]*1000))/1000);
+ const countdown=String(Math.floor(untilClose/60)).padStart(2,"0")+":"+String(untilClose%60).padStart(2,"0");
  return <article className={styles.engineCard+(selected?" "+styles.chartActive:"")} aria-label={symbol+" live forex chart"}>
   <div className={styles.engineTop}>
    <div><strong className={styles.engineSymbol}>{symbol.slice(0,3)}/{symbol.slice(3)}</strong>
@@ -311,7 +317,8 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   </div>
   <div className={styles.engineDrawingCaption}>
    <span>{chartSettings.chartType}{chartSettings.chartType==="Heikin Ashi"?" · transformed prices (not broker executions)":""}</span>
-   <span>Indicators, Patterns & Drawing Tools: unified toolbar</span>
+   <span>Indicators & patterns · unified toolbar</span>
+   {chartSettings.candleTimer?<span role="timer">Candle boundary in {countdown} · local-clock estimate</span>:null}
   </div>
   <div className={styles.engineDrawHost}>
    <div className={styles.engineCanvas} ref={el} style={{height:compact?460:620}}
