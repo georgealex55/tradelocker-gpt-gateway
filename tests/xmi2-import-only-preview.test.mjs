@@ -15,7 +15,7 @@ test("XMI preview historical studio retains import-only browser gate",()=>{
  }
 });
 test("Existing gateway XMI entry links to isolated offline studio",()=>{
- const page=read("app/xmi/XMIWorkstation.jsx");
+ const page=read("app/xmi/XMIEngineDesk.jsx");
  assert.match(page,/href="\/xmi2\/chart-studio.html"/);
  assert.match(page,/Import Only/);
  const policy=read("lib/xmiBridgePolicy.mjs");
