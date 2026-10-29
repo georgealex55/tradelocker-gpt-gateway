@@ -100,6 +100,7 @@ try{
  await page.getByRole("button",{name:"Snapshot",exact:true}).click();
  await page.getByRole("button",{name:"Snapshot screen & summarize"}).waitFor();
  await page.getByRole("button",{name:"News / Research",exact:true}).click();
+ console.log("SIDEBAR NEWS DIAGNOSTIC",JSON.stringify(await page.locator('aside[aria-label="Market sidebar"]').innerText()).slice(0,1800),await page.locator("#news-search-sidebar").count());
  await page.getByRole("searchbox",{name:"Search news ticker"}).first().waitFor();
  await page.getByText("Positive language",{exact:true}).first().waitFor({timeout:12000});
  await page.getByRole("button",{name:"Watchlist",exact:true}).click();
