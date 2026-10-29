@@ -161,3 +161,13 @@ The activation flag is NOT set by this PR. The flag must not be enabled without 
 - Drawings persist in browser localStorage, shared across compatible timeframes by FX symbol, with bounded and schema-validated JSON import/export. Browser local storage is device- and origin-specific; it is not private cloud account memory. Per-chart overrides are persisted/exported as well.
 - No XMI chart component imports or invokes TradeLocker order execution, positions or sizing operations. Broker read path, feature-branch gate and Vercel Authentication are unchanged.
 - Validation requires XMI unit tests, both gateway strategy CI checks, Vercel preview READY, browser menu/drawing/rendering QA, and confirmation production SHA and both draft PRs remain unchanged. Do not merge without owner authorization.
+
+## Architecture A — private XMI signed forex bridge
+
+The canonical XMI application is in private `georgealex55/XMI-terminal` Draft PR #4. Its dedicated server-only research adapter may request read-only forex candles from this gateway's new `/api/xmi/bridge` route.
+
+- The gateway route is **off by default**; preview deployment and expected feature branch, the existing read-only market-data flag, a new bridge enable switch and a strong per-project shared signing key are all required.
+- Requests use a timestamp-bound HMAC signature, strict FX pair and timeframe validation, generic failure messages and private no-store responses. The gateway broker call remains an INFO/history read, not an order route.
+- Source output excludes broker credentials, account identifiers, order route metadata, journal state and secrets.
+- The separate server-side deployment-protection and source-entitlement review must precede enabling any private cross-project requests. A protected preview alone does not establish a user's broker data rights.
+- **No environment flags, secrets, preview protection settings, trade execution, production deployment or PR merge are changed in this commit.**
