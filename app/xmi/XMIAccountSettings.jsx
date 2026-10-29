@@ -64,7 +64,7 @@ export default function XMIAccountSettings({workspace,strategyId,layout,strategy
  }
  function signOut(){
   if(!window.confirm("Sign out and clear unencrypted working chart settings from this device? Save your encrypted account settings first."))return;
-  for(const name of ["xmi-chart-workbench-v1",CHART_UI_KEY,"xmi-workspace-ui-v3","xmi-pattern-types-v1","xmi-news-pins-v1","xmi-layout-ui-v2","xmi-strategy-edits-v1"]){
+  for(const name of ["xmi-chart-workbench-v1",CHART_UI_KEY,"xmi-workspace-ui-v3","xmi-pattern-types-v1","xmi-news-pins-v1","xmi-layout-ui-v2","xmi-strategy-edits-v1","xmi-strategy-research-versions-v1","xmi-strategy-research-comparisons-v1"]){
    try{localStorage.removeItem(name);}catch{}
   }
   setSession(null);setPassword("");setConfirm("");window.location.assign("/xmi");
