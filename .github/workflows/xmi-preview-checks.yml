@@ -6,6 +6,8 @@ on:
       - 'app/api/xmi/**'
       - 'lib/xmiWorkspace.mjs'
       - 'lib/xmiLive*.mjs'
+      - 'lib/xmiBridgeAuth.mjs'
+      - 'tests/xmi-bridge-auth.test.mjs'
       - 'lib/xmiStructure*.mjs'
       - 'lib/xmiChartTools.mjs'
       - 'lib/xmiDrawingPrimitive.mjs'
@@ -47,6 +49,8 @@ jobs:
           node --check lib/xmiChartTools.mjs
           node --check lib/xmiDrawingPrimitive.mjs
           node --check lib/xmiLiveProvider.mjs
+          node --check lib/xmiBridgeAuth.mjs
+          node --check app/api/xmi/bridge/route.js
           node --check app/api/xmi/live/route.js
           node --check lib/xmiDeskState.mjs
           node --check lib/xmiContext.mjs
