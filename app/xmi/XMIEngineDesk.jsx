@@ -14,7 +14,7 @@ import {DEFAULT_CHART_SETTINGS,DEFAULT_TECH,resolveChartSettings,
  validateDrawings,serializeWorkspace,deserializeWorkspace,drawingsForSymbol,samePatternEvents} from "../../lib/xmiChartTools.mjs";
 const START=["EURUSD","GBPUSD","USDJPY","USDCHF","AUDUSD","NASDAQ:AAPL","AMEX:SPY"];
 const DEFAULT=START.map(parseInstrument),KEY="xmi-chart-workbench-v1";
-export default function XMIEngineDesk({selected,onSelected,onResearch,active=true,focusMode=false,onFocusMode,strategyId="day",onStrategyChange,onResearchModel,onWorkspaceChange,remoteWorkspace}){
+export default function XMIEngineDesk({selected,onSelected,onResearch,active=true,focusMode=false,onFocusMode,strategyId="day",onStrategyChange,onResearchModel,onWorkspaceChange,remoteWorkspace,remotePatterns}){
  const root=useRef(null),counter=useRef(0);
  const [watchlist,setWatchlist]=useState(DEFAULT),[watchInput,setWatchInput]=useState(""),[error,setError]=useState("");
  const [layout,setLayout]=useState(1),[focus,setFocus]=useState(0);
@@ -59,6 +59,8 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
  },[loaded,savedDrawings,globalSettings,tech,chartOverride]);
  useEffect(()=>{if(loaded)onWorkspaceChange?.(serializeWorkspace(savedDrawings,globalSettings,tech,chartOverride));},
   [loaded,savedDrawings,globalSettings,tech,chartOverride,onWorkspaceChange]);
+ useEffect(()=>{if(remotePatterns&&typeof remotePatterns==="object")
+  setPatternEnabled(Object.fromEntries(TOOL_CATALOG.Patterns.map(name=>[name,remotePatterns[name]!==false])));},[remotePatterns]);
  useEffect(()=>{if(!remoteWorkspace)return;try{
   const record=deserializeWorkspace(remoteWorkspace);
   setSavedDrawings(record.drawings);setGlobalSettings(record.settings);
