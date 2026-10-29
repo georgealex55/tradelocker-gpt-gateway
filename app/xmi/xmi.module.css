@@ -2,12 +2,13 @@
 .shell{
  --bg:#070e1a;--panel:#111d2d;--panel-deep:#0b1625;--line:#283b54;--text:#eef5ff;
  --muted:#9baec9;--soft:#7f96b6;--accent:#55bdec;--accent2:#93ddc7;
- position:relative;left:50%;transform:translateX(-50%);
- width:min(1600px,calc(100vw - 24px));min-height:100vh;padding:22px;
- border:1px solid #23344b;border-radius:18px;
- color:var(--text);background:linear-gradient(155deg,#101e32 0,#080f1d 290px,#070d19 100%);
+ --control-height:32px;--control-padding:6px 10px;--section-gap:10px;
+ position:relative;box-sizing:border-box;left:auto;transform:none;
+ width:100%;min-height:100dvh;padding:10px;
+ border:0;border-radius:0;
+ color:var(--text);background:#080f19;
  font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;
- box-shadow:0 28px 90px rgba(0,0,0,.24);
+ font-size:13px;line-height:1.45;
 }
 .shell *{box-sizing:border-box}
 .shell [hidden]{display:none!important}
@@ -195,7 +196,7 @@
 .uxHelper{font-size:10px;color:#8fa9c4;line-height:1.5;margin:-5px 0 13px}
 
 /* Forex-first live engine: watchlist / charts / intelligence */
-.mainNavigation{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;
+.mainNavigation{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;
  border:1px solid #2b4057;background:#0b1729;border-radius:13px;padding:6px;margin-bottom:14px}
 .mainNavigation button{border-color:transparent;background:transparent;text-align:left;display:grid;gap:4px;
  padding:12px 16px;min-width:0}
@@ -777,3 +778,118 @@
 .holdoutPair>div{padding:10px;background:#133649;border:1px solid #385d71;border-radius:8px}
 .holdoutPair h5{margin:0 0 7px;color:#d5efff;font-size:12px}
 @media(max-width:620px){.holdoutPair{grid-template-columns:1fr}.holdoutLab{padding:10px}}
+
+/* Workstation refinement: one viewport-safe shell, additive presentation preferences. */
+.shell,.shell.studioShell{width:100%;max-width:none;left:auto;transform:none;padding:10px!important;border:0;border-radius:0}
+.shell[data-density="comfortable"]{--control-height:40px;--control-padding:9px 13px;--section-gap:16px}
+.shell button,.shell input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),.shell select{
+ min-height:var(--control-height);border-radius:6px;font-size:12px;padding:var(--control-padding)}
+.shell h1,.shell h2,.shell h3,.shell h4{color:#e8f2fc}
+.shell a{color:#9bd8ff}
+.shell button,.shell input,.shell select,.shell textarea{max-width:100%}
+.shell input[type="file"]{min-width:0;max-width:100%;font-size:11px}
+.shell p,.shell small{overflow-wrap:anywhere}
+.layoutSwitch{gap:6px;padding:7px 10px;margin-bottom:8px;border-radius:7px;box-shadow:none;background:#0c1827}
+.layoutSwitch button,.layoutSwitch select{font-size:11px!important;padding:5px 9px!important}
+.terminalIdentity{display:flex;align-items:center;gap:12px;margin-right:8px;white-space:nowrap}
+.terminalIdentity>b{font-size:17px;letter-spacing:.06em}.terminalIdentity>b small{font-size:10px;color:#83b8cf}
+.terminalIdentity>span{font-size:9px;font-weight:750;letter-spacing:.06em;color:#91d2bd}
+.viewMenu{position:relative}
+.viewMenu>summary{cursor:pointer;padding:6px 10px;border:1px solid #36516b;border-radius:6px;font-size:11px;min-height:var(--control-height);display:flex;align-items:center;gap:8px;list-style:none}
+.viewMenu>summary::after{content:"⌄";color:#92b6cf}.viewMenu[open]>summary{background:#183a52;border-color:#68bbd7}
+.viewOptions{position:absolute;top:calc(100% + 8px);left:0;z-index:80;width:min(350px,calc(100vw - 28px));max-height:calc(100dvh - 100px);overflow:auto;overscroll-behavior:contain;padding:15px;display:grid;gap:12px;border:1px solid #476b83;border-radius:8px;background:#102437;box-shadow:0 12px 36px #020a16b8}
+.viewOptions>strong{font-size:13px}.viewOptions fieldset{display:flex;gap:16px;margin:0;padding:9px 0 0;border:0;border-top:1px solid #345268}
+.viewOptions legend{font-size:11px;color:#adcadc;padding:0 8px 0 0}.viewOptions label{display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer}
+.viewOptions input{accent-color:#64c8dc}.viewOptions p,.viewOptions>small{font-size:11px;line-height:1.6;color:#b1c7db;margin:0}
+.viewOptions kbd{font:10px ui-monospace,monospace;border:1px solid #49657c;border-radius:3px;padding:1px 4px;color:#ddf3ff}
+.viewActions{display:flex;flex-wrap:wrap;gap:6px}.shortcutToggle{padding-top:10px;border-top:1px solid #345268}
+.feedAccess>button{display:flex;align-items:center;gap:6px}.feedAccessPanel{max-height:calc(100dvh - 100px);overflow:auto}
+.popoverHeading{display:flex;align-items:center;justify-content:space-between;gap:8px}.popoverHeading strong{margin:0}
+.accountWall{max-height:calc(100dvh - 100px);overflow:auto}.localLoginForm{display:grid;gap:10px;margin-top:12px}.localLoginForm label{display:grid;gap:4px;font-size:12px}
+.header,.studioShell .header{gap:10px;padding:3px 6px 8px!important;margin:0 0 5px!important;min-height:0}
+.header h1,.studioShell .header h1{font-size:18px!important;line-height:1.25;margin:0;letter-spacing:-.02em}
+.brandRow{margin-top:2px;gap:9px}.brandMark{height:30px;width:30px;border-radius:7px;font-size:18px}
+.header .eyebrow{font-size:8px;letter-spacing:.1em;margin:0 0 2px}.back{font-size:10px}
+.subtitle,.studioShell .subtitle{font-size:11px;line-height:1.4;margin:4px 0 0}.header .pill{font-size:9px;padding:5px 9px}
+.mainNavigation,.studioShell .mainNavigation{grid-template-columns:repeat(5,minmax(0,1fr));margin-bottom:8px;gap:3px;padding:3px;border-radius:7px;background:#0d1b2b}
+.mainNavigation button,.studioShell .mainNavigation button{padding:7px 10px;gap:1px;border-radius:5px;min-height:42px}
+.mainNavigation button strong{font-size:12px}.mainNavigation button small{font-size:10px;color:#a4b9cd}
+.mainNavigation .mainNavActive{background:#163c55;border-color:#4397b9;box-shadow:inset 2px 0 #73cde4}
+.workspaceControls{padding:5px 8px;gap:5px;border-radius:6px;background:#0f2131;border-color:#284158}
+.workspaceControls strong{font-size:12px}.workspaceControls button{padding:5px 9px!important;font-size:11px!important}
+.secondarySelector{display:none}
+.nonChartWorkspace{min-height:calc(100dvh - 230px);border-radius:8px;padding:var(--section-gap);background:#0b1928}
+.workspaceHeading{margin-bottom:var(--section-gap);gap:10px}.workspaceHeading h2{font-size:19px}.workspaceHeading .eyebrow{font-size:9px;margin-bottom:3px}
+.infoCard,.strategyLabOverview,.strategyLabEditor{padding:var(--section-gap);border-radius:8px}
+.adminGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--section-gap)}
+.adminGrid h3{font-size:14px;margin:0 0 8px}.adminGrid p{font-size:12px;color:#b5cadd;margin:0;line-height:1.7}
+.studioBody{grid-template-columns:224px minmax(0,1fr) 252px;gap:6px}
+.studioNoLeft .studioBody{grid-template-columns:minmax(0,1fr) 252px}
+.studioNoRight .studioBody{grid-template-columns:224px minmax(0,1fr)}
+.studioNoLeft.studioNoRight .studioBody{grid-template-columns:minmax(0,1fr)}
+.studioWatch,.studioIntel{padding:8px;max-height:calc(100dvh - 240px);scrollbar-width:thin;scrollbar-color:#41647d #0c1c2c}
+.studioCommand{padding:3px 5px 6px}.studioCommand button{min-height:30px}
+.studioHide{margin-top:0}.leftRailTabs{margin:8px 0 10px}.leftRailTabs button{min-height:36px}
+.toolVertical .toolButtons{width:48px}.toolButtons button{min-height:42px}.toolButtons button small{font-size:8px;overflow-wrap:normal;word-break:normal}
+.engineTop{padding:8px 10px;gap:8px;flex-wrap:wrap}.engineTop>div:first-child{flex:1;min-width:140px}
+.engineTop small{font-size:10px}.engineSymbol{font-size:14px}.engineActions{gap:5px}
+.engineActions button,.engineActions select{font-size:11px!important;padding:5px 8px!important}.engineActions select{max-width:76px}
+.engineCanvas{height:clamp(320px,calc(100dvh - 340px),900px)!important}
+.double .engineCanvas{height:clamp(300px,calc(100dvh - 350px),620px)!important}
+.quad .engineCanvas{height:clamp(240px,calc((100dvh - 360px) / 2),430px)!important}
+.workspaceMaximized .engineCanvas,.studioMaximized .engineCanvas{height:clamp(320px,calc(100dvh - 240px),1100px)!important}
+.workspaceMaximized .quad .engineCanvas,.studioMaximized .quad .engineCanvas{height:clamp(240px,calc((100dvh - 260px) / 2),620px)!important}
+.engineDrawingCaption>span:nth-child(2){display:none}.engineDrawingCaption{font-size:9px;padding:4px 8px}
+.engineFooter{padding:7px 10px;gap:6px}.engineSignal{padding:7px 10px}.engineSignal small{font-size:10px}
+.provenanceTag{display:inline-flex;justify-self:start;align-items:center;padding:2px 6px;border:1px solid #705a3b;border-radius:4px;font-size:9px;letter-spacing:.04em;font-weight:750;color:#f0d5a6;background:#332b21}
+.provenanceTag[data-current="true"]{border-color:#3f7b6a;color:#ade8d3;background:#15392f}
+.provenanceTag[data-state="historical"]{border-color:#5869a6;color:#d1d9ff;background:#252c49}
+.provenanceTag[data-state="loading"]{border-color:#52677b;color:#c3d8e9;background:#1a3041}
+.strategyCellActive{animation:none;box-shadow:0 0 0 1px #9bddeb}
+.strategyLabLayout{grid-template-columns:minmax(0,1fr) 280px;gap:var(--section-gap)}
+.strategyLabOverview{grid-column:1;grid-row:1}.strategyLabRail{grid-column:2;grid-row:1 / span 2}
+.strategyLabEditor{grid-column:1;grid-row:2}.strategyLabOverview h3{font-size:17px;margin:5px 0 8px}.strategyLabOverview p{font-size:12px;margin:7px 0}
+.strategyLabEditor p{line-height:1.6}.strategyEditFields{margin:12px 0;gap:10px}.strategyLabRail .strategyMatrix{width:min(100%,190px)}
+.replayLab,.researchVersions,.researchAnalytics,.holdoutLab{padding:var(--section-gap);border-radius:8px}
+.analyticsTableWrap{max-width:100%;overscroll-behavior:contain;scrollbar-width:thin;border:1px solid #304b60;border-radius:6px}
+.analyticsTable{font-variant-numeric:tabular-nums}.analyticsTable td,.analyticsTable th{padding:8px 10px}.analyticsTable th{z-index:1}.analyticsTable tbody th{position:static;background:#0e293a;font-weight:650}.analyticsTable tbody tr:nth-child(even){background:#10283a}
+.watchFilter{display:grid;gap:4px;color:#b6cddd;font-size:10px}.watchFilter input{width:100%;font-size:11px!important}
+.localFilters{display:flex;align-items:center;flex-wrap:wrap;gap:7px;min-width:0}.localFilters input{flex:1;min-width:150px}.localFilters select{max-width:220px}.localFilters span{font-size:11px;color:#b8d2e4;font-variant-numeric:tabular-nums}
+.emptyResult{border:1px dashed #3b576d;background:#0c2131;padding:12px;border-radius:7px;font-size:12px;line-height:1.6;color:#adcadc;margin:8px 0}.emptyResult strong{color:#dbedf8}.emptyResult p{margin:6px 0 9px}
+.journalRecords{display:grid;gap:9px;margin:16px 0}.journalRecords h4{display:flex;justify-content:space-between;align-items:center;margin:0;font-size:14px}.journalRecords h4 small{font-size:10px;font-weight:400;color:#a6bfd5}.journalRecords .analyticsTableWrap{max-height:360px}
+.tickerNews{gap:10px}.tickerNewsStories{max-height:calc(100dvh - 350px);min-height:0}.tickerNewsStories li{border-radius:6px;padding:10px 12px}.tickerNewsStories small{color:#adc7db}.tickerNewsStories a{font-size:13px}
+.footer,.studioShell .footer{font-size:10px;line-height:1.6;margin-top:10px;padding:8px 4px}.footer p{margin:4px 0}
+.viewNotice{position:fixed;left:16px;bottom:16px;z-index:1100;display:flex;align-items:center;gap:10px;max-width:min(540px,calc(100vw - 32px));background:#123d39;color:#d2f7e9;border:1px solid #609688;padding:10px 12px;border-radius:8px;font-size:12px;box-shadow:0 8px 30px #0008}
+.shell[data-density="comfortable"] .mainNavigation button{padding:11px 14px;min-height:52px}
+.shell[data-density="comfortable"] .watchSelect{padding:12px!important;min-height:54px}
+.shell[data-density="comfortable"] .analyticsTable td,.shell[data-density="comfortable"] .analyticsTable th{padding:12px 14px}
+@media(max-width:1150px){
+ .studioBody,.studioNoRight .studioBody{grid-template-columns:200px minmax(0,1fr)}
+ .studioNoLeft .studioBody,.studioNoLeft.studioNoRight .studioBody{grid-template-columns:minmax(0,1fr)}
+ .studioIntel{grid-column:1/-1;max-height:420px}.adminGrid{grid-template-columns:1fr}
+ .mainNavigation button small{display:none}.mainNavigation button,.studioShell .mainNavigation button{min-height:36px}
+ .strategyLabLayout{grid-template-columns:minmax(0,1fr) 250px}
+}
+@media(max-width:750px){
+ .shell,.shell.studioShell{padding:6px!important}.shell{--control-height:40px}
+ .layoutSwitch{position:relative;padding:6px;gap:5px}.terminalIdentity{flex:1}.terminalIdentity>span{font-size:8px}
+ .accountSettings{width:auto;flex:1;justify-content:flex-end;flex-wrap:wrap;margin:0}.layoutSwitch button{font-size:10px!important}
+ .header,.studioShell .header{padding:4px 3px 7px!important}.header{display:flex;align-items:center}.header h1,.studioShell .header h1{font-size:15px!important}.header .pill,.header .subtitle,.header .back,.header .eyebrow{display:none}.brandMark{width:25px;height:25px;font-size:16px}.brandRow{margin-top:0}
+ .mainNavigation,.studioShell .mainNavigation{display:flex;overflow-x:auto;overscroll-behavior:contain;scrollbar-width:thin;gap:3px;padding:3px}
+ .mainNavigation button,.studioShell .mainNavigation button{flex:0 0 auto;min-height:40px;padding:7px 10px;white-space:nowrap}.mainNavigation button strong{font-size:11px}
+ .workspaceControls{gap:5px;padding:5px}.workspaceControls strong{width:auto;flex:1;font-size:11px}.workspaceControls button{flex:0 0 auto;min-height:40px}
+ .workspaceControls select{min-width:100px;flex:1;max-width:190px;font-size:11px!important}.workspaceMaximized .workspaceControls strong{display:none}
+ .studioBody,.studioNoLeft .studioBody,.studioNoRight .studioBody,.studioNoLeft.studioNoRight .studioBody{grid-template-columns:minmax(0,1fr)}
+ .studioCenter{grid-row:1}.studioWatch{grid-row:2;max-height:480px}.studioIntel{grid-row:3;max-height:480px}
+ .toolVertical .toolButtons{width:38px;padding:2px}.toolButtons button{min-width:30px!important;min-height:40px}.toolButtons button small{display:none}
+ .engineCanvas{height:clamp(320px,calc(100dvh - 390px),600px)!important}.engineTop{padding:7px;gap:6px}.engineActions{justify-content:flex-start;width:100%}.engineActions button{min-height:36px}
+ .engineTop>div:first-child{min-width:0}.engineDrawingCaption{gap:4px}.engineDrawingCaption [role="timer"]{font-size:8px}
+ .studioCommand{gap:6px}.studioCommandLeft strong,.studioCommandLeft span{display:none}.studioCommandLeft,.studioCommandRight{gap:4px}
+ .studioCommand button{min-height:36px;padding:5px 7px!important;font-size:10px!important}
+ .strategyLabLayout{grid-template-columns:1fr}.strategyLabOverview,.strategyLabEditor,.strategyLabRail{grid-column:1;grid-row:auto}.strategyLabRail{grid-row:2;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start;gap:8px}.strategyLabRail .strategyEngine{margin:0}.strategyLabRail .strategyMatrix{max-width:160px}.strategyScroll{max-height:340px}
+ .nonChartWorkspace{padding:8px}.workspaceHeading h2{font-size:17px}.workspaceHeading .muted{font-size:11px}.localFilters input{min-width:100%;width:100%}.localFilters select{flex:1;min-width:0;max-width:100%}.tickerNewsStories{max-height:65dvh}
+ .accountWall,.feedAccessPanel,.viewOptions{position:fixed;inset:76px 10px auto;width:auto;max-height:calc(100dvh - 95px)}
+ .journalModes{gap:3px}.journalModes button{padding:9px 6px;min-height:52px}.journalMetrics strong{font-size:17px}.journalArea{padding:10px}.advancedForm summary span{float:none;display:block}
+}
+@media(max-width:480px){.strategyLabRail{grid-template-columns:1fr}.strategyLabRail .strategyMatrix{max-width:140px}.strategyScroll{grid-template-columns:repeat(2,minmax(0,1fr));max-height:none}.strategyScroll button{min-height:65px}.terminalIdentity{gap:7px}.terminalIdentity>b{font-size:15px}.viewMenu>summary{font-size:10px;padding:5px 7px}.tickerNewsStatus small{flex-basis:70%}}
+.journalRecords{min-width:0}.recordPagination{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:11px;color:#b6d0e3}.recordPagination>span{margin-right:auto}

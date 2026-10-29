@@ -189,9 +189,12 @@ try{
  await page.locator("#news-search-sidebar").waitFor();
  await page.getByText("Positive language",{exact:true}).first().waitFor({timeout:12000});
  await page.getByRole("button",{name:"Watchlist",exact:true}).click();
+ await page.getByText("View & shortcuts",{exact:true}).click();
  await page.getByRole("button",{name:"Hide top banner"}).click();
  assert.equal(await page.getByText("Gateway home").isVisible(),false);
+ await page.getByText("View & shortcuts",{exact:true}).click();
  await page.getByRole("button",{name:"Show top banner"}).click();
+ await page.getByText("View & shortcuts",{exact:true}).click();
  await page.getByRole("button",{name:"Hide tabs"}).click();
  assert.ok(await page.getByRole("combobox",{name:"Switch XMI workspace"}).isVisible());
  await page.getByRole("combobox",{name:"Switch XMI workspace"}).selectOption("strategy");
@@ -291,12 +294,15 @@ try{
  await versions.getByText("2/12 saved versions",{exact:false}).waitFor({timeout:15000});
  assert.ok(await versions.getByText("Saved comparison summaries (1/8)").count()>0);
 
+ await page.getByText("View & shortcuts",{exact:true}).click();
  await page.getByRole("button",{name:"Hide top banner"}).click();
  assert.equal(await page.getByText("Gateway home").isVisible(),false,"Banner visibility is independent on the strategy tab");
  await page.getByRole("combobox",{name:"Switch XMI workspace"}).selectOption("research");
  assert.ok(await page.locator("#news-search-main").count()>0,"Ticker search is available with tabs hidden");
  await page.getByRole("combobox",{name:"Switch XMI workspace"}).selectOption("live");
+ await page.getByText("View & shortcuts",{exact:true}).click();
  await page.getByRole("button",{name:"Show top banner"}).click();
+ await page.getByText("View & shortcuts",{exact:true}).click();
  await page.getByRole("button",{name:"Show tabs"}).click();
  await page.locator('button[title="Focus Mode"]').click();
  assert.equal(await page.getByText("Gateway home").isVisible(),false,"Focus mode hides navigation");

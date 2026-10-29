@@ -397,7 +397,10 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
  return <article className={styles.engineCard+(selected?" "+styles.chartActive:"")} aria-label={symbol+" live forex chart"}>
   <div className={styles.engineTop}>
    <div><strong className={styles.engineSymbol}>{symbol.slice(0,3)}/{symbol.slice(3)}</strong>
-    <small>TradeLocker · read-only {compact?"":"· forming candles shown when supplied"}</small></div>
+    <small>TradeLocker · read-only {compact?"":"· forming candles shown when supplied"}</small>
+    <span className={styles.provenanceTag} data-state={health.state} data-current={health.isLive}
+     role="status" aria-label={symbol+" data status"}
+     title="Source status for this chart. An unlocked feed session alone does not verify candle freshness.">{health.label}</span></div>
    <div className={styles.engineActions}>
     <label className={styles.srOnly} htmlFor={"engine-"+symbol+"-"+(compact?"small":"large")}>Timeframe</label>
     <select id={"engine-"+symbol+"-"+(compact?"small":"large")} value={resolution}
@@ -423,6 +426,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
     <span>{health.verifiedAt?"Last successful check: "+new Date(health.verifiedAt).toLocaleTimeString()+
      " · displayed candles are not current":
      "Live data verification unavailable. Do not interpret displayed prices as current."}</span>
+    {!feed.last?<span>Use Import OHLC JSON for historical research, or check read-only feed access above.</span>:null}
    </div>:null}
    <div className={styles.engineCanvas} ref={el} style={{height:compact?460:620}}
     aria-label={chartSettings.chartType+" market chart"}/>

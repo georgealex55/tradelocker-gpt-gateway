@@ -3,6 +3,7 @@ import {useEffect,useState} from "react";
 import styles from "./xmi.module.css";
 import XMICloudSync from "./XMICloudSync";
 import {importTrades,normalizeTrade,fingerprint,coachSummary} from "../../lib/xmiJournal.mjs";
+import {filterJournalRows} from "../../lib/xmiWorkspaceUX.mjs";
 
 function localISO(value){
  if(!value)return "";
@@ -17,6 +18,10 @@ export default function XMICoachPanel({ticker,openCloud=false}){
  const [formError,setFormError]=useState("");
  const [notes,setNotes]=useState("");
  const [setup,setSetup]=useState("");
+ const [query,setQuery]=useState(""),[side,setSide]=useState("");
+ const [page,setPage]=useState(0);
+ const visibleRows=filterJournalRows(rows,query,side);
+ const pages=Math.max(1,Math.ceil(visibleRows.length/25)),currentPage=Math.min(page,pages-1);
  const stats=coachSummary(rows);
  useEffect(()=>{if(openCloud)setMode("cloud");},[openCloud]);
  useEffect(()=>{
@@ -166,6 +171,37 @@ export default function XMICoachPanel({ticker,openCloud=false}){
       }
     }}>Clear local records</button>
    </div>
+   <section className={styles.journalRecords} aria-label="Journal records">
+    <h4>Recorded trades <small>{rows.length} in this tab</small></h4>
+    {rows.length?<>
+     <div className={styles.localFilters} role="group" aria-label="Filter journal records">
+      <input type="search" aria-label="Search journal records" placeholder="Symbol, setup or notes…" maxLength={120} value={query} onChange={e=>{setQuery(e.target.value);setPage(0);}}/>
+      <select aria-label="Filter journal direction" value={side} onChange={e=>{setSide(e.target.value);setPage(0);}}>
+       <option value="">All directions</option><option>LONG</option><option>SHORT</option>
+      </select>
+      <span role="status">{visibleRows.length} / {rows.length} records</span>
+      {query||side?<button type="button" onClick={()=>{setQuery("");setSide("");setPage(0);}}>Clear journal filters</button>:null}
+     </div>
+     <div className={styles.analyticsTableWrap} role="region" aria-label="Recorded trades table" tabIndex={0}>
+      <table className={styles.analyticsTable}><caption className={styles.srOnly}>Private journal records, newest entry first. P/L uses the existing recorded calculation.</caption>
+       <thead><tr>{["Symbol","Direction","Entry time","Entry","Exit","Shares","Recorded P/L","Setup"].map(label=><th scope="col" key={label}>{label}</th>)}</tr></thead>
+       <tbody>{visibleRows.slice(currentPage*25,(currentPage+1)*25).map(row=><tr key={fingerprint(row)}>
+        <th scope="row">{row.symbol}</th><td>{row.side}</td><td><time dateTime={row.entry_time}>{new Date(row.entry_time).toLocaleString()}</time></td>
+        <td>{row.entry_price}</td><td>{row.exit_price??"Open"}</td><td>{row.quantity}</td><td>{row.pnl===null?"—":row.pnl.toFixed(2)}</td><td>{row.setup||"—"}</td>
+       </tr>)}</tbody>
+      </table>
+     </div>
+     {pages>1?<div className={styles.recordPagination}>
+      <span role="status">Page {currentPage+1} of {pages} · 25 records per page</span>
+      <button type="button" disabled={currentPage===0} onClick={()=>setPage(currentPage-1)}>Previous records</button>
+      <button type="button" disabled={currentPage===pages-1} onClick={()=>setPage(currentPage+1)}>Next records</button>
+     </div>:null}
+     {!visibleRows.length?<p className={styles.emptyResult}>No records match these filters. Clear them to show every record in this tab.</p>:null}
+    </>:<div className={styles.emptyResult}><strong>Your journal is empty</strong>
+     <p>Add a manual record above or import your existing CSV or XMI JSON. Records stay in this tab until you export them.</p>
+     <button type="button" onClick={()=>setMode("import")}>Import existing records</button>
+    </div>}
+   </section>
    {stats.alerts.length?<details className={styles.advancedForm}>
     <summary>Observed behavior flags <span>{stats.alerts.length}</span></summary>
     <ul className={styles.storyList}>

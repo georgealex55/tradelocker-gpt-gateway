@@ -1,6 +1,7 @@
 "use client";
-import {useCallback,useEffect,useState} from "react";
+import {useCallback,useEffect,useRef,useState} from "react";
 import {SHELL_UI_KEY,DEFAULT_SHELL_UI,normalizeShellUI} from "../../lib/xmiWorkspaceState.mjs";
+import {workspaceShortcut} from "../../lib/xmiWorkspaceUX.mjs";
 import styles from "./xmi.module.css";
 import XMIEngineDesk from "./XMIEngineDesk";
 import XMITickerNews from "./XMITickerNews";
@@ -26,6 +27,9 @@ export default function XMIWorkstation(){
  const [openCloud,setOpenCloud]=useState(false);
  const [showBanner,setShowBanner]=useState(true),[showTabs,setShowTabs]=useState(true);
  const [shellLoaded,setShellLoaded]=useState(false);
+ const [density,setDensity]=useState(DEFAULT_SHELL_UI.density),[shortcuts,setShortcuts]=useState(false);
+ const [notice,setNotice]=useState("");
+ const viewMenu=useRef(null);
  const [collapsed,setCollapsed]=useState({...DEFAULT_SHELL_UI.collapsed});
  const [maximized,setMaximized]=useState({...DEFAULT_SHELL_UI.maximized});
  const [strategyId,setStrategyId]=useState("day"),[workspaceDraft,setWorkspaceDraft]=useState("");
@@ -44,6 +48,7 @@ export default function XMIWorkstation(){
    const ui=normalizeShellUI(prefs.workspaceUI);
    setTab(ui.tab);setCollapsed(ui.collapsed);setMaximized(ui.maximized);
    setShowBanner(ui.showBanner);setShowTabs(ui.showTabs);
+   setDensity(ui.density);setShortcuts(ui.shortcuts);
   }
   if(prefs.pins&&typeof prefs.pins==="object")try{localStorage.setItem("xmi-news-pins-v1",JSON.stringify(prefs.pins));}catch{}
   if(prefs.patterns&&typeof prefs.patterns==="object"){setRemotePatterns(prefs.patterns);
@@ -60,15 +65,42 @@ export default function XMIWorkstation(){
   const ui=normalizeShellUI(recent,legacy);
   setTab(ui.tab);setShowBanner(ui.showBanner);setShowTabs(ui.showTabs);
   setCollapsed(ui.collapsed);setMaximized(ui.maximized);
+  setDensity(ui.density);setShortcuts(ui.shortcuts);
   if(STRATEGIES.some(x=>x.id===legacy.strategyId))setStrategyId(legacy.strategyId);
   setShellLoaded(true);
  },[]);
  useEffect(()=>{
   if(!shellLoaded)return;
   try{localStorage.setItem(SHELL_UI_KEY,JSON.stringify(normalizeShellUI({
-   tab,showBanner,showTabs,collapsed,maximized
+   tab,showBanner,showTabs,collapsed,maximized,density,shortcuts
   })));}catch{}
- },[shellLoaded,tab,showBanner,showTabs,collapsed,maximized]);
+ },[shellLoaded,tab,showBanner,showTabs,collapsed,maximized,density,shortcuts]);
+ useEffect(()=>{
+  if(!notice)return;
+  const timer=setTimeout(()=>setNotice(""),6000);
+  return ()=>clearTimeout(timer);
+ },[notice]);
+ useEffect(()=>{
+  if(!shortcuts)return;
+  const navigate=event=>{
+   const next=workspaceShortcut(event);
+   if(next){event.preventDefault();setTab(next);viewMenu.current?.removeAttribute("open");}
+  };
+  window.addEventListener("keydown",navigate);
+  return ()=>window.removeEventListener("keydown",navigate);
+ },[shortcuts]);
+ useEffect(()=>{
+  const dismiss=event=>{
+   if(event.key!=="Escape"||event.defaultPrevented||event.isComposing)return;
+   // Let focused forms, native select menus and account/feed controls keep Escape.
+   if(event.target?.closest?.("input,textarea,select,[contenteditable='true']"))return;
+   if(viewMenu.current?.open){viewMenu.current.open=false;viewMenu.current.querySelector("summary")?.focus();return;}
+   if(maximized[tab]){setMaximized(old=>({...old,[tab]:false}));return;}
+   if(focusMode)setFocusMode(false);
+  };
+  window.addEventListener("keydown",dismiss);
+  return ()=>window.removeEventListener("keydown",dismiss);
+ },[tab,maximized,focusMode]);
  useEffect(()=>{
   if(!shellLoaded)return;
   try{localStorage.setItem("xmi-layout-ui-v2",JSON.stringify({showBanner,showTabs,strategyId}));}catch{}
@@ -82,30 +114,59 @@ export default function XMIWorkstation(){
  const detail=strategyExplanation(strategyId,selectedEdit);
  function editField(name,value){setStrategyEdits(old=>({...old,[strategyId]:normalizeStrategyEdit(strategyId,{...old[strategyId],[name]:value})}));}
  function toggleCollapsed(id){setCollapsed(old=>({...old,[id]:!old[id]}));}
- function toggleMaximized(id){setMaximized(old=>({...old,[id]:!old[id]}));}
+ function toggleMaximized(id){
+  if(!maximized[id])setCollapsed(old=>({...old,[id]:false}));
+  setMaximized(old=>({...old,[id]:!old[id]}));
+ }
+ function resetView(){
+  setCollapsed({...DEFAULT_SHELL_UI.collapsed});setMaximized({...DEFAULT_SHELL_UI.maximized});
+  setShowBanner(true);setShowTabs(true);setFocusMode(false);
+  setNotice("Workspace view restored. Chart settings, watchlists, research and journal records are retained.");
+ }
  function workspaceControls(id){
   const title=TABS.find(t=>t.id===id)?.title||id;
   return <div className={styles.workspaceControls} role="toolbar" aria-label={title+" workspace controls"}>
    <strong>{title}</strong>
-   <select aria-label="Workspace selector" value={tab} onChange={e=>setTab(e.target.value)}>
+   <select aria-label="Workspace selector" className={!maximized[id]&&showTabs?styles.secondarySelector:""} value={tab} onChange={e=>setTab(e.target.value)}>
     {TABS.map(t=><option key={t.id} value={t.id}>{t.title}</option>)}
    </select>
    <button type="button" onClick={()=>toggleCollapsed(id)}
+    title="Hide this workspace's contents while retaining its state"
     aria-expanded={!collapsed[id]} aria-label={(collapsed[id]?"Expand ":"Collapse ")+title+" workspace"}>
-    {collapsed[id]?"Expand workspace":"Collapse workspace"}
+    {collapsed[id]?"Expand":"Collapse"}
    </button>
    <button type="button" onClick={()=>toggleMaximized(id)}
+    title={maximized[id]?"Restore workspace size · Escape":"Use the full viewport for this workspace"}
     aria-pressed={maximized[id]} aria-label={(maximized[id]?"Restore ":"Maximize ")+title+" workspace"}>
-    {maximized[id]?"Restore layout":"Maximize workspace"}
+    {maximized[id]?"Restore":"Maximize"}
    </button>
   </div>;
  }
- const uiBackup=normalizeShellUI({tab,showBanner,showTabs,collapsed,maximized});
- return <main data-xmi-root="true" className={styles.shell+" "+(tab==="live"?styles.studioShell:"")+
+ const uiBackup=normalizeShellUI({tab,showBanner,showTabs,collapsed,maximized,density,shortcuts});
+ return <main data-xmi-root="true" data-density={density} className={styles.shell+" "+(tab==="live"?styles.studioShell:"")+
    (tab==="live"&&focusMode?" "+styles.studioFocus:"")}>
   <div className={styles.layoutSwitch} role="toolbar" aria-label="XMI layout and account controls">
-   <button type="button" aria-pressed={showBanner} onClick={()=>setShowBanner(v=>!v)}>{showBanner?"Hide top banner":"Show top banner"}</button>
-   <button type="button" aria-pressed={showTabs} onClick={()=>setShowTabs(v=>!v)}>{showTabs?"Hide tabs":"Show tabs"}</button>
+   <span className={styles.terminalIdentity}><b>XMI <small>2.0</small></b><span>RESEARCH ONLY</span></span>
+   <details ref={viewMenu} className={styles.viewMenu}>
+    <summary>View & shortcuts</summary>
+    <section aria-label="Workspace view options" className={styles.viewOptions}>
+     <strong>Workspace view</strong>
+     <fieldset><legend>Display density</legend>
+      {["compact","comfortable"].map(value=><label key={value}><input type="radio" name="xmi-density"
+       value={value} checked={density===value} onChange={()=>setDensity(value)}/>{value==="compact"?"Compact":"Comfortable"}</label>)}
+     </fieldset>
+     <div className={styles.viewActions}>
+      <button type="button" aria-pressed={showBanner} onClick={()=>{setShowBanner(v=>!v);viewMenu.current.open=false;}}>{showBanner?"Hide top banner":"Show top banner"}</button>
+      <button type="button" aria-pressed={showTabs} onClick={()=>{setShowTabs(v=>!v);viewMenu.current.open=false;}}>{showTabs?"Hide tabs":"Show tabs"}</button>
+     </div>
+     <label className={styles.shortcutToggle}><input type="checkbox" checked={shortcuts}
+      onChange={e=>setShortcuts(e.target.checked)}/>Enable workspace keyboard shortcuts</label>
+     <p><kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>1–5</kbd> switches workspaces in navigation order. Shortcuts pause while typing.</p>
+     <p><kbd>Esc</kbd> restores a maximized workspace or exits chart focus. The workspace selector remains available when maximized.</p>
+     <button type="button" onClick={resetView}>Reset workspace view</button>
+     <small>Restores workspace visibility and size. Keeps chart configuration, watchlists, research and private journal records.</small>
+    </section>
+   </details>
    {!showTabs?<select aria-label="Switch XMI workspace" value={tab} onChange={e=>setTab(e.target.value)}>
     {TABS.map(t=><option key={t.id} value={t.id}>{t.title}</option>)}
    </select>:null}
@@ -125,7 +186,8 @@ export default function XMIWorkstation(){
    <span className={styles.pill}>RESEARCH ONLY · NO ORDERS</span>
   </header>:null}
   {showTabs?<nav className={styles.mainNavigation} aria-label="XMI workspaces">
-   {TABS.map(t=><button key={t.id} type="button" onClick={()=>setTab(t.id)}
+   {TABS.map((t,index)=><button key={t.id} type="button" onClick={()=>setTab(t.id)}
+     title={shortcuts?t.title+" · Alt + Shift + "+(index+1):t.title+" · "+t.sub}
      aria-current={tab===t.id?"page":undefined} className={tab===t.id?styles.mainNavActive:""}>
      <strong>{t.title}</strong><small>{t.sub}</small>
    </button>)}
@@ -220,19 +282,20 @@ export default function XMIWorkstation(){
    <div className={styles.workspaceHeading}><div><p className={styles.eyebrow}>ADMINISTRATION</p>
     <h2>System & access overview</h2>
     <p className={styles.muted}>Read-only configuration guidance. Account controls remain in the top toolbar.</p></div></div>
-   <section className={styles.infoCard}><h3>Workspace storage</h3>
+   <div className={styles.adminGrid}><section className={styles.infoCard}><h3>Workspace storage</h3>
     <p>Chart preferences and workspace layouts are saved in this browser. Encrypted device-local backups require explicit Save settings in the account control. Trading Journal data remains separate.</p>
    </section>
    <section className={styles.infoCard}><h3>Strategy administration</h3>
-    <p>Research preset edits are local and descriptive; the original XMI rules remain unscored. Versioned strategies and validation management are planned for later milestones.</p>
+    <p>Research preset edits, saved versions, historical replay, comparisons and report verification are available in Strategy Lab. These remain descriptive research; the original XMI rules remain unscored.</p>
    </section>
    <section className={styles.infoCard}><h3>Market-data configuration</h3>
     <p>Read-only broker candle polling requires an explicitly enabled feed and a valid feed-session authorization. The market-data
       adapter uses only TradeLocker's historical bar INFO route. Stock/ETF live streaming and background monitoring
       require separately reviewed data-source configuration.</p>
-   </section>
+   </section></div>
    </div>
   </div>
+  {notice?<div className={styles.viewNotice} role="status"><span>{notice}</span><button type="button" aria-label="Dismiss layout notification" onClick={()=>setNotice("")}>×</button></div>:null}
   <footer className={styles.footer}>
    The main chart uses TradingView Lightweight Charts with TradingView attribution. TradeLocker forex candles
    are queried through a separately authorized read-only adapter; missing data is never replaced with synthetic prices.

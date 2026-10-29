@@ -3,13 +3,15 @@ import {useEffect,useRef,useState} from "react";
 import styles from "./xmi.module.css";
 import {parseInstrument} from "../../lib/xmiLiveMath.mjs";
 import {newsContextFlag} from "../../lib/xmiNewsContext.mjs";
+import {filterHeadlines} from "../../lib/xmiWorkspaceUX.mjs";
 const CHECK_MS=5*60*1000;
 export default function XMITickerNews({ticker="FX:EURUSD",watchlist=[],active=true,compact=false}){
  const [input,setInput]=useState(ticker),[chosen,setChosen]=useState(ticker);
  const [result,setResult]=useState({state:"idle",data:null,message:"Select a ticker to load recent headlines."});
  const [updated,setUpdated]=useState(0);
+ const [query,setQuery]=useState(""),[source,setSource]=useState(""),[flag,setFlag]=useState("");
  const abortRef=useRef(null);
- useEffect(()=>{setInput(ticker);setChosen(ticker);},[ticker]);
+ useEffect(()=>{setInput(ticker);setChosen(ticker);setQuery("");setSource("");setFlag("");},[ticker]);
  useEffect(()=>{
   if(!active||!chosen)return;
   const controller=new AbortController();abortRef.current?.abort();abortRef.current=controller;
@@ -32,11 +34,14 @@ export default function XMITickerNews({ticker="FX:EURUSD",watchlist=[],active=tr
  },[chosen,active,updated]);
  function choose(e){
   e.preventDefault();
-  try{const item=parseInstrument(input);setChosen(item.key);setInput(item.key);}
+  try{const item=parseInstrument(input);setChosen(item.key);setInput(item.key);setQuery("");setSource("");setFlag("");}
   catch{setResult({state:"error",data:null,message:"Enter a supported FX pair or qualified stock/ETF ticker."});}
  }
  const stories=[...(result.data?.stories||[])].sort((a,b)=>Date.parse(b.publishedAt)-Date.parse(a.publishedAt));
- return <section className={styles.tickerNews} aria-label="Ticker news and research">
+ const sources=[...new Set(stories.map(story=>story.source).filter(Boolean))].sort();
+ const visible=filterHeadlines(stories,query,source,flag,newsContextFlag);
+ function clearFilters(){setQuery("");setSource("");setFlag("");}
+ return <section className={styles.tickerNews} aria-label="Ticker news and research" aria-busy={result.state==="loading"}>
   <form onSubmit={choose} className={styles.tickerSearchForm} role="search">
    <label htmlFor={compact?"news-search-sidebar":"news-search-main"} className={styles.srOnly}>Search news ticker</label>
    <input id={compact?"news-search-sidebar":"news-search-main"} aria-label="Search news ticker" type="search" value={input}
@@ -48,13 +53,25 @@ export default function XMITickerNews({ticker="FX:EURUSD",watchlist=[],active=tr
   </form>
   <div className={styles.tickerNewsStatus} role="status"><strong>{chosen}</strong>
    <small>{result.message}</small>
-   <button type="button" disabled={result.state==="loading"} onClick={()=>setUpdated(n=>n+1)} aria-label="Refresh ticker news">↻</button>
+   <button type="button" disabled={result.state==="loading"} onClick={()=>setUpdated(n=>n+1)} aria-label="Refresh ticker news" title="Check for a newer source snapshot">↻</button>
   </div>
   {result.data?.coverage?<small className={styles.tickerNewsCoverage}>
    Source: latest XMI public snapshot · up to 80 source records. Updated when source data changes; not a real-time exchange feed.
   </small>:null}
-  {stories.length?<ul className={styles.tickerNewsStories}>
-   {stories.map(story=>{const flag=newsContextFlag(story);return <li key={story.url}>
+  {!compact&&stories.length?<div className={styles.localFilters} role="group" aria-label="Filter loaded headlines">
+   <input type="search" aria-label="Filter headline text" placeholder="Filter loaded headlines…" value={query} maxLength={120} onChange={e=>setQuery(e.target.value)}/>
+   <select aria-label="Filter news source" value={source} onChange={e=>setSource(e.target.value)}>
+    <option value="">All sources</option>{sources.map(name=><option key={name}>{name}</option>)}
+   </select>
+   <select aria-label="Filter headline language" value={flag} onChange={e=>setFlag(e.target.value)}>
+    <option value="">All language flags</option><option value="positive">Positive language</option>
+    <option value="negative">Negative language</option><option value="unclear">Impact unclear</option>
+   </select>
+   <span role="status">{visible.length} / {stories.length} headlines</span>
+   {query||source||flag?<button type="button" onClick={clearFilters}>Clear filters</button>:null}
+  </div>:null}
+  {visible.length?<ul className={styles.tickerNewsStories}>
+   {visible.map(story=>{const flag=newsContextFlag(story);return <li key={story.url}>
     <div className={styles.tickerNewsStoryHead}>
      <span className={styles.tickerNewsFlag+" "+styles["tickerFlag"+flag.type]} title={flag.notice}>{flag.label}</span>
      <small>{flag.scope}</small>
@@ -62,7 +79,13 @@ export default function XMITickerNews({ticker="FX:EURUSD",watchlist=[],active=tr
     <a href={story.url} target="_blank" rel="noopener noreferrer">{story.title}</a>
     <small>{story.source} · {new Date(story.publishedAt).toLocaleString()}</small>
    </li>;})}
-  </ul>:result.state==="ready"?<p className={styles.muted}>No relevant headlines in the limited available snapshot for this ticker.</p>:null}
+  </ul>:result.state==="ready"?<div className={styles.emptyResult}>
+   <strong>{stories.length?"No headlines match these filters":"No headlines in this snapshot"}</strong>
+   <p>{stories.length?"Try a shorter search or clear the local filters.":"Try another supported ticker or refresh later. Coverage is limited to the latest available source snapshot."}</p>
+   {stories.length?<button type="button" onClick={clearFilters}>Clear filters</button>:null}
+  </div>:result.state==="error"?<div className={styles.emptyResult}>
+   <strong>News snapshot unavailable</strong><p>Try refreshing or searching another supported ticker. Headlines will appear with their source and publication time when available.</p>
+  </div>:null}
   <small className={styles.tickerNewsDisclaimer}>Flags describe headline wording, not expected ticker direction, verified impact, or trade advice.</small>
  </section>;
 }

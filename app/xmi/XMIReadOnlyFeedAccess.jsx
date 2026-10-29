@@ -38,11 +38,14 @@ export default function XMIReadOnlyFeedAccess(){
   finally{setBusy(false);}
  }
  return <div className={styles.feedAccess}>
-  <button type="button" disabled={busy} onClick={()=>setOpen(x=>!x)} aria-expanded={open}>
-   {authenticated?"<i>●</i> Feed unlocked":"Unlock read-only feed"}
+  <button type="button" disabled={busy} onClick={()=>setOpen(x=>!x)} aria-expanded={open}
+   title={authenticated?"Read-only feed session authorized. Candle freshness is shown on each chart.":status}>
+   <span aria-hidden="true" className={authenticated?styles.statusGood:styles.statusDot}/>
+   {authenticated?"Feed unlocked":"Unlock read-only feed"}
   </button>
   {open?<section className={styles.feedAccessPanel} aria-label="Read-only market data access">
-   <strong>TradeLocker candles · read only</strong>
+   <div className={styles.popoverHeading}><strong>TradeLocker candles · read only</strong>
+    <button type="button" aria-label="Close feed access" onClick={()=>setOpen(false)}>×</button></div>
    <p role="status">{status}</p>
    {authenticated?
     <button type="button" disabled={busy} onClick={logout}>Lock feed</button>:

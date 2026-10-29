@@ -24,8 +24,10 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
  const root=useRef(null),counter=useRef(0),presetHydrated=useRef(false);
  const [collections,setCollections]=useState(()=>normalizeWatchlistCollections(null,null,DEFAULT.map(x=>x.key)));
  const [watchInput,setWatchInput]=useState(""),[newListName,setNewListName]=useState(""),[error,setError]=useState("");
+ const [watchQuery,setWatchQuery]=useState("");
  const activeCollection=collections.lists.find(x=>x.id===collections.activeId);
  const watchlist=activeCollection.symbols.map(parseInstrument);
+ const visibleWatchlist=watchlist.filter(item=>(item.key+" "+item.label).toLowerCase().includes(watchQuery.trim().toLowerCase()));
  const [layout,setLayout]=useState(1),[focus,setFocus]=useState(0);
  const [watchOpen,setWatchOpen]=useState(true),[watchVisible,setWatchVisible]=useState(true);
  const [leftView,setLeftView]=useState("watchlist");
@@ -159,7 +161,7 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
   const list=collections.lists.find(x=>x.id===id);
   if(!list)return;
   setCollections(old=>({...old,activeId:id}));
-  setNewListName("");setError("");choose(list.symbols[0]);
+  setNewListName("");setWatchQuery("");setError("");choose(list.symbols[0]);
  }
  function createNewWatchlist(){
   try{
@@ -278,9 +280,12 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
         <button type="button" onClick={renameCurrentWatchlist}>Rename</button>
         <button type="button" onClick={deleteCurrentWatchlist} disabled={collections.lists.length===1}>Delete</button>
        </div>
-      </div><p className={styles.sideHint}>Select a ticker to focus the chart</p>
+      </div><label className={styles.watchFilter}>Filter this watchlist
+       <input type="search" aria-label="Filter this watchlist" placeholder="Find a symbol…" maxLength={32}
+        value={watchQuery} onChange={e=>setWatchQuery(e.target.value)}/>
+      </label><p className={styles.sideHint}>{watchQuery?visibleWatchlist.length+" / "+watchlist.length+" symbols · ":""}Select a ticker to focus the chart</p>
       <div className={styles.watchRows} role="list">
-       {watchlist.map(item=><div key={item.key} role="listitem" className={styles.watchRow+
+       {visibleWatchlist.map(item=><div key={item.key} role="listitem" className={styles.watchRow+
         (item.key===current.key?" "+styles.watchActive:"")}>
         <button type="button" className={styles.watchSelect} aria-pressed={item.key===current.key} onClick={()=>choose(item.key)}>
          <strong>{item.label}</strong><small>{item.asset==="forex"?"FX · read-only":"Equity feed pending"}</small></button>
@@ -288,6 +293,8 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
          onClick={()=>remove(item.key)}>×</button>
        </div>)}
       </div>
+      {!visibleWatchlist.length?<div className={styles.emptyResult}><p>No matching symbols in {activeCollection.name}.</p>
+       <button type="button" onClick={()=>setWatchQuery("")}>Clear symbol filter</button></div>:null}
       <form onSubmit={add} className={styles.watchAdd}>
        <label htmlFor="studio-add-symbol">Add instrument</label>
        <input id="studio-add-symbol" value={watchInput} onChange={e=>setWatchInput(e.target.value)}
