@@ -94,6 +94,17 @@ try{
  assert.equal(await page.locator('[aria-label="Personal trade journal"]').count(),1);
  await page.getByRole("navigation",{name:"XMI workspaces"}).getByRole("button",{name:/Live Chart/}).click();
  await page.getByText("CANDLES RECEIVING",{exact:true}).first().waitFor({timeout:30000});
+ await page.getByRole("button",{name:"2 charts"}).click();
+ assert.equal(await page.getByRole("button",{name:"2 charts"}).getAttribute("aria-pressed"),"true");
+ const savedChartUI=await page.evaluate(()=>JSON.parse(localStorage.getItem("xmi-chart-ui-v1")||"null"));
+ assert.equal(savedChartUI?.layout,2,"Two-chart layout persists in validated local storage");
+ assert.deepEqual(savedChartUI?.chartKeys.slice(0,2),["FX:EURUSD","FX:GBPUSD"]);
+ await page.reload({waitUntil:"domcontentloaded"});
+ await page.getByRole("button",{name:"2 charts"}).waitFor({timeout:15000});
+ assert.equal(await page.getByRole("button",{name:"2 charts"}).getAttribute("aria-pressed"),"true",
+  "Saved two-chart layout is restored after reload");
+ await page.getByText("CANDLES RECEIVING",{exact:true}).first().waitFor({timeout:30000});
+
 
  await page.locator('button[title="Indicators"]').click();
  await page.getByPlaceholder("Search indicators, patterns or market structure…").waitFor();
