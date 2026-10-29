@@ -3,7 +3,7 @@ import {useEffect,useState} from "react";
 import styles from "./xmi.module.css";
 import {usernameKey,storageKey,register,unlock,reseal} from "../../lib/xmiLocalVault.mjs";
 
-export default function XMIAccountSettings({workspace,strategyId,layout,onRestore}){
+export default function XMIAccountSettings({workspace,strategyId,layout,strategyEdits={},onRestore}){
  const [open,setOpen]=useState(false),[session,setSession]=useState(null);
  const [mode,setMode]=useState("login"),[username,setUsername]=useState("");
  const [password,setPassword]=useState(""),[confirm,setConfirm]=useState("");
@@ -17,7 +17,7 @@ export default function XMIAccountSettings({workspace,strategyId,layout,onRestor
   try{patterns=JSON.parse(localStorage.getItem("xmi-pattern-types-v1")||"{}");}catch{}
   return {workspace:typeof workspace==="string"?workspace:"",
    strategyId,layout:{showBanner:layout?.showBanner!==false,showTabs:layout?.showTabs!==false},
-   pins,patterns};
+   pins,patterns,strategyEdits};
  }
  async function enter(event){
   event.preventDefault();if(busy)return;
