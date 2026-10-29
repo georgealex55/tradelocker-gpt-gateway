@@ -2,6 +2,7 @@
 import {useEffect,useMemo,useRef,useState} from "react";
 import styles from "./xmi.module.css";
 import XMILiveChart from "./XMILiveChart";
+import XMIChartErrorBoundary from "./XMIChartErrorBoundary";
 import XMIToolbox from "./XMIToolbox";
 import {parseInstrument,validateWatchlist} from "../../lib/xmiLiveMath.mjs";
 import {defaultStructureSettings,STRUCTURE_CONCEPTS} from "../../lib/xmiStructure.mjs";
@@ -177,7 +178,8 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
       {chartKeys.slice(0,layout).map((key,index)=>{
        const item=parseInstrument(key);
        return <div key={index} className={styles.liveChartItem}>
-        {item.asset==="forex"?<XMILiveChart symbol={item.symbol} resolution={resolutions[index]}
+        {item.asset==="forex"?<XMIChartErrorBoundary key={key+"|"+resolutions[index]}>
+         <XMILiveChart symbol={item.symbol} resolution={resolutions[index]}
          onResolution={v=>setResolution(index,v)}
          selected={index===focus} onFocus={()=>{setFocus(index);onSelected(key);}}
          structureSettings={structure} technicalEnabled={tech}
@@ -190,7 +192,8 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
           return samePatternEvents(old[id],result)?old:{...old,[id]:result};
          })}
          onStructure={result=>setObservations(old=>({...old,[index+"|"+key+"|"+resolutions[index]]:result}))}
-         compact={layout>1} active={active}/>:
+         compact={layout>1} active={active}/>
+         </XMIChartErrorBoundary>:
          <div className={styles.feedMissing}><h3>{item.label}</h3><p>Stock/ETF feed pending; no synthetic candles.</p>
           <button type="button" onClick={()=>{setFocus(index);onSelected(key);}}>Focus research</button></div>}
        </div>;
