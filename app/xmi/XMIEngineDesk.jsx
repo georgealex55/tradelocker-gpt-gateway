@@ -4,9 +4,11 @@ import styles from "./xmi.module.css";
 import XMILiveChart from "./XMILiveChart";
 import XMIChartErrorBoundary from "./XMIChartErrorBoundary";
 import XMIToolbox from "./XMIToolbox";
-import XMIContext from "./XMIContext";
+import XMITickerNews from "./XMITickerNews";
+import XMIScreenSnapshot from "./XMIScreenSnapshot";
 import XMIStrategyEngine from "./XMIStrategyEngine";
 import {STRATEGIES,strategyById,evaluateStrategy} from "../../lib/xmiStrategyPresets.mjs";
+import {normalizeStrategyEdit} from "../../lib/xmiStrategyEdits.mjs";
 import {TOOL_CATALOG} from "../../lib/xmiChartTools.mjs";
 import {parseInstrument,validateWatchlist} from "../../lib/xmiLiveMath.mjs";
 import {defaultStructureSettings,STRUCTURE_CONCEPTS} from "../../lib/xmiStructure.mjs";
@@ -14,11 +16,12 @@ import {DEFAULT_CHART_SETTINGS,DEFAULT_TECH,resolveChartSettings,
  validateDrawings,serializeWorkspace,deserializeWorkspace,drawingsForSymbol,samePatternEvents} from "../../lib/xmiChartTools.mjs";
 const START=["EURUSD","GBPUSD","USDJPY","USDCHF","AUDUSD","NASDAQ:AAPL","AMEX:SPY"];
 const DEFAULT=START.map(parseInstrument),KEY="xmi-chart-workbench-v1";
-export default function XMIEngineDesk({selected,onSelected,onResearch,active=true,focusMode=false,onFocusMode,strategyId="day",onStrategyChange,onResearchModel,onWorkspaceChange,remoteWorkspace,remotePatterns}){
+export default function XMIEngineDesk({selected,onSelected,onResearch,active=true,focusMode=false,onFocusMode,strategyId="day",onStrategyChange,onResearchModel,onWorkspaceChange,remoteWorkspace,remotePatterns,strategyEdits={}}){
  const root=useRef(null),counter=useRef(0);
  const [watchlist,setWatchlist]=useState(DEFAULT),[watchInput,setWatchInput]=useState(""),[error,setError]=useState("");
  const [layout,setLayout]=useState(1),[focus,setFocus]=useState(0);
  const [watchOpen,setWatchOpen]=useState(true),[watchVisible,setWatchVisible]=useState(true);
+ const [leftView,setLeftView]=useState("watchlist");
  const [intelOpen,setIntelOpen]=useState(true),[intelVisible,setIntelVisible]=useState(true);
  const [activePanel,setActivePanel]=useState(null),[orientation,setOrientation]=useState("vertical");
  const [docked,setDocked]=useState(false),[pinned,setPinned]=useState(false);
@@ -30,6 +33,7 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
  const [loaded,setLoaded]=useState(false),[autoPatterns,setAutoPatterns]=useState(true),[autoFib,setAutoFib]=useState(false);
  const [patternEnabled,setPatternEnabled]=useState(()=>Object.fromEntries(TOOL_CATALOG.Patterns.map(x=>[x,true])));
  const [strategyReports,setStrategyReports]=useState({});
+ const edit=normalizeStrategyEdit(strategyId,strategyEdits[strategyId]);
  const [observations,setObservations]=useState({}),[patterns,setPatterns]=useState({});
  const [maximized,setMaximized]=useState(false),[browserFullscreen,setBrowserFullscreen]=useState(false);
  const [chartKeys,setChartKeys]=useState(()=>[DEFAULT[0].key,DEFAULT[1].key,DEFAULT[2].key,DEFAULT[3].key]);
@@ -69,7 +73,7 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
  useEffect(()=>{
   const preset=strategyById(strategyId);
   if(!preset||preset.unscored)return;
-  setResolutions(old=>old.map((r,i)=>i===focus?preset.timeframe:r));
+  setResolutions(old=>old.map((r,i)=>i===focus?edit.timeframe:r));
   setTech(Object.fromEntries(Object.keys(DEFAULT_TECH).map(k=>[k,preset.indicators.includes(k)])));
   setGlobalSettings(old=>({...old,chartType:"Candlesticks",indicatorDefaults:true,candleTimer:true}));
   setChartOverride(old=>{
@@ -80,7 +84,7 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
    delete current.candleTimer;
    return {...old,[focus]:current};
   });
- },[strategyId]);
+ },[strategyId,edit.timeframe]);
  useEffect(()=>{if(loaded)try{window.localStorage.setItem("xmi-pattern-types-v1",JSON.stringify(patternEnabled));}catch{}},[loaded,patternEnabled]);
  useEffect(()=>{
   const change=()=>setBrowserFullscreen(document.fullscreenElement===root.current);
@@ -152,12 +156,13 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
  const current=parseInstrument(chartKeys[focus]),report=observations[focus+"|"+current.key+"|"+resolutions[focus]];
  const patternReport=patterns[focus+"|"+current.key+"|"+resolutions[focus]]||[];
  const activeReport=strategyReports[focus+"|"+current.key+"|"+resolutions[focus]];
- const strategyResult=useMemo(()=>evaluateStrategy(strategyId,activeReport?.stats,activeReport?.quality),
-  [strategyId,activeReport?.stats,activeReport?.quality]);
+ const strategyResult=useMemo(()=>evaluateStrategy(strategyId,activeReport?.stats,activeReport?.quality,edit),
+  [strategyId,activeReport?.stats,activeReport?.quality,edit.rsiBull,edit.rsiBear,edit.requireMacd,edit.requireVwap]);
  const strategyInfo=strategyById(strategyId);
- useEffect(()=>{onResearchModel?.({model:strategyResult,symbol:current.symbol,resolution:resolutions[focus]});},
-  [onResearchModel,strategyResult,current.symbol,resolutions[focus]]);
  const count=STRUCTURE_CONCEPTS.filter(x=>structure[x.id].enabled).length;
+ useEffect(()=>{onResearchModel?.({model:strategyResult,symbol:current.symbol,resolution:resolutions[focus],
+  patternCount:patternReport.length,structureCount:count});},
+  [onResearchModel,strategyResult,current.symbol,resolutions[focus],patternReport.length,count]);
  const showLeft=watchVisible&&!focusMode,showRight=intelVisible&&!focusMode;
  const deskClass=[styles.studioDesk,maximized?styles.studioMaximized:"",
   !showLeft?styles.studioNoLeft:"",!showRight?styles.studioNoRight:"",
@@ -175,28 +180,41 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
    </div>
   </header>
   <div className={styles.studioBody}>
-   {showLeft?<aside className={styles.liveWatch+" "+styles.studioWatch}>
+   {showLeft?<aside className={styles.liveWatch+" "+styles.studioWatch} aria-label="Market sidebar">
     <div className={styles.liveSideTitle}><strong>Market watchlist</strong>
-     <div className={styles.sideTitleActions}><span>{watchlist.length}/10</span>
-      <button type="button" aria-expanded={watchOpen} onClick={()=>setWatchOpen(x=>!x)}>
-       {watchOpen?"Collapse":"Expand"}</button></div></div>
-    {watchOpen?<><p className={styles.sideHint}>Five visible rows · scroll to browse</p>
-     <div className={styles.watchRows} role="list">
-      {watchlist.map(item=><div key={item.key} role="listitem" className={styles.watchRow+
-       (item.key===current.key?" "+styles.watchActive:"")}>
-       <button type="button" className={styles.watchSelect} aria-pressed={item.key===current.key} onClick={()=>choose(item.key)}>
-        <strong>{item.label}</strong><small>{item.asset==="forex"?"FX · TradeLocker":"Equity feed pending"}</small></button>
-       <button type="button" className={styles.watchRemove} aria-label={"Remove "+item.label}
-        onClick={()=>remove(item.key)}>×</button>
-      </div>)}
+     <button type="button" className={styles.studioHide} onClick={()=>setWatchVisible(false)}>Hide</button>
+    </div>
+    <div className={styles.leftRailTabs} role="group" aria-label="Left market sidebar">
+     {[["watchlist","Watchlist"],["snapshot","Snapshot"],["news","News / Research"]].map(([key,label])=>
+      <button type="button" key={key} aria-pressed={leftView===key} onClick={()=>setLeftView(key)}>{label}</button>)}
+    </div>
+    {leftView==="watchlist"?<>
+     <div className={styles.liveSideTitle}><strong>Watchlist</strong>
+      <div className={styles.sideTitleActions}><span>{watchlist.length}/10</span>
+       <button type="button" aria-expanded={watchOpen} onClick={()=>setWatchOpen(x=>!x)}>
+        {watchOpen?"Collapse":"Expand"}</button></div>
      </div>
-     <form onSubmit={add} className={styles.watchAdd}>
-      <label htmlFor="studio-add-symbol">Add instrument</label>
-      <input id="studio-add-symbol" value={watchInput} onChange={e=>setWatchInput(e.target.value)}
-       maxLength={20} placeholder="EURJPY or NASDAQ:AAPL"/>
-      <button type="submit" disabled={watchlist.length>=10}>Add symbol</button>
-     </form></>:null}
-    <button type="button" className={styles.studioHide} onClick={()=>setWatchVisible(false)}>Hide watchlist panel</button>
+     {watchOpen?<><p className={styles.sideHint}>Select a ticker to focus the chart</p>
+      <div className={styles.watchRows} role="list">
+       {watchlist.map(item=><div key={item.key} role="listitem" className={styles.watchRow+
+        (item.key===current.key?" "+styles.watchActive:"")}>
+        <button type="button" className={styles.watchSelect} aria-pressed={item.key===current.key} onClick={()=>choose(item.key)}>
+         <strong>{item.label}</strong><small>{item.asset==="forex"?"FX · read-only":"Equity feed pending"}</small></button>
+        <button type="button" className={styles.watchRemove} aria-label={"Remove "+item.label}
+         onClick={()=>remove(item.key)}>×</button>
+       </div>)}
+      </div>
+      <form onSubmit={add} className={styles.watchAdd}>
+       <label htmlFor="studio-add-symbol">Add instrument</label>
+       <input id="studio-add-symbol" value={watchInput} onChange={e=>setWatchInput(e.target.value)}
+        maxLength={20} placeholder="EURJPY or NASDAQ:AAPL"/>
+       <button type="submit" disabled={watchlist.length>=10}>Add symbol</button>
+      </form></>:null}
+    </>:leftView==="snapshot"?
+     <XMIScreenSnapshot strategyId={strategyId} report={strategyResult} symbol={current.symbol}
+      resolution={resolutions[focus]} patternCount={patternReport.length} structureCount={count}/>:
+     <><XMITickerNews ticker={current.key} watchlist={watchlist} active={active&&leftView==="news"} compact/>
+      <button type="button" className={styles.newsJump} onClick={onResearch}>Open full news feed</button></>}
    </aside>:null}
    <section className={styles.studioCenter}>
     <XMIToolbox activePanel={activePanel} setActivePanel={setActivePanel}
@@ -252,16 +270,15 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
       <button type="button" aria-expanded={intelOpen} onClick={()=>setIntelOpen(v=>!v)}>{intelOpen?"Collapse":"Expand"}</button>
      </div></div>
     {intelOpen?<><h3>{current.label}</h3>
-     <div className={styles.liveState}><span>Signal status</span><strong>{strategyResult.state}</strong></div>
-     <div className={styles.liveState}><span>Strategy</span><strong>{strategyInfo?.name}</strong></div>
-     <label className={styles.strategyPick}>Research preset
-      <select aria-label="Choose live strategy" value={strategyId} onChange={e=>onStrategyChange?.(e.target.value)}>
-       {STRATEGIES.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
-      </select></label>
      <details className={styles.intelDetails} open>
       <summary>Strategy engine · {strategyResult.state}</summary>
       <XMIStrategyEngine strategyId={strategyId} report={strategyResult} symbol={current.symbol}
-       resolution={resolutions[focus]}/>
+       resolution={resolutions[focus]} showSnapshot={false}/>
+      <label className={styles.strategyPick}>Research preset
+       <select aria-label="Choose live strategy" value={strategyId} onChange={e=>onStrategyChange?.(e.target.value)}>
+        {STRATEGIES.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
+       </select>
+      </label>
      </details>
      <details className={styles.intelDetails} open>
       <summary>Market structure · {count} enabled</summary>
@@ -279,11 +296,6 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
       {autoPatterns?patternReport.slice(0,5).map(p=><div key={p.id} className={styles.structureFinding}>
        <strong>{p.concept}</strong><p>{p.summary}</p><small>Confirmed after candle close</small>
       </div>):<p className={styles.watchFoot}>Detection disabled in Indicators.</p>}
-     </details>
-     <details className={styles.intelDetails}>
-      <summary>News & Research · ticker feed</summary>
-      <XMIContext ticker={current.key}/>
-      <button type="button" onClick={onResearch} className={styles.newsJump}>Open full research tab</button>
      </details>
      <p className={styles.watchFoot}>Automatic patterns, Fibonacci levels and manual drawings are analytical only. No execution, actual fills or order placement.</p>
     </>:null}

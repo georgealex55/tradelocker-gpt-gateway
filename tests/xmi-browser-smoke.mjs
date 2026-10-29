@@ -35,6 +35,14 @@ await page.route("**/api/xmi/feed-session",async route=>{
   body:JSON.stringify(method==="POST"?{ok:true,authenticated:true,scope:"candles-only"}:
    {ok:true,configured:true,authenticated:false,scope:"candles-only"})});
 });
+await page.route("**/api/xmi/context?**",route=>route.fulfill({
+ status:200,contentType:"application/json",
+ body:JSON.stringify({ok:true,symbol:"EURUSD",ticker:"FX:EURUSD",
+  stories:[{title:"EURUSD market rally after euro data beats estimates",scope:"pair-related",
+   source:"Research sample",url:"https://example.com/research-article",publishedAt:new Date().toISOString(),
+   observedAt:new Date().toISOString()}],
+  coverage:{oldestObserved:new Date().toISOString(),newestObserved:new Date().toISOString(),type:"latest-80-only"}})
+}));
 try{
  const response=await page.goto(root+"/xmi",{waitUntil:"domcontentloaded",timeout:45000});
  assert.equal(response.status(),200,"XMI route must load");
@@ -86,7 +94,15 @@ try{
  await study.locator("summary").click();
  assert.equal(await study.getAttribute("open"),null,"Research engine collapses");
  await study.locator("summary").click();
- assert.ok(await study.getByText("Snapshot screen & summarize").count()>0);
+ const right=page.getByRole("complementary",{name:"Strategy intelligence"});
+ assert.equal(await right.getByText("Signal status",{exact:true}).count(),0);
+ assert.equal(await right.getByText("Strategy",{exact:true}).count(),0);
+ await page.getByRole("button",{name:"Snapshot",exact:true}).click();
+ await page.getByRole("button",{name:"Snapshot screen & summarize"}).waitFor();
+ await page.getByRole("button",{name:"News / Research",exact:true}).click();
+ await page.locator("#news-search-sidebar").waitFor();
+ await page.getByText("Positive language",{exact:true}).first().waitFor({timeout:12000});
+ await page.getByRole("button",{name:"Watchlist",exact:true}).click();
  await page.getByRole("button",{name:"Hide top banner"}).click();
  assert.equal(await page.getByText("Gateway home").isVisible(),false);
  await page.getByRole("button",{name:"Show top banner"}).click();
@@ -94,10 +110,14 @@ try{
  assert.ok(await page.getByRole("combobox",{name:"Switch XMI workspace"}).isVisible());
  await page.getByRole("combobox",{name:"Switch XMI workspace"}).selectOption("strategy");
  assert.ok(await page.getByText("Strategy presets & 9-cell engine").isVisible(),"The strategy tab remains accessible while tabs are hidden");
+ await page.getByRole("button",{name:/Swing · EMA Structure/}).last().click();
+ await page.getByRole("spinbutton",{name:"RSI positive threshold"}).fill("62");
+ await page.getByRole("combobox",{name:"Edit strategy timeframe"}).selectOption("1D");
+ assert.equal(await page.getByRole("combobox",{name:"Edit strategy timeframe"}).inputValue(),"1D");
  await page.getByRole("button",{name:"Hide top banner"}).click();
  assert.equal(await page.getByText("Gateway home").isVisible(),false,"Banner visibility is independent on the strategy tab");
  await page.getByRole("combobox",{name:"Switch XMI workspace"}).selectOption("research");
- assert.ok(await page.getByRole("textbox",{name:"Search ticker news"}).count()>0,"Ticker search is available with tabs hidden");
+ assert.ok(await page.locator("#news-search-main").count()>0,"Ticker search is available with tabs hidden");
  await page.getByRole("combobox",{name:"Switch XMI workspace"}).selectOption("live");
  await page.getByRole("button",{name:"Show top banner"}).click();
  await page.getByRole("button",{name:"Show tabs"}).click();
