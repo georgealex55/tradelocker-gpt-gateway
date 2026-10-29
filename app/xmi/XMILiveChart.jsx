@@ -3,6 +3,7 @@ import {useEffect,useRef,useState} from "react";
 import {computeFive,FX_RESOLUTIONS,quoteState} from "../../lib/xmiLiveMath.mjs";
 import {parseHistoricalFile} from "../../lib/xmiHistoricalFile.mjs";
 import {nextFeedDelay,feedHealth,retryableFeedError} from "../../lib/xmiFeedRecovery.mjs";
+import {inspectCandleQuality} from "../../lib/xmiDataQuality.mjs";
 import styles from "./xmi.module.css";
 import {defaultStructureSettings,requiredStructureTimeframes,detectStructure,assembleStructure} from "../../lib/xmiStructure.mjs";
 import {StructureOverlayPrimitive,toStructureMarkers} from "../../lib/xmiStructureOverlay.mjs";
@@ -175,10 +176,21 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
       const e=new Error(data.error||"Candle source unavailable");e.code=data.code;throw e;
      }
     }
-    const stats=computeFive(data.bars,resolution,Date.parse(data.asOf),data.volumeBasis);
+    const reportedAt=Date.parse(data.asOf),observedNow=Date.now();
+    if(!Number.isFinite(reportedAt))
+     throw Error("Candle source observation time is invalid; no current data inferred");
+    const stats=computeFive(data.bars,resolution,reportedAt,data.volumeBasis);
     if(!running)return;
-    const quality=local?"HISTORICAL":quoteState(stats.lastClosed,Date.parse(data.asOf),resolution);
-    if(quality==="INVALID_TIME")throw Error("Broker candle timestamps are invalid; no current signal may be inferred");
+    const observedQuality=local?"HISTORICAL":quoteState(stats.lastClosed,observedNow,resolution);
+    if(observedQuality==="INVALID_TIME")
+     throw Error("Broker candle timestamps are invalid; no current research may be inferred");
+    const dataHealth=inspectCandleQuality({bars:stats.bars,overlays:stats.overlays,
+     resolution,asOf:reportedAt,now:observedNow,sourceQuality:observedQuality});
+    stats.dataHealth=dataHealth;
+    const reasonSet=new Set(dataHealth.reasons);
+    const outdated=reasonSet.has("SOURCE_CHECK_TOO_OLD")||
+     reasonSet.has("LAST_CLOSED_CANDLE_STALE")||observedQuality==="STALE";
+    const quality=dataHealth.researchReady?observedQuality:outdated?"STALE":"UNAVAILABLE";
     const mapped=stats.bars.map(({time,open,high,low,close})=>({time,open,high,low,close}));
     if(mapped.length){
      all.candle.setData(chartSeriesData(mapped,chartSettings.chartType));
@@ -195,9 +207,10 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
     failures=0;
     lastSuccessAt=Date.now();
     lastClosedAt=stats.lastClosed?.time?stats.lastClosed.time*1000:null;
-    setFeed({phase:local?"historical":quality==="STALE"?"stale":mapped.length?"ready":"empty",
+    setFeed({phase:local?"historical":quality==="STALE"?"stale":quality==="CURRENT"?"ready":"empty",
      message:local?"Imported historical OHLC · device only · no broker connection":
-      mapped.length?(quality==="CURRENT"?"Read-only candles · "+data.delivery:"Broker candles are not recent"):"No candles returned",
+      mapped.length?(quality==="CURRENT"?"Read-only candles · "+data.delivery:
+       "Closed-bar/source verification unavailable; indicators not current"):"No candles returned",
      stats,asOf:data.asOf,last:stats.latest,quality,failures:0,
      lastCheckedAt:Date.now(),lastSuccessAt,lastClosedAt,nextRefreshMs:null,
      sourceSymbol:symbol,sourceResolution:resolution});
@@ -441,7 +454,15 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
     {feed.nextRefreshMs?" · Next check ~"+Math.round(feed.nextRefreshMs/1000)+"s":""}
    </span>
    {stats?.bars?.length?<span className={styles.candleReadout}>
-    {stats.bars.length} verified candles · O {feed.last.open.toFixed(5)} · H {feed.last.high.toFixed(5)} · L {feed.last.low.toFixed(5)} · C {feed.last.close.toFixed(5)}
+    {stats.bars.length} source candles · O {feed.last.open.toFixed(5)} · H {feed.last.high.toFixed(5)} · L {feed.last.low.toFixed(5)} · C {feed.last.close.toFixed(5)}
+   </span>:null}
+   {stats?.dataHealth?<span className={styles.feedDiagnostics} aria-label="Closed-candle data integrity">
+    {stats.dataHealth.label} · {stats.dataHealth.closedBars} closed bars
+    {stats.dataHealth.recentGaps?" · "+stats.dataHealth.recentGaps+" recent gaps (market closures possible)":""}
+    {" · EMA200 "+(stats.dataHealth.indicatorStatus.ema200?"ready":"warming")}
+    {" · RSI "+(stats.dataHealth.indicatorStatus.rsi14?"ready":"warming")}
+    {" · MACD "+(stats.dataHealth.indicatorStatus.macd?"ready":"warming")}
+    {" · VWAP "+(stats.dataHealth.indicatorStatus.vwap?"ready":"unavailable")}
    </span>:null}
    {overlayMessage?<span>{overlayMessage}</span>:null}
   </div>
