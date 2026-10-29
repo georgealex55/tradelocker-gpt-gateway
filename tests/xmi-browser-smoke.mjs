@@ -49,8 +49,8 @@ try{
  assert.ok(v.shellWidth>=v.viewport*.94,"Chart workstation must use almost full viewport width");
  assert.notEqual(v.background,"rgb(255, 255, 255)","White page background must be removed");
  await page.locator('button[title="Indicators"]').click();
- await page.getByPlaceholder("Search technical or market structure…").waitFor();
- await page.getByPlaceholder("Search technical or market structure…").fill("BOS");
+ await page.getByPlaceholder("Search indicators, patterns or market structure…").waitFor();
+ await page.getByPlaceholder("Search indicators, patterns or market structure…").fill("BOS");
  assert.ok(await page.getByLabel("BOS timeframe").count()===1);
  await page.locator('button[title="Chart Settings"]').click();
  await page.getByLabel("Chart type").waitFor({timeout:15000});
@@ -62,6 +62,30 @@ try{
  await page.waitForTimeout(950);
  assert.equal(await page.getByText("Chart display unavailable").count(),0,
   "Returning to candles must not crash chart");
+ // XMI 2.0 dynamic layout, automatic indicator presets and research clarity.
+ assert.ok(await page.getByRole("timer").count()>0,"Candle-close countdown is visible by default");
+ await page.getByText("Candle-close countdown (local clock)").waitFor();
+ await page.locator('button[title="Strategy"]').click();
+ await page.getByRole("button",{name:/Scalp · EMA Momentum/}).click();
+ await page.getByText("CANDLES RECEIVING",{exact:true}).first().waitFor({timeout:30000});
+ assert.ok(await page.locator('select[aria-label="Choose live strategy"]').count()>0);
+ await page.locator('button[title="Indicators"]').click();
+ await page.getByPlaceholder("Search indicators, patterns or market structure…").waitFor();
+ assert.ok(await page.getByText("Automatic chart patterns · per-type toggles").count()>0);
+ const labels=page.getByText("Market structure ·");
+ assert.ok(await labels.count()>0);
+ const study=page.locator("details").filter({has:page.getByText(/Strategy engine ·/)}).first();
+ assert.ok(await study.count()>0,"Research engine must be collapsible");
+ await study.locator("summary").click();
+ assert.equal(await study.getAttribute("open"),null,"Research engine collapses");
+ await study.locator("summary").click();
+ assert.ok(await study.getByText("Snapshot screen & summarize").count()>0);
+ await page.getByRole("button",{name:"Hide top banner"}).click();
+ assert.equal(await page.getByText("Gateway home").isVisible(),false);
+ await page.getByRole("button",{name:"Show top banner"}).click();
+ await page.getByRole("button",{name:"Hide tabs"}).click();
+ assert.ok(await page.getByRole("combobox",{name:"Switch XMI workspace"}).isVisible());
+ await page.getByRole("button",{name:"Show tabs"}).click();
  await page.locator('button[title="Focus Mode"]').click();
  assert.equal(await page.getByText("Gateway home").isVisible(),false,"Focus mode hides navigation");
  await page.locator('button[title="Focus Mode"]').click();
