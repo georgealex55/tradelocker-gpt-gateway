@@ -54,7 +54,13 @@ export default function XMIAccountSettings({workspace,strategyId,layout,onRestor
   }catch(error){setStatus("Local save failed: "+String(error.message).slice(0,150));}
   finally{setBusy(false);}
  }
- function signOut(){setSession(null);setPassword("");setConfirm("");setStatus("Signed out. The encrypted local backup remains on this device.");}
+ function signOut(){
+  if(!window.confirm("Sign out and clear unencrypted working chart settings from this device? Save your encrypted account settings first."))return;
+  for(const name of ["xmi-chart-workbench-v1","xmi-pattern-types-v1","xmi-news-pins-v1","xmi-layout-ui-v2"]){
+   try{localStorage.removeItem(name);}catch{}
+  }
+  setSession(null);setPassword("");setConfirm("");window.location.assign("/xmi");
+ }
  return <div className={styles.accountSettings}>
   <button type="button" onClick={()=>setOpen(x=>!x)} aria-expanded={open}>
    {session?"Local account · "+session.username:"Local login / Settings"}
@@ -64,7 +70,6 @@ export default function XMIAccountSettings({workspace,strategyId,layout,onRestor
    <div><strong>Device-local account</strong><button type="button" aria-label="Close account settings" onClick={()=>setOpen(false)}>×</button></div>
    <p role="status">{status}</p>
    {session?<div className={styles.accountActions}>
-     <button type="button" onClick={()=>onRestore?.(null)} disabled>Restore happens when you sign in</button>
      <button type="button" onClick={signOut}>Sign out</button>
     </div>:<>
      <div className={styles.accountActions} role="group" aria-label="Account action">
