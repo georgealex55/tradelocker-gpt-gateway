@@ -63,7 +63,17 @@ export default function XMIContext({ticker}){
   return (data?.stories||[]).filter(story=>(!onlyPins||pinnedUrls.includes(story.url))&&
    (!query||(story.title+" "+story.source+" "+story.scope).toLowerCase().includes(query.toLowerCase()))).sort((a,b)=>Number(pinnedUrls.includes(b.url))-Number(pinnedUrls.includes(a.url)));
  },[data,onlyPins,query,pins,ticker]);
- const totals=RANGES.map(range=>({label:range.label,count:(data?.stories||[]).filter(story=>Date.parse(story.publishedAt)>=Date.now()-range.id*86400000).length}));
+ // Window summaries are relative to the requested end time, never the wall clock.
+ const endTime=Date.parse(end),startTime=Date.parse(start);
+ const totals=RANGES.map(range=>{
+  const lower=Math.max(startTime,endTime-range.id*86400000);
+  const matched=(data?.stories||[]).filter(story=>{
+   const published=Date.parse(story.publishedAt);
+   return Number.isFinite(published)&&published>=lower&&published<=endTime;
+  });
+  return {label:range.label,count:matched.length,
+   directlyRelevant:matched.filter(story=>["ticker-related","pair-related"].includes(story.scope)).length};
+ });
  return <section className={styles.infoCard+" "+styles.toolCard} aria-label="XMI market evidence">
    <div className={styles.toolIntro}>
     <div><h3>Market evidence</h3><p>Find articles that were published and observed by XMI before the selected end time.</p></div>
@@ -97,8 +107,8 @@ export default function XMIContext({ticker}){
    <div className={styles.researchSearch}><input aria-label="Search ticker news" placeholder="Search headlines, sources or topics…" value={query} onChange={e=>setQuery(e.target.value)}/>
     <label><input type="checkbox" checked={onlyPins} onChange={e=>setOnlyPins(e.target.checked)}/> Pinned only ({pinnedUrls.length})</label></div>
    {data?<div className={styles.researchTimeline} aria-label="Available publication counts by time window">
-    {totals.map(t=><div key={t.label}><strong>{t.label}</strong><span>{t.count} articles</span></div>)}
-    <small>Approximate snapshot coverage only; not a price forecast. Feed may contain fewer than 80 records.</small>
+    {totals.map(t=><div key={t.label}><strong>{t.label}</strong><span>{t.count} articles</span><small>{t.directlyRelevant} direct ticker/pair mentions</small></div>)}
+    <small>Estimated coverage within the selected date range, based only on returned articles. Direct mentions are not price forecasts or proof of causation.</small>
    </div>:null}
    {stories.length?<ul className={styles.storyList}>
      {stories.map((story,i)=><li key={story.url+"-"+i}>
