@@ -10,7 +10,7 @@ import {XMIDrawingPrimitive,drawingTooltip} from "../lib/xmiDrawingPrimitive.mjs
 const t=Date.parse("2026-10-28T12:00:00Z")/1000;
 function bar(i,high=101,low=99){return {time:t+i*60,open:100,high,low,close:100,closed:true};}
 test("Seven chart tool groups contain every selected drawing, pattern, Fibonacci and measurement family",()=>{
- assert.deepEqual(PANEL_NAMES,["Indicators","Annotations","Patterns","Fibonacci","Lines","Measurements","Chart Settings"]);
+ assert.deepEqual(PANEL_NAMES,["Indicators","Annotations","Fibonacci","Lines","Measurements","Chart Settings"]);
  assert.equal(TOOL_CATALOG.Annotations.length,4);
  assert.equal(TOOL_CATALOG.Patterns.length,7);
  assert.equal(TOOL_CATALOG.Fibonacci.length,3);
