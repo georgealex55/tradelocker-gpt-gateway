@@ -241,7 +241,7 @@ try{
  reportContent.body.dataset.sha256="0".repeat(64);
  await verifyControl.setInputFiles({name:"tampered-research-report.json",
   mimeType:"application/json",buffer:Buffer.from(JSON.stringify(reportContent))});
- await versions.getByRole("alert").getByText(/checksum mismatch/).waitFor({timeout:15000});
+ await replayPanel.getByRole("alert").getByText(/checksum mismatch/).waitFor({timeout:15000});
 
  await versions.getByRole("button",{name:"Save comparison summary locally"}).click();
  await page.waitForFunction(()=>{
