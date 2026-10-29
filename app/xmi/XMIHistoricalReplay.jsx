@@ -54,6 +54,7 @@ export default function XMIHistoricalReplay({symbol,resolution,strategyId,edit})
     {Object.entries(result.counts).map(([name,value])=>
      <div key={name}><b>{value}</b><span>{name==="notReady"?"Not ready":name}</span></div>)}
    </div>
+   {result.excludedFormingBars?<p>{result.excludedFormingBars} unclosed imported candle(s) excluded from replay.</p>:null}
    <p>Continuity: {result.gaps.missing} unobserved intervals · {result.gaps.weekendUtcEstimate} estimated UTC-weekend intervals · {result.gaps.unclassified} unclassified. Calendar is heuristic, not an exchange schedule.</p>
    <p>{result.interpretation}</p>
    <div className={styles.replayHistory} role="group" aria-label="Latest historical replay observations">
