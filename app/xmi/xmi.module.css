@@ -441,3 +441,11 @@
  .toolboxFloating{width:min(280px,calc(100vw - 75px))}
  .studioCommandLeft,.studioCommandRight{gap:3px}
 }
+
+/* Isolate recoverable price-widget exceptions without losing the workbench. */
+.chartFailure{min-height:360px;display:flex;flex-direction:column;align-items:flex-start;
+ justify-content:center;gap:10px;padding:25px;border:1px solid #775747;background:#1c2635;
+ border-radius:12px;color:#e9c9b7;font-size:12px;line-height:1.5}
+.chartFailure strong{font-size:16px}
+.chartFailure p{max-width:370px;margin:0}
+.chartFailure button{font-size:11px!important;padding:8px 11px!important}
