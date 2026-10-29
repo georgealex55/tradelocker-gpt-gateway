@@ -209,7 +209,34 @@ try{
  await replayPanel.getByText("OFFLINE REPLAY",{exact:false}).first().waitFor({timeout:20000});
  assert.ok(await replayPanel.getByText(/No entries, exits, fills/).count()>0,
   "Replay must remain non-executing descriptive research");
+
+ // Milestone 2E: save two immutable research configs and compare exactly the
+ // same uploaded candles. Persist only summary metadata, never candle data.
+ const versions=page.getByRole("group",{name:"Versioned strategy research"});
+ await versions.getByRole("textbox",{name:"Strategy version label"}).fill("RSI 62 baseline");
+ await versions.getByRole("button",{name:"Save research version"}).click();
+ await versions.getByRole("textbox",{name:"Strategy version label"}).fill("Alternative research");
+ await versions.getByRole("button",{name:"Save research version"}).click();
+ await versions.getByRole("combobox",{name:"Baseline strategy version"}).selectOption("swing-v1");
+ await versions.getByRole("combobox",{name:"Candidate strategy version"}).selectOption("swing-v2");
+ await versions.getByRole("button",{name:"Compare saved versions"}).click();
+ await versions.getByRole("region",{name:"Version comparison results"}).getByText(/identical historical candles/).waitFor({timeout:20000});
+ await versions.getByRole("button",{name:"Save comparison summary locally"}).click();
+ await page.waitForFunction(()=>{
+  try{
+   const summaries=JSON.parse(localStorage.getItem("xmi-strategy-research-comparisons-v1")||"{}");
+   const configs=JSON.parse(localStorage.getItem("xmi-strategy-research-versions-v1")||"{}");
+   return summaries.records?.length===1&&configs.records?.length===2;
+  }catch{return false;}
+ },null,{timeout:12000});
+ const summaryStore=await page.evaluate(()=>localStorage.getItem("xmi-strategy-research-comparisons-v1"));
+ assert.equal(summaryStore.includes("observations"),false);
+ assert.equal(summaryStore.includes("bars\""),false);
  await replayPanel.getByRole("button",{name:"Clear file"}).click();
+ await page.reload({waitUntil:"domcontentloaded"});
+ await page.getByRole("combobox",{name:"Switch XMI workspace"}).selectOption("strategy");
+ await versions.getByText("2/12 saved versions",{exact:false}).waitFor({timeout:15000});
+ assert.ok(await versions.getByText("Saved comparison summaries (1/8)").count()>0);
 
  await page.getByRole("button",{name:"Hide top banner"}).click();
  assert.equal(await page.getByText("Gateway home").isVisible(),false,"Banner visibility is independent on the strategy tab");

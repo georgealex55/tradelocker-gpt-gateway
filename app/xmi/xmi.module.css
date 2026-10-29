@@ -693,3 +693,22 @@
  padding:6px 8px;border-bottom:1px solid #28465d;font-size:11px}
 @media(max-width:640px){.replayCounts{grid-template-columns:repeat(2,minmax(0,1fr))}
  .replayLab{padding:10px}}
+
+/* Milestone 2E: scoped, device-local strategy research comparisons. */
+.researchVersions{display:grid;gap:9px;margin-top:10px;padding:13px;
+ border:1px solid #3f627a;border-radius:10px;background:#0d2a3c;font-size:12px}
+.researchVersions h4{margin:0;font-size:15px;color:#dcefff}
+.researchVersions p{margin:0;line-height:1.6}
+.researchVersionControls{display:flex;align-items:end;flex-wrap:wrap;gap:9px}
+.researchVersionControls label{display:grid;flex:1;min-width:145px;gap:5px;font-size:11px}
+.researchVersionControls input,.researchVersionControls select{min-width:0;width:100%;
+ box-sizing:border-box;padding:8px;border:1px solid #47738b;border-radius:7px;
+ background:#091f2e;color:#e0f3ff;font-size:12px}
+.researchVersionControls button,.researchVersions .replayResults button{font-size:12px;
+ padding:8px 10px;background:#16445b;color:#e3f4ff;
+ border:1px solid #4c819b;border-radius:7px}
+.researchVersionControls button:disabled{opacity:.48;cursor:not-allowed}
+.researchVersions details{border-top:1px solid #345468;padding-top:9px}
+.researchVersions details p{padding:4px 0;font-size:11px;overflow-wrap:anywhere}
+@media(max-width:650px){.researchVersionControls{align-items:stretch}
+ .researchVersionControls button{flex:1}}
