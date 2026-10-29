@@ -21,7 +21,7 @@ export default function XMIWorkstation(){
   if(u.has("code")||u.has("error")){setTab("admin");setOpenCloud(true);}
  },[]);
  const item=parseInstrument(selected);
- return <main className={styles.shell+" "+(tab==="live"?styles.studioShell:"")+
+ return <main data-xmi-root="true" className={styles.shell+" "+(tab==="live"?styles.studioShell:"")+
    (tab==="live"&&focusMode?" "+styles.studioFocus:"")}>
   <header className={styles.header}>
    <div>
