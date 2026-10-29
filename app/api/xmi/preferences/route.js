@@ -20,6 +20,11 @@ function validate(body){
  if(!body||JSON.stringify(body).length>370000||typeof body.workspace!=="string"||body.workspace.length>350000||
   !strategyById(body.strategyId))throw Error("Invalid saved research configuration");
  deserializeWorkspace(body.workspace);
+ const layout=body.layout??{showBanner:true,showTabs:true};
+ if(!layout||typeof layout!=="object"||Array.isArray(layout)||
+  Object.keys(layout).some(key=>!["showBanner","showTabs"].includes(key))||
+  typeof layout.showBanner!=="boolean"||typeof layout.showTabs!=="boolean")
+  throw Error("Invalid layout preferences");
  const pins=body.pins??{};
  if(!pins||typeof pins!=="object"||Array.isArray(pins)||Object.keys(pins).length>30)throw Error("Invalid saved pin collection");
  for(const [ticker,urls] of Object.entries(pins)){
@@ -29,7 +34,7 @@ function validate(body){
  const patterns=body.patterns??{};
  if(!patterns||typeof patterns!=="object"||Array.isArray(patterns)||
   Object.values(patterns).some(v=>typeof v!=="boolean"))throw Error("Invalid pattern preferences");
- return {version:1,workspace:body.workspace,strategyId:body.strategyId,pins,patterns};
+ return {version:1,workspace:body.workspace,strategyId:body.strategyId,layout,pins,patterns};
 }
 export async function GET(request){
  const ctx=await context(request);if(ctx.error)return ctx.error;
