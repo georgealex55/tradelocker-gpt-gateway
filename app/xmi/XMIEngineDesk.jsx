@@ -72,6 +72,14 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
   setResolutions(old=>old.map((r,i)=>i===focus?preset.timeframe:r));
   setTech(Object.fromEntries(Object.keys(DEFAULT_TECH).map(k=>[k,preset.indicators.includes(k)])));
   setGlobalSettings(old=>({...old,chartType:"Candlesticks",indicatorDefaults:true,candleTimer:true}));
+  setChartOverride(old=>{
+   if(!old[focus])return old;
+   const current={...old[focus]};
+   delete current.chartType;
+   delete current.indicatorDefaults;
+   delete current.candleTimer;
+   return {...old,[focus]:current};
+  });
  },[strategyId]);
  useEffect(()=>{if(loaded)try{window.localStorage.setItem("xmi-pattern-types-v1",JSON.stringify(patternEnabled));}catch{}},[loaded,patternEnabled]);
  useEffect(()=>{
