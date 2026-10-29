@@ -7,6 +7,8 @@ on:
       - 'lib/xmiWorkspace.mjs'
       - 'lib/xmiLive*.mjs'
       - 'lib/xmiProductionFeedAuth.mjs'
+      - 'lib/xmiFeedRecovery.mjs'
+      - 'tests/xmi-feed-recovery.test.mjs'
       - 'tests/xmi-production-feed-auth.test.mjs'
       - 'lib/xmiBridgeAuth.mjs'
       - 'tests/xmi-bridge-auth.test.mjs'
@@ -51,6 +53,7 @@ jobs:
           node --check lib/xmiChartTools.mjs
           node --check lib/xmiDrawingPrimitive.mjs
           node --check lib/xmiLiveProvider.mjs
+          node --check lib/xmiFeedRecovery.mjs
           node --check lib/xmiProductionFeedAuth.mjs
           node --check app/api/xmi/feed-session/route.js
           node --check lib/xmiBridgeAuth.mjs
