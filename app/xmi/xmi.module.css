@@ -616,3 +616,31 @@
  .strategyLabEditor{grid-column:1}
  .strategyEditFields{grid-template-columns:1fr}
 }
+
+/* Milestone 1A: consistent, independent workspace controls for all five tabs. */
+.workspaceShell{min-width:0}
+.workspaceShell[hidden],.workspaceShell>div[hidden]{display:none!important}
+.workspaceControls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+ border:1px solid #36536b;border-radius:9px;background:#0d2739;padding:8px 10px;
+ margin:0 0 8px;position:relative;z-index:8}
+.workspaceControls strong{font-size:12px;letter-spacing:.025em;color:#d7f3ff;margin-right:auto}
+.workspaceControls select{font-size:11px;max-width:175px;color:#d9f4ff;
+ padding:7px;background:#092133;border:1px solid #385e79;border-radius:6px}
+.workspaceControls button{font-size:11px!important;white-space:normal;padding:8px 9px!important;
+ color:#ddf5ff;background:#15364c;border:1px solid #47728d;border-radius:7px}
+.workspaceControls button:hover{border-color:#77c8e6;background:#1a455e}
+.workspaceMaximized{position:fixed!important;inset:0;z-index:1000;
+ box-sizing:border-box;width:100vw!important;max-width:none!important;
+ height:100dvh;max-height:100dvh;overflow:auto;
+ padding:10px!important;margin:0!important;background:#081626!important;
+ border-radius:0!important;border:0!important;overscroll-behavior:contain}
+.workspaceMaximized>.workspaceControls{position:sticky;top:0;z-index:1001;margin-bottom:8px;
+ box-shadow:0 4px 22px #061323b8}
+.workspaceMaximized .studioDesk{min-height:calc(100dvh - 95px)}
+.workspaceMaximized .nonChartWorkspace{min-height:calc(100dvh - 90px)}
+@media(max-width:760px){
+ .workspaceControls{gap:5px;padding:7px}
+ .workspaceControls strong{width:100%;margin-right:0}
+ .workspaceControls select{flex:1;max-width:unset;min-width:130px}
+ .workspaceControls button{flex:1}
+}
