@@ -2,6 +2,7 @@
 import {useEffect,useRef,useState} from "react";
 import {computeFive,FX_RESOLUTIONS,quoteState} from "../../lib/xmiLiveMath.mjs";
 import {parseHistoricalFile} from "../../lib/xmiHistoricalFile.mjs";
+import {nextFeedDelay,feedHealth,retryableFeedError} from "../../lib/xmiFeedRecovery.mjs";
 import styles from "./xmi.module.css";
 import {defaultStructureSettings,requiredStructureTimeframes,detectStructure,assembleStructure} from "../../lib/xmiStructure.mjs";
 import {StructureOverlayPrimitive,toStructureMarkers} from "../../lib/xmiStructureOverlay.mjs";
@@ -36,7 +37,9 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
  const [overlayMessage,setOverlayMessage]=useState("");
  const extraRes=requiredStructureTimeframes(structureSettings,resolution);
  const extraKey=extraRes.join("|");
- const [feed,setFeed]=useState({phase:"loading",message:"Waiting for read-only forex data",last:null,stats:null,asOf:null});
+ const [feed,setFeed]=useState({phase:"loading",message:"Waiting for read-only forex data",
+  last:null,stats:null,asOf:null,quality:"UNAVAILABLE",failures:0,
+  lastCheckedAt:null,lastSuccessAt:null,lastClosedAt:null,nextRefreshMs:null});
  useEffect(()=>{if(selected)onAnalysisRef.current?.({stats:feed.stats,quality:feed.quality||"UNAVAILABLE",asOf:feed.asOf});},[feed.stats,feed.quality,feed.asOf,selected]);
  const [libReady,setLibReady]=useState(false);
  useEffect(()=>{interaction.current={points:[],stroke:[],count:0};setPendingCount(0);setDrawingError("");},[drawTool,symbol]);
@@ -132,14 +135,28 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
  },[technicalEnabled,libReady]);
  useEffect(()=>{
   if(!libReady||!series.current||!active)return;
-  let running=true,abort=null,timer=null;
+  let running=true,abort=null,timer=null,failures=0;
+  let lastSuccessAt=null,lastClosedAt=null;
   const all=series.current;
   let fitted=false;
+  function schedule(){
+   if(!running)return;
+   const delay=nextFeedDelay({resolution,now:Date.now(),failures,
+    hidden:document.visibilityState==="hidden"});
+   setFeed(prev=>({...prev,nextRefreshMs:delay}));
+   timer=setTimeout(refresh,delay);
+  }
+  function onVisible(){
+   if(document.visibilityState!=="visible"||!running)return;
+   if(timer)clearTimeout(timer);
+   timer=setTimeout(refresh,250);
+  }
+  document.addEventListener("visibilitychange",onVisible);
   // No synthetic candles or broker-order requests. Refresh a bounded OHLC snapshot.
   async function refresh(){
    if(!running)return;
    const local=offline?.symbol===symbol&&offline?.resolution===resolution?offline:null;
-   if(!local&&document.visibilityState==="hidden"){timer=setTimeout(refresh,20000);return;}
+   if(!local&&document.visibilityState==="hidden"){schedule();return;}
    abort=local?null:new AbortController();
    try{
     let data;
@@ -170,25 +187,36 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
      }
     }
     const quality=local?"HISTORICAL":quoteState(stats.lastClosed,Date.parse(data.asOf),resolution);
+    if(quality==="INVALID_TIME")throw Error("Broker candle timestamps are invalid; no current signal may be inferred");
+    failures=0;
+    lastSuccessAt=Date.now();
+    lastClosedAt=stats.lastClosed?.time?stats.lastClosed.time*1000:null;
     setFeed({phase:local?"historical":quality==="STALE"?"stale":mapped.length?"ready":"empty",
      message:local?"Imported historical OHLC · device only · no broker connection":
       mapped.length?(quality==="CURRENT"?"Read-only candles · "+data.delivery:"Broker candles are not recent"):"No candles returned",
-     stats,asOf:data.asOf,last:stats.latest,quality});
+     stats,asOf:data.asOf,last:stats.latest,quality,failures:0,
+     lastCheckedAt:Date.now(),lastSuccessAt,lastClosedAt,nextRefreshMs:null});
    }catch(e){
     if(!running||e.name==="AbortError")return;
     const disabled=e.code==="FEED_DISABLED",locked=e.code==="FEED_LOCKED";
+    const retryable=retryableFeedError(e.code);
+    failures=retryable?failures+1:0;
     setFeed(prev=>({...prev,phase:locked?"locked":disabled?"disabled":"error",
      message:locked?"Feed is locked. Use Unlock read-only feed in the top toolbar, then refresh.":
       disabled?"Production broker feed is not configured. Import OHLC JSON or open Historical Chart Studio.":e.message,
-     stats:null,last:null,quality:"UNAVAILABLE"}));
-    if(disabled||locked)running=false; // No repeating unauthorized broker calls.
-   }finally{if(running&&!local)timer=setTimeout(refresh,20000);}
+     stats:null,last:prev.last,quality:"UNAVAILABLE",asOf:prev.asOf,
+     failures,lastCheckedAt:Date.now(),lastSuccessAt,lastClosedAt,
+     nextRefreshMs:null}));
+    if(!retryable)running=false;
+   }finally{if(running&&!local)schedule();}
   }
-  setFeed({phase:"loading",message:"Loading verified broker candles…",last:null,stats:null,asOf:null});
+  setFeed({phase:"loading",message:"Loading verified broker candles…",last:null,stats:null,asOf:null,
+   quality:"UNAVAILABLE",failures:0,lastCheckedAt:null,lastSuccessAt:null,lastClosedAt:null,nextRefreshMs:null});
   // Clear stale previous symbol history immediately.
   for(const key of Object.keys(all))all[key].setData([]);
   refresh();
-  return ()=>{running=false;abort?.abort();if(timer)clearTimeout(timer);};
+  return ()=>{running=false;document.removeEventListener("visibilitychange",onVisible);
+   abort?.abort();if(timer)clearTimeout(timer);};
  },[symbol,resolution,libReady,active,chartSettings.chartType,offline,refreshNonce]);
  // Additional timeframes use the same protected, read-only candle API.
  // Each distinct selected timeframe is fetched once; settings are shared by all charts.
@@ -331,6 +359,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);
  }
  const stats=feed.stats;const ready=feed.phase==="ready";
+ const health=feedHealth({...feed,now:clock||Date.now()});
  const untilClose=Math.ceil((FX_RESOLUTIONS[resolution]*1000-clock%(FX_RESOLUTIONS[resolution]*1000))/1000);
  const countdown=clock===0?"--:--":String(Math.floor(untilClose/60)).padStart(2,"0")+":"+String(untilClose%60).padStart(2,"0");
  return <article className={styles.engineCard+(selected?" "+styles.chartActive:"")} aria-label={symbol+" live forex chart"}>
@@ -357,6 +386,12 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
    {chartSettings.candleTimer?<span role="timer">Candle boundary in {countdown} · local-clock estimate</span>:null}
   </div>
   <div className={styles.engineDrawHost}>
+   {health.warning?<div className={styles.feedOverlayWarning} role="status">
+    <strong>{health.label}</strong>
+    <span>{health.verifiedAt?"Last successful check: "+new Date(health.verifiedAt).toLocaleTimeString()+
+     " · displayed candles are not current":
+     "Live data verification unavailable. Do not interpret displayed prices as current."}</span>
+   </div>:null}
    <div className={styles.engineCanvas} ref={el} style={{height:compact?460:620}}
     aria-label={chartSettings.chartType+" market chart"}/>
    {drawTool&&!TOOL_CATALOG.Fibonacci.includes(drawTool)?<div className={styles.engineDrawCapture} role="application"
@@ -378,7 +413,14 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
    <span role="status">{feed.message}</span>
    {(feed.phase==="disabled"||feed.phase==="locked")?
     <a href="/xmi2/chart-studio.html">Open offline Historical Chart Studio</a>:null}
-   <span>{feed.last?(feed.last.closed?"Last bar closed":"Last bar forming")+" · "+new Date(feed.last.time*1000).toLocaleString():"No verified price"}</span>
+   <span>{feed.last?(ready?"Latest broker bar":"Last previously verified bar")+" · "+
+    new Date(feed.last.time*1000).toLocaleString():"No verified price"}</span>
+   <span className={styles.feedDiagnostics}>
+    Checked {health.checkedAt?new Date(health.checkedAt).toLocaleTimeString():"not yet"}
+    {health.closedBarAt?" · Closed bar "+new Date(health.closedBarAt).toLocaleTimeString():""}
+    {health.retries?" · Retry attempts "+health.retries:""}
+    {feed.nextRefreshMs?" · Next check ~"+Math.round(feed.nextRefreshMs/1000)+"s":""}
+   </span>
    {stats?.bars?.length?<span className={styles.candleReadout}>
     {stats.bars.length} verified candles · O {feed.last.open.toFixed(5)} · H {feed.last.high.toFixed(5)} · L {feed.last.low.toFixed(5)} · C {feed.last.close.toFixed(5)}
    </span>:null}
