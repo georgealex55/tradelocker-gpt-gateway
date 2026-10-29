@@ -17,7 +17,7 @@ async function context(request,write=false){
  try{return {owner,db,sql:await verifiedStore(db)};}catch{return {error:json({ok:false,error:"Restricted preferences database unavailable"},503)};}
 }
 function validate(body){
- if(!body||typeof body.workspace!=="string"||body.workspace.length>350000||
+ if(!body||JSON.stringify(body).length>370000||typeof body.workspace!=="string"||body.workspace.length>350000||
   !strategyById(body.strategyId))throw Error("Invalid saved research configuration");
  deserializeWorkspace(body.workspace);
  const pins=body.pins??{};
