@@ -5,6 +5,7 @@ import {STRATEGY_VERSIONS_KEY,RESEARCH_COMPARISONS_KEY,
  normalizeStrategyVersions,saveStrategyVersion,removeStrategyVersion,
  compareSavedStrategyVersions,normalizeComparisonSummaries,saveComparisonSummary}
  from "../../lib/xmiStrategyResearch.mjs";
+import {createResearchReport,verifyResearchReport} from "../../lib/xmiResearchValidation.mjs";
 import styles from "./xmi.module.css";
 
 /* Research files remain in browser memory. Only explicit version configs and
@@ -18,6 +19,7 @@ export default function XMIHistoricalReplay({symbol,resolution,strategyId,edit})
  const [versionName,setVersionName]=useState("");
  const [baselineId,setBaselineId]=useState(""),[candidateId,setCandidateId]=useState("");
  const [error,setError]=useState(""),[notice,setNotice]=useState("");
+ const [reportBusy,setReportBusy]=useState(false),[reportStatus,setReportStatus]=useState(null);
  useEffect(()=>{
   try{
    const raw=window.localStorage.getItem(STRATEGY_VERSIONS_KEY);
@@ -45,7 +47,7 @@ export default function XMIHistoricalReplay({symbol,resolution,strategyId,edit})
  function fail(e){setError(String(e?.message||"Research action failed").slice(0,220));setNotice("");}
  async function receive(event){
   const file=event.target.files?.[0];event.target.value="";
-  setResult(null);setComparison(null);
+  setResult(null);setComparison(null);setReportStatus(null);
   if(!file)return;
   if(file.size>900000){setError("Historical JSON exceeds 900 KB");setSource("");setFilename("");setCapturedAt(null);return;}
   try{
@@ -55,7 +57,7 @@ export default function XMIHistoricalReplay({symbol,resolution,strategyId,edit})
   }catch{setError("Cannot read the selected local file");setSource("");setFilename("");setCapturedAt(null);}
  }
  function replay(){
-  setResult(null);
+  setResult(null);setReportStatus(null);
   try{
    if(!source)throw Error("Choose a local historical OHLC JSON file first");
    const record=replayHistoricalJson(source,{symbol,resolution,strategyId,edit,now:capturedAt});
@@ -86,7 +88,7 @@ export default function XMIHistoricalReplay({symbol,resolution,strategyId,edit})
   }catch(e){fail(e);}
  }
  function runComparison(){
-  setComparison(null);
+  setComparison(null);setReportStatus(null);
   try{
    if(!source)throw Error("Upload local OHLC JSON before comparing versions");
    const baseline=comparable.find(x=>x.id===baselineId);
@@ -103,8 +105,39 @@ export default function XMIHistoricalReplay({symbol,resolution,strategyId,edit})
    setNotice("Summary saved locally. Candle data and replay observations are not stored.");
   }catch(e){fail(e);}
  }
+ async function exportReport(){
+  if(reportBusy)return;
+  setReportBusy(true);setReportStatus(null);
+  try{
+   if(!comparison||!source)throw Error("Run a valid offline comparison before report export");
+   const baseline=comparable.find(x=>x.id===baselineId);
+   const candidate=comparable.find(x=>x.id===candidateId);
+   const report=await createResearchReport({source,symbol,resolution,
+    baseline,candidate,comparison,now:capturedAt});
+   const serialized=JSON.stringify(report,null,2);
+   await verifyResearchReport(serialized);
+   const url=URL.createObjectURL(new Blob([serialized],{type:"application/json"}));
+   const a=document.createElement("a");
+   a.href=url;a.download="xmi-research-"+baseline.id+"-vs-"+candidate.id+".json";
+   document.body.appendChild(a);a.click();a.remove();
+   window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+   setError("");setNotice("Research validation report exported with SHA-256 checksums.");
+  }catch(e){fail(e);}finally{setReportBusy(false);}
+ }
+ async function verifyFile(event){
+  const file=event.target.files?.[0];event.target.value="";
+  setReportStatus(null);
+  if(!file)return;
+  if(file.size>160000){setError("Research report exceeds 160 KB");return;}
+  setReportBusy(true);
+  try{
+   const report=await verifyResearchReport(await file.text());
+   setReportStatus(report);setError("");setNotice("Report checksum matches its content. Provider authenticity remains unverified.");
+  }catch(e){fail(e);}
+  finally{setReportBusy(false);}
+ }
  function clear(){setSource("");setFilename("");setCapturedAt(null);
-  setResult(null);setComparison(null);setError("");setNotice("");}
+  setResult(null);setComparison(null);setReportStatus(null);setError("");setNotice("");}
  return <section className={styles.replayLab} aria-label="Offline historical replay">
   <div className={styles.replayLabHeading}>
    <div><p className={styles.eyebrow}>MILESTONE 2E · DEVICE ONLY</p>
@@ -176,8 +209,20 @@ export default function XMIHistoricalReplay({symbol,resolution,strategyId,edit})
     </div>
     <p>Dataset label: {comparison.datasetLabel} (non-cryptographic, not provider authentication).</p>
     <p>{comparison.disclosure}</p>
-    <button type="button" onClick={saveSummary}>Save comparison summary locally</button>
+    <div className={styles.replayLabControls}>
+     <button type="button" onClick={saveSummary}>Save comparison summary locally</button>
+     <button type="button" disabled={reportBusy} onClick={exportReport}>Export SHA-256 research report</button>
+    </div>
    </div>:null}
+   <section className={styles.researchReportCheck} aria-label="Research report verification">
+    <h4>Verify an exported report</h4>
+    <p>Choose a downloaded XMI report JSON file. SHA-256 detects changes relative to the checksum inside the file; it does not prove a feed is genuine. No file is uploaded.</p>
+    <label>Research report JSON
+     <input type="file" aria-label="Verify research report JSON" accept=".json,application/json"
+      disabled={reportBusy} onChange={verifyFile}/>
+    </label>
+    {reportStatus?<p role="status"><strong>REPORT VERIFIED · SHA-256</strong> · {reportStatus.symbol} · {reportStatus.closedBars} closed candles · {reportStatus.baselineId} vs {reportStatus.candidateId}. {reportStatus.meaning}</p>:null}
+   </section>
    {summaries.length?<details><summary>Saved comparison summaries ({summaries.length}/8)</summary>
     {summaries.slice().reverse().map((row,i)=><p key={i}>
      {row.baselineId} vs {row.candidateId} · {row.totalBars} bars · {row.changedClassifications} differences · {row.datasetLabel}

@@ -11,6 +11,8 @@ on:
       - 'lib/xmiDataQuality.mjs'
       - 'lib/xmiHistoricalReplay.mjs'
       - 'lib/xmiStrategyResearch.mjs'
+      - 'lib/xmiResearchValidation.mjs'
+      - 'tests/xmi-research-validation.test.mjs'
       - 'tests/xmi-strategy-research.test.mjs'
       - 'lib/xmiHistoricalFile.mjs'
       - 'tests/xmi-historical-replay.test.mjs'
@@ -68,6 +70,7 @@ jobs:
           node --check lib/xmiDataQuality.mjs
           node --check lib/xmiHistoricalReplay.mjs
           node --check lib/xmiStrategyResearch.mjs
+          node --check lib/xmiResearchValidation.mjs
           node --check lib/xmiStrategyPresets.mjs
           node --check lib/xmiWorkspaceState.mjs
           node --check lib/xmiWatchlistCollections.mjs
