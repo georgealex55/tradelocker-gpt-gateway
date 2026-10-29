@@ -666,3 +666,30 @@
 .watchCollectionControls button{flex:1;padding:6px 7px;border-radius:6px;
  background:#164059;color:#ecf6ff;border:1px solid #436a80;font-size:11px}
 .watchCollectionControls button:disabled{opacity:.5;cursor:not-allowed}
+
+/* Milestone 2D: offline replay, isolated within the Strategy Lab. */
+.replayLab{display:grid;gap:10px;margin-top:14px;padding:16px;border:1px solid #355972;
+ border-radius:12px;background:#0b2234;color:#d9f1ff}
+.replayLabHeading{display:flex;gap:12px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+.replayLabHeading h3{margin:0 0 5px;font-size:17px}
+.replayLabHeading p{margin:5px 0;font-size:12px;line-height:1.5}
+.replayLabHeading>span{font-size:10px;letter-spacing:.07em;color:#ffe1b0;border:1px solid #8e7042;
+ border-radius:6px;padding:5px 8px}
+.replayLabControls{display:flex;align-items:end;gap:8px;flex-wrap:wrap}
+.replayLabControls label{font-size:12px;display:grid;gap:5px}
+.replayLabControls input{font-size:11px;max-width:250px}
+.replayLabControls button{padding:8px 10px;font-size:12px;border:1px solid #477b96;
+ border-radius:7px;color:#e4f6ff;background:#143b52}
+.replayLabControls button:disabled{opacity:.48;cursor:not-allowed}
+.replayError{color:#ffe1c6;border-left:3px solid #c88756;padding-left:10px}
+.replayResults{display:grid;gap:9px;font-size:12px}
+.replayResults p{margin:0;line-height:1.5}
+.replayCounts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.replayCounts>div{display:flex;flex-direction:column;align-items:center;padding:9px;
+ background:#112f44;border:1px solid #284d64;border-radius:7px;text-transform:capitalize}
+.replayCounts b{font-size:18px}.replayCounts span{font-size:11px}
+.replayHistory{display:grid;gap:3px;max-height:230px;overflow:auto}
+.replayHistory>div{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;
+ padding:6px 8px;border-bottom:1px solid #28465d;font-size:11px}
+@media(max-width:640px){.replayCounts{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .replayLab{padding:10px}}

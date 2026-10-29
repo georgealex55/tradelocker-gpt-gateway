@@ -9,6 +9,9 @@ on:
       - 'lib/xmiProductionFeedAuth.mjs'
       - 'lib/xmiFeedRecovery.mjs'
       - 'lib/xmiDataQuality.mjs'
+      - 'lib/xmiHistoricalReplay.mjs'
+      - 'lib/xmiHistoricalFile.mjs'
+      - 'tests/xmi-historical-replay.test.mjs'
       - 'lib/xmiStrategyPresets.mjs'
       - 'tests/xmi-data-quality.test.mjs'
       - 'lib/xmiWorkspaceState.mjs'
@@ -61,6 +64,7 @@ jobs:
           node --check lib/xmiLiveProvider.mjs
           node --check lib/xmiFeedRecovery.mjs
           node --check lib/xmiDataQuality.mjs
+          node --check lib/xmiHistoricalReplay.mjs
           node --check lib/xmiStrategyPresets.mjs
           node --check lib/xmiWorkspaceState.mjs
           node --check lib/xmiWatchlistCollections.mjs

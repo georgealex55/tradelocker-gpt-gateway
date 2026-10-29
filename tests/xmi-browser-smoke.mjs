@@ -198,7 +198,19 @@ try{
  await page.getByRole("button",{name:/Swing · EMA Structure/}).last().click();
  await page.getByRole("spinbutton",{name:"RSI positive threshold"}).fill("62");
  await page.getByRole("combobox",{name:"Edit strategy timeframe"}).selectOption("1D");
- assert.equal(await page.getByRole("combobox",{name:"Edit strategy timeframe"}).inputValue(),"1D");
+ assert.equal(await page.getByRole("combobox",{name:"Edit strategy timeframe"}).inputValue(),"1D"); 
+ // 2D: a real, local-only JSON file can be replayed in Strategy Lab.
+ const replayPanel=page.getByRole("region",{name:"Offline historical replay"});
+ await replayPanel.getByLabel("Historical replay OHLC JSON").setInputFiles({
+  name:"smoke-replay.json",mimeType:"application/json",
+  buffer:Buffer.from(JSON.stringify({symbol:"EURUSD",resolution:"1D",bars:barsFor("1D")}))
+ });
+ await replayPanel.getByRole("button",{name:"Replay closed candles"}).click();
+ await replayPanel.getByText("OFFLINE REPLAY",{exact:false}).first().waitFor({timeout:20000});
+ assert.ok(await replayPanel.getByText(/No entries, exits, fills/).count()>0,
+  "Replay must remain non-executing descriptive research");
+ await replayPanel.getByRole("button",{name:"Clear file"}).click();
+
  await page.getByRole("button",{name:"Hide top banner"}).click();
  assert.equal(await page.getByText("Gateway home").isVisible(),false,"Banner visibility is independent on the strategy tab");
  await page.getByRole("combobox",{name:"Switch XMI workspace"}).selectOption("research");

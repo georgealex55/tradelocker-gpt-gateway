@@ -10,6 +10,7 @@ import XMIReadOnlyFeedAccess from "./XMIReadOnlyFeedAccess";
 import {STRATEGIES} from "../../lib/xmiStrategyPresets.mjs";
 import {EDITS_KEY,normalizeStrategyEdit,sanitizeStrategyEdits,strategyExplanation} from "../../lib/xmiStrategyEdits.mjs";
 import XMICoachPanel from "./XMICoachPanel";
+import XMIHistoricalReplay from "./XMIHistoricalReplay";
 import {parseInstrument} from "../../lib/xmiLiveMath.mjs";
 const TABS=[
  {id:"live",title:"Live Chart",sub:"Candles & indicators"},
@@ -199,6 +200,8 @@ export default function XMIWorkstation(){
      </div>
     </section>
    </div>
+   <XMIHistoricalReplay symbol={item.symbol} resolution={selectedEdit.timeframe}
+    strategyId={strategyId} edit={selectedEdit}/>
    </div>
   </div>
   <div hidden={tab!=="journal"} className={styles.nonChartWorkspace+" "+styles.workspaceShell+(maximized.journal?" "+styles.workspaceMaximized:"")}>
