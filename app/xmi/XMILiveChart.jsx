@@ -22,7 +22,6 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
  const onAnalysisRef=useRef(onAnalysis);onAnalysisRef.current=onAnalysis;
  const [clock,setClock]=useState(()=>Date.now());
  useEffect(()=>{if(!chartSettings.candleTimer)return;const id=setInterval(()=>setClock(Date.now()),1000);return ()=>clearInterval(id);},[chartSettings.candleTimer]);
- useEffect(()=>{if(selected)onAnalysisRef.current?.({stats:feed.stats,quality:feed.quality||"UNAVAILABLE",asOf:feed.asOf});},[feed.stats,feed.quality,feed.asOf,selected]);
  const onDrawingRef=useRef(onDrawing);onDrawingRef.current=onDrawing;
  const onStructureRef=useRef(onStructure);onStructureRef.current=onStructure;
  const [auxData,setAuxData]=useState({});
@@ -30,6 +29,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
  const extraRes=requiredStructureTimeframes(structureSettings,resolution);
  const extraKey=extraRes.join("|");
  const [feed,setFeed]=useState({phase:"loading",message:"Waiting for read-only forex data",last:null,stats:null,asOf:null});
+ useEffect(()=>{if(selected)onAnalysisRef.current?.({stats:feed.stats,quality:feed.quality||"UNAVAILABLE",asOf:feed.asOf});},[feed.stats,feed.quality,feed.asOf,selected]);
  const [libReady,setLibReady]=useState(false);
  useEffect(()=>{interaction.current={points:[],stroke:[],count:0};setPendingCount(0);setDrawingError("");},[drawTool,symbol]);
  useEffect(()=>{
