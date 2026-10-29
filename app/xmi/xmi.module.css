@@ -721,3 +721,41 @@
 .researchReportCheck input{font-size:11px;max-width:100%}
 .researchReportCheck strong{color:#b4e5db}
 .researchReportCheck p{margin:0;overflow-wrap:anywhere}
+
+/* Milestone 2G: local research analytics, never an execution dashboard. */
+.researchAnalytics{display:grid;gap:12px;margin-top:12px;padding:12px;
+ border:1px solid #4a6980;border-radius:10px;background:#0b2031}
+.researchAnalytics header h4{margin:0 0 6px;font-size:15px}
+.researchAnalytics header p{margin:0;font-size:12px;line-height:1.5}
+.analyticsMetrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.analyticsMetrics>div{display:grid;gap:4px;min-width:0;border:1px solid #3a5c75;
+ border-radius:7px;padding:9px;text-align:center;background:#13334a}
+.analyticsMetrics strong{font-size:20px;color:#e1f3ff}
+.analyticsMetrics span{font-size:10px;color:#bbd7e9;overflow-wrap:anywhere}
+.researchAnalytics h5{font-size:12px;margin:0 0 8px;color:#e0f3ff}
+.analyticsDistribution,.analyticsCoverage,.analyticsChecks,.analyticsHistory{display:grid;gap:7px;
+ padding:11px;background:#0d2a3e;border:1px solid #34566e;border-radius:8px}
+.analyticsCategoryRow{display:grid;grid-template-columns:100px minmax(0,1fr) 67px;
+ align-items:center;gap:8px;font-size:11px;text-transform:capitalize}
+.analyticsCategoryRow>div{display:grid;gap:3px}
+.analyticsCategoryRow small{text-align:right;color:#bcd5e8}
+.analyticsTrack{width:100%;height:8px;border-radius:6px;overflow:hidden;background:#091e2e}
+.analyticsTrack>div{height:100%;border-radius:6px}
+.researchAligned{background:#3cafa0}.researchConflicted{background:#b97776}
+.researchMixed{background:#b29b64}.researchNotReady{background:#688296}
+.analyticsChecks>div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;
+ padding:7px 0;border-bottom:1px solid #2a4960}
+.analyticsChecks>div:last-child{border-bottom:0}
+.analyticsChecks strong{font-size:11px}
+.analyticsChecks span{font-size:10px;color:#eed49e;font-weight:700}
+.analyticsChecks small{grid-column:1/-1;color:#bcd3e2;font-size:11px}
+.analyticsTableWrap{overflow:auto;max-height:310px}
+.analyticsTable{width:100%;border-collapse:collapse;font-size:11px}
+.analyticsTable th,.analyticsTable td{padding:7px 9px;border-bottom:1px solid #35536a;
+ text-align:left;white-space:nowrap}
+.analyticsTable th{position:sticky;top:0;background:#13364a;color:#d6edfa}
+.analyticsHistory .researchVersionControls>span{font-size:11px}
+@media(max-width:750px){
+ .analyticsMetrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .analyticsCategoryRow{grid-template-columns:75px minmax(0,1fr) 50px}
+}

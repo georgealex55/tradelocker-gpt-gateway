@@ -6,6 +6,8 @@ import {STRATEGY_VERSIONS_KEY,RESEARCH_COMPARISONS_KEY,
  compareSavedStrategyVersions,normalizeComparisonSummaries,saveComparisonSummary}
  from "../../lib/xmiStrategyResearch.mjs";
 import {createResearchReport,verifyResearchReport} from "../../lib/xmiResearchValidation.mjs";
+import {analyzeResearchComparison} from "../../lib/xmiResearchAnalytics.mjs";
+import XMIResearchAnalytics from "./XMIResearchAnalytics";
 import styles from "./xmi.module.css";
 
 /* Research files remain in browser memory. Only explicit version configs and
@@ -14,6 +16,7 @@ export default function XMIHistoricalReplay({symbol,resolution,strategyId,edit})
  const [source,setSource]=useState(""),[capturedAt,setCapturedAt]=useState(null);
  const [filename,setFilename]=useState("");
  const [result,setResult]=useState(null),[comparison,setComparison]=useState(null);
+ const [analytics,setAnalytics]=useState(null);
  const [versions,setVersions]=useState([]),[summaries,setSummaries]=useState([]);
  const [versionsReady,setVersionsReady]=useState(false);
  const [versionName,setVersionName]=useState("");
@@ -39,7 +42,7 @@ export default function XMIHistoricalReplay({symbol,resolution,strategyId,edit})
   try{localStorage.setItem(RESEARCH_COMPARISONS_KEY,JSON.stringify({version:1,records:summaries}));}
   catch{setError("Research summaries could not be stored on this device.");}
  },[versionsReady,summaries]);
- useEffect(()=>{setResult(null);setComparison(null);setError("");setNotice("");},
+ useEffect(()=>{setResult(null);setComparison(null);setAnalytics(null);setError("");setNotice("");},
   [symbol,resolution,strategyId,edit?.rsiBull,edit?.rsiBear,edit?.requireMacd,edit?.requireVwap]);
  useEffect(()=>{setBaselineId("");setCandidateId("");},[strategyId,resolution]);
  const relevant=versions.filter(x=>x.strategyId===strategyId);
@@ -47,7 +50,7 @@ export default function XMIHistoricalReplay({symbol,resolution,strategyId,edit})
  function fail(e){setError(String(e?.message||"Research action failed").slice(0,220));setNotice("");}
  async function receive(event){
   const file=event.target.files?.[0];event.target.value="";
-  setResult(null);setComparison(null);setReportStatus(null);
+  setResult(null);setComparison(null);setAnalytics(null);setReportStatus(null);
   if(!file)return;
   if(file.size>900000){setError("Historical JSON exceeds 900 KB");setSource("");setFilename("");setCapturedAt(null);return;}
   try{
@@ -84,18 +87,20 @@ export default function XMIHistoricalReplay({symbol,resolution,strategyId,edit})
    setVersions(removeStrategyVersion(versions,target.id));
    if(baselineId===target.id)setBaselineId("");
    if(candidateId===target.id)setCandidateId("");
-   setComparison(null);setError("");setNotice("Local research version deleted.");
+   setComparison(null);setAnalytics(null);setError("");setNotice("Local research version deleted.");
   }catch(e){fail(e);}
  }
  function runComparison(){
-  setComparison(null);setReportStatus(null);
+  setComparison(null);setAnalytics(null);setReportStatus(null);
   try{
    if(!source)throw Error("Upload local OHLC JSON before comparing versions");
    const baseline=comparable.find(x=>x.id===baselineId);
    const candidate=comparable.find(x=>x.id===candidateId);
    const record=compareSavedStrategyVersions(source,{symbol,resolution,
     baseline,candidate,now:capturedAt});
-   setComparison(record);setError("");setNotice("");
+   const analysis=analyzeResearchComparison({source,symbol,resolution,
+    baseline,candidate,comparison:record,now:capturedAt});
+   setComparison(record);setAnalytics(analysis);setError("");setNotice("");
   }catch(e){fail(e);}
  }
  function saveSummary(){
@@ -137,10 +142,10 @@ export default function XMIHistoricalReplay({symbol,resolution,strategyId,edit})
   finally{setReportBusy(false);}
  }
  function clear(){setSource("");setFilename("");setCapturedAt(null);
-  setResult(null);setComparison(null);setReportStatus(null);setError("");setNotice("");}
+  setResult(null);setComparison(null);setAnalytics(null);setReportStatus(null);setError("");setNotice("");}
  return <section className={styles.replayLab} aria-label="Offline historical replay">
   <div className={styles.replayLabHeading}>
-   <div><p className={styles.eyebrow}>MILESTONE 2E · DEVICE ONLY</p>
+   <div><p className={styles.eyebrow}>MILESTONE 2G · DEVICE ONLY</p>
     <h3>Closed-candle historical replay</h3>
     <p>Load 2–400 genuine OHLC candles for {symbol} · {resolution}. Recompute each bar using only candles closed by that moment. No market connection or order execution.</p>
    </div><span>RESEARCH ONLY</span>
@@ -183,12 +188,12 @@ export default function XMIHistoricalReplay({symbol,resolution,strategyId,edit})
    <p>{relevant.length}/12 saved versions for {strategyId} · {comparable.length} match {resolution}</p>
    <div className={styles.researchVersionControls}>
     <label>Baseline version<select aria-label="Baseline strategy version" value={baselineId}
-     onChange={e=>{setBaselineId(e.target.value);setComparison(null);}}>
+     onChange={e=>{setBaselineId(e.target.value);setComparison(null);setAnalytics(null);}}>
      <option value="">Select baseline</option>
      {comparable.map(row=><option key={row.id} value={row.id}>{row.id} · {row.name}</option>)}
     </select></label>
     <label>Candidate version<select aria-label="Candidate strategy version" value={candidateId}
-     onChange={e=>{setCandidateId(e.target.value);setComparison(null);}}>
+     onChange={e=>{setCandidateId(e.target.value);setComparison(null);setAnalytics(null);}}>
      <option value="">Select candidate</option>
      {comparable.map(row=><option key={row.id} value={row.id}>{row.id} · {row.name}</option>)}
     </select></label>
@@ -214,6 +219,8 @@ export default function XMIHistoricalReplay({symbol,resolution,strategyId,edit})
      <button type="button" disabled={reportBusy} onClick={exportReport}>Export SHA-256 research report</button>
     </div>
    </div>:null}
+   {analytics?<XMIResearchAnalytics key={analytics.datasetLabel+"-"+analytics.baselineId+"-"+analytics.candidateId}
+    analytics={analytics}/>:null}
    <section className={styles.researchReportCheck} aria-label="Research report verification">
     <h4>Verify an exported report</h4>
     <p>Choose a downloaded XMI report JSON file. SHA-256 detects changes relative to the checksum inside the file; it does not prove a feed is genuine. No file is uploaded.</p>

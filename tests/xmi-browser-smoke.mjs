@@ -222,6 +222,21 @@ try{
  await versions.getByRole("combobox",{name:"Candidate strategy version"}).selectOption("swing-v2");
  await versions.getByRole("button",{name:"Compare saved versions"}).click();
  await versions.getByRole("region",{name:"Version comparison results"}).getByText(/identical historical candles/).waitFor({timeout:20000});
+ // Milestone 2G: interactive historical research analytics remain read-only.
+ const analyticView=versions.getByRole("region",{name:"Historical research analytics"});
+ await analyticView.getByText("Historical research analytics · descriptive only").waitFor({timeout:15000});
+ await analyticView.getByRole("group",{name:"Historical data coverage"}).getByText(/UNVERIFIED/).waitFor();
+ await analyticView.getByRole("group",{name:"Research readiness checklist"})
+  .getByText("Data-provider authenticity").waitFor();
+ const filters=analyticView.getByRole("combobox",{name:"Research observation filter"});
+ await filters.selectOption("all");
+ await analyticView.getByText(/25[9] observations · Page 1 of 13/).waitFor();
+ await analyticView.getByRole("button",{name:"Next observations"}).click();
+ await analyticView.getByText(/25[9] observations · Page 2 of 13/).waitFor();
+ await filters.selectOption("changed");
+ assert.ok(await analyticView.getByRole("button",{name:"Previous observations"}).isDisabled());
+ assert.ok(await analyticView.getByText(/not predictive accuracy, win rate/).count()>0);
+
 
  // 2F: actual downloaded JSON verifies locally; modified JSON must be rejected.
  const downloadWait=page.waitForEvent("download");
