@@ -114,6 +114,7 @@ try{
  assert.ok(!account.includes("example-browser-test-password"),"Password is never saved");
  // Production's read-only broker endpoint is intentionally disabled. The chart must
  // diagnose this honestly and accept actual user-supplied historical candles instead.
+ const expected503Start=runtimeErrors.length;
  await page.route("**/api/xmi/live?**",route=>route.fulfill({
   status:503,contentType:"application/json",
   body:JSON.stringify({ok:false,code:"FEED_DISABLED",error:"Feed not enabled in production"})
@@ -142,6 +143,12 @@ try{
  await page.getByLabel("Password",{exact:true}).fill("example-browser-test-password-123");
  await page.getByRole("button",{name:"Unlock local account"}).click();
  await page.getByText("Signed in locally.",{exact:false}).waitFor({timeout:15000});
- assert.deepEqual(runtimeErrors,[],"Client console and page must have no runtime errors");
+ assert.deepEqual(runtimeErrors.slice(0,expected503Start),[],"Normal client operation must have no runtime errors");
+ // Our deliberate 503 mock produces browser network-console diagnostics; it must
+ // not hide unexpected JavaScript exceptions, hydration faults or other console errors.
+ const afterDisabled=runtimeErrors.slice(expected503Start);
+ assert.ok(afterDisabled.length>0,"The disabled production route must be exercised");
+ assert.ok(afterDisabled.every(message=>/Failed to load resource:.*status of 503/.test(message)),
+  "Only deliberately simulated disabled-feed responses may emit browser errors: "+afterDisabled.join(" | "));
  console.log("PASS XMI browser: candles mounted, tool settings switched, focus restored, body edge-to-edge");
 }finally{await browser.close();}
