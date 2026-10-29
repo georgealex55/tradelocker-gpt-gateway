@@ -52,6 +52,15 @@ try{
   "All actual-price widgets must remain mounted");
  assert.equal(await page.getByText("Application error:").count(),0);
  assert.ok(await page.locator("canvas").count()>0,"Lightweight Charts must create real canvases");
+ const integrity=page.getByLabel("Closed-candle data integrity").first();
+ await integrity.waitFor({timeout:15000});
+ const integrityText=await integrity.textContent();
+ assert.match(integrityText,/VERIFIED CLOSED BARS/);
+ assert.match(integrityText,/EMA200 ready/);
+ assert.match(integrityText,/RSI ready/);
+ assert.match(integrityText,/MACD ready/);
+ assert.match(integrityText,/260 source candles|259 closed bars/);
+
  const v=await page.evaluate(()=>{
   const body=getComputedStyle(document.body),root=document.querySelector("[data-xmi-root]");
   return {marginTop:body.marginTop,paddingTop:body.paddingTop,maxWidth:body.maxWidth,
