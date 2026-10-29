@@ -13,7 +13,7 @@ const NO_STRUCTURE=defaultStructureSettings();
 export default function XMILiveChart({symbol,resolution,onResolution,selected,onFocus,compact=false,active=true,
  structureSettings=NO_STRUCTURE,onStructure,technicalEnabled=DEFAULT_TECH,
  chartSettings=DEFAULT_CHART_SETTINGS,drawTool=null,savedDrawings=[],onDrawing,
- autoPatterns=true,autoFib=false,onPatterns,patternEnabled={},onAnalysis}){
+ autoPatterns=true,autoFib=false,onPatterns,patternEnabled={},onAnalysis,strategyName="No preset"}){
  const el=useRef(null),chart=useRef(null),series=useRef(null),drawings=useRef(null);
  const interaction=useRef({points:[],stroke:[],count:0});
  const [pendingCount,setPendingCount]=useState(0);
@@ -349,8 +349,8 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
     <span>Indicators may use a forming candle. Confirmed signals require an activated strategy and a closed candle.</span>
    </div>:null}
   <div className={styles.engineSignal}>
-   <strong>Strategy monitor</strong><span>NO ACTIVE STRATEGY</span>
-   <small>Indicator plots are informational. No confirmed entry, stop or target is invented.</small>
+   <strong>Strategy monitor</strong><span>{strategyName} · RESEARCH ONLY</span>
+   <small>Educational preset active for display only. Order execution and automatic trade signals remain disabled.</small>
   </div>
  </article>;
 }
