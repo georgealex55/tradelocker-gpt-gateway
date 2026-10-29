@@ -1,0 +1,38 @@
+name: XMI 2.0 isolated historical-import-only checks
+on:
+  pull_request:
+    paths:
+      - 'research/xmi2/**'
+      - 'public/xmi2/**'
+      - 'tests/xmi2-import-only-preview.test.mjs'
+      - 'app/xmi/XMIWorkstation.jsx'
+      - '.github/workflows/xmi2-import-only-preview.yml'
+  push:
+    branches: [feature/xmi-tradingview-workstation-preview]
+    paths:
+      - 'research/xmi2/**'
+      - 'public/xmi2/**'
+      - 'tests/xmi2-import-only-preview.test.mjs'
+      - 'app/xmi/XMIWorkstation.jsx'
+      - '.github/workflows/xmi2-import-only-preview.yml'
+permissions:
+  contents: read
+jobs:
+  offline-research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Syntax-check offline modules and browser assets
+        run: |
+          set -eu
+          for f in research/xmi2/*.cjs research/xmi2/*.js public/xmi2/*.js; do node --check "$f"; done
+      - name: Historical preview must remain import-only
+        run: node --test tests/xmi2-import-only-preview.test.mjs
+      - name: Historical admission, signed bundles, audited checkpoints and verified viewer regression tests
+        run: node --test research/xmi2/tests/*.test.cjs

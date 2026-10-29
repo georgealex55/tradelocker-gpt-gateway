@@ -19,5 +19,5 @@ test("Existing gateway XMI entry links to isolated offline studio",()=>{
  assert.match(page,/href="\/xmi2\/chart-studio.html"/);
  assert.match(page,/Import Only/);
  const policy=read("lib/xmiBridgePolicy.mjs");
- assert.match(policy,/IMPORT_ONLY_POLICY|HISTORICAL_IMPORT_ONLY/);
+ assert.match(policy,/XMI_CROSS_PROJECT_BRIDGE_APPROVED=false/);
 });
