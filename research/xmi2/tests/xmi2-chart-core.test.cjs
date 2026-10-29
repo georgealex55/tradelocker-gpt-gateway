@@ -77,11 +77,11 @@ test("Confirmed swing pivot timestamps include the closing time of the right-han
  assert.ok(pivot);
  assert.equal(pivot.confirmedAt,start+7*300);
 });
-test("Static route links back to Neon XMI and never reads TradeLocker credentials",()=>{
- const main=fs.readFileSync(path.resolve(__dirname,"../index.html"),"utf8");
- const html=fs.readFileSync(path.resolve(__dirname,"../chart-studio.html"),"utf8");
- const script=fs.readFileSync(path.resolve(__dirname,"../xmi2-chart-studio.js"),"utf8");
- assert.match(main,/href="\/chart-studio.html"/);
+test("Gateway XMI preview links to isolated historical studio without exposing credentials",()=>{
+ const main=fs.readFileSync(path.resolve(__dirname,"../../../app/xmi/XMIWorkstation.jsx"),"utf8");
+ const html=fs.readFileSync(path.resolve(__dirname,"../../../public/xmi2/chart-studio.html"),"utf8");
+ const script=fs.readFileSync(path.resolve(__dirname,"../../../public/xmi2/xmi2-chart-studio.js"),"utf8");
+ assert.match(main,/href="\/xmi2\/chart-studio.html"/);
  assert.match(html,/cdn.jsdelivr.net\/npm\/lightweight-charts@5\.2\.1/);
  assert.match(html,/TradingView/);
  assert.match(html,/Import historical OHLC JSON/);

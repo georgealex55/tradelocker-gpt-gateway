@@ -90,8 +90,8 @@ test("Hit testing supports moving anchored shapes and individual handle editing"
 });
 test("Renderer is anchored to imported chart coordinates and contains no broker/network calls",()=>{
  const src=fs.readFileSync(require.resolve("../xmi2-drawing-layer.js"),"utf8");
- const ui=fs.readFileSync(require.resolve("../xmi2-chart-studio.js"),"utf8");
- const html=fs.readFileSync(require.resolve("../chart-studio.html"),"utf8");
+ const ui=fs.readFileSync(require.resolve("../../../public/xmi2/xmi2-chart-studio.js"),"utf8");
+ const html=fs.readFileSync(require.resolve("../../../public/xmi2/chart-studio.html"),"utf8");
  assert.match(src,/coordinateToLogical/);
  assert.match(src,/priceToCoordinate/);
  assert.match(src,/subscribeVisibleLogicalRangeChange/);
