@@ -20,8 +20,8 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
  const [drawingError,setDrawingError]=useState("");
  const onPatternsRef=useRef(onPatterns);onPatternsRef.current=onPatterns;
  const onAnalysisRef=useRef(onAnalysis);onAnalysisRef.current=onAnalysis;
- const [clock,setClock]=useState(()=>Date.now());
- useEffect(()=>{if(!chartSettings.candleTimer)return;const id=setInterval(()=>setClock(Date.now()),1000);return ()=>clearInterval(id);},[chartSettings.candleTimer]);
+ const [clock,setClock]=useState(0);
+ useEffect(()=>{if(!chartSettings.candleTimer)return;setClock(Date.now());const id=setInterval(()=>setClock(Date.now()),1000);return ()=>clearInterval(id);},[chartSettings.candleTimer]);
  const onDrawingRef=useRef(onDrawing);onDrawingRef.current=onDrawing;
  const onStructureRef=useRef(onStructure);onStructureRef.current=onStructure;
  const [auxData,setAuxData]=useState({});
@@ -302,7 +302,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
  }
  const stats=feed.stats;const ready=feed.phase==="ready";
  const untilClose=Math.ceil((FX_RESOLUTIONS[resolution]*1000-clock%(FX_RESOLUTIONS[resolution]*1000))/1000);
- const countdown=String(Math.floor(untilClose/60)).padStart(2,"0")+":"+String(untilClose%60).padStart(2,"0");
+ const countdown=clock===0?"--:--":String(Math.floor(untilClose/60)).padStart(2,"0")+":"+String(untilClose%60).padStart(2,"0");
  return <article className={styles.engineCard+(selected?" "+styles.chartActive:"")} aria-label={symbol+" live forex chart"}>
   <div className={styles.engineTop}>
    <div><strong className={styles.engineSymbol}>{symbol.slice(0,3)}/{symbol.slice(3)}</strong>
