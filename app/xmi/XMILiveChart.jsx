@@ -18,6 +18,11 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
  const el=useRef(null),chart=useRef(null),series=useRef(null),drawings=useRef(null);
  const importInput=useRef(null);
  const [offline,setOffline]=useState(null),[refreshNonce,setRefreshNonce]=useState(0);
+ useEffect(()=>{
+  const changed=()=>setRefreshNonce(n=>n+1);
+  window.addEventListener("xmi:feed-access-changed",changed);
+  return ()=>window.removeEventListener("xmi:feed-access-changed",changed);
+ },[]);
  const interaction=useRef({points:[],stroke:[],count:0});
  const [pendingCount,setPendingCount]=useState(0);
  const [drawingError,setDrawingError]=useState("");
@@ -171,11 +176,12 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
      stats,asOf:data.asOf,last:stats.latest,quality});
    }catch(e){
     if(!running||e.name==="AbortError")return;
-    const disabled=e.code==="FEED_DISABLED";
-    setFeed(prev=>({...prev,phase:disabled?"disabled":"error",
-     message:disabled?"Production broker feed is intentionally disabled. Import OHLC JSON or open Historical Chart Studio.":e.message,
+    const disabled=e.code==="FEED_DISABLED",locked=e.code==="FEED_LOCKED";
+    setFeed(prev=>({...prev,phase:locked?"locked":disabled?"disabled":"error",
+     message:locked?"Feed is locked. Use Unlock read-only feed in the top toolbar, then refresh.":
+      disabled?"Production broker feed is not configured. Import OHLC JSON or open Historical Chart Studio.":e.message,
      stats:null,last:null,quality:"UNAVAILABLE"}));
-    if(disabled)running=false;
+    if(disabled||locked)running=false; // No repeating unauthorized broker calls.
    }finally{if(running&&!local)timer=setTimeout(refresh,20000);}
   }
   setFeed({phase:"loading",message:"Loading verified broker candles…",last:null,stats:null,asOf:null});
@@ -213,7 +219,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   }
   load();
   return ()=>{running=false;if(timer)clearTimeout(timer);controllers.forEach(c=>c.abort());};
- },[symbol,resolution,active,libReady,extraKey,offline]);
+ },[symbol,resolution,active,libReady,extraKey,offline,refreshNonce]);
  useEffect(()=>{
   const overlay=drawings.current;
   if(!libReady||!overlay)return;
@@ -367,10 +373,11 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
    <span className={feed.phase==="ready"?styles.liveOk:styles.feedWarn}>
     {feed.phase==="historical"?"IMPORTED HISTORY":ready?"CANDLES RECEIVING":
       feed.phase==="loading"?"CONNECTING":feed.phase==="stale"?"STALE DATA":
-      feed.phase==="disabled"?"FEED DISABLED":"NOT LIVE"}
+      feed.phase==="disabled"?"FEED DISABLED":feed.phase==="locked"?"FEED LOCKED":"NOT LIVE"}
    </span>
    <span role="status">{feed.message}</span>
-   {feed.phase==="disabled"?<a href="/xmi2/chart-studio.html">Open offline Historical Chart Studio</a>:null}
+   {(feed.phase==="disabled"||feed.phase==="locked")?
+    <a href="/xmi2/chart-studio.html">Open offline Historical Chart Studio</a>:null}
    <span>{feed.last?(feed.last.closed?"Last bar closed":"Last bar forming")+" · "+new Date(feed.last.time*1000).toLocaleString():"No verified price"}</span>
    {stats?.bars?.length?<span className={styles.candleReadout}>
     {stats.bars.length} verified candles · O {feed.last.open.toFixed(5)} · H {feed.last.high.toFixed(5)} · L {feed.last.low.toFixed(5)} · C {feed.last.close.toFixed(5)}

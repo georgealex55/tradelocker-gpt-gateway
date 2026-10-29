@@ -28,6 +28,13 @@ await page.route("**/api/xmi/live?**",async route=>{
   bars:barsFor(resolution)};
  await route.fulfill({status:200,contentType:"application/json",body:JSON.stringify(data)});
 });
+// Simulate a configured credential gate throughout hydration; browser test secrets are fake.
+await page.route("**/api/xmi/feed-session",async route=>{
+ const method=route.request().method();
+ await route.fulfill({status:200,contentType:"application/json",
+  body:JSON.stringify(method==="POST"?{ok:true,authenticated:true,scope:"candles-only"}:
+   {ok:true,configured:true,authenticated:false,scope:"candles-only"})});
+});
 try{
  const response=await page.goto(root+"/xmi",{waitUntil:"domcontentloaded",timeout:45000});
  assert.equal(response.status(),200,"XMI route must load");
@@ -143,6 +150,12 @@ try{
  await page.getByLabel("Password",{exact:true}).fill("example-browser-test-password-123");
  await page.getByRole("button",{name:"Unlock local account"}).click();
  await page.getByText("Signed in locally.",{exact:false}).waitFor({timeout:15000});
+ // Research settings sign-in is separate from the server-verified market-data feed unlock.
+
+ await page.getByRole("button",{name:"Unlock read-only feed",exact:true}).click();
+ await page.getByRole("textbox",{name:"Feed access passphrase"}).fill("browser-smoke-fixture-only");
+ await page.getByRole("button",{name:"Unlock read-only candles"}).click();
+ await page.getByRole("button",{name:/Feed unlocked/}).waitFor({timeout:15000});
  assert.deepEqual(runtimeErrors.slice(0,expected503Start),[],"Normal client operation must have no runtime errors");
  // Our deliberate 503 mock produces browser network-console diagnostics; it must
  // not hide unexpected JavaScript exceptions, hydration faults or other console errors.

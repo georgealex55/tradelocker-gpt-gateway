@@ -529,3 +529,15 @@
 
 /* Manual refresh/import controls must remain usable on narrow chart layouts. */
 @media(max-width:750px){.engineTop{flex-wrap:wrap}.engineActions{justify-content:flex-start;width:100%}}
+
+.feedAccess{position:relative;display:flex;align-items:center}
+.feedAccessPanel{position:absolute;z-index:75;right:0;top:calc(100% + 9px);box-sizing:border-box;
+ width:min(365px,calc(100vw - 26px));padding:15px;border:1px solid #47728b;border-radius:10px;
+ box-shadow:0 20px 46px #020e19e8;background:#0b2639;color:#dbf4ff}
+.feedAccessPanel strong{display:block;font-size:13px;margin-bottom:10px}
+.feedAccessPanel p{font-size:12px;line-height:1.5;color:#c4e3f3}
+.feedAccessPanel form,.feedAccessPanel label{display:grid;gap:9px;margin-bottom:10px;font-size:12px}
+.feedAccessPanel input{box-sizing:border-box;padding:9px;width:100%;color:#e7f7ff;background:#071727;
+ border:1px solid #49738b;border-radius:7px}
+.feedAccessPanel small{display:block;line-height:1.5;color:#99b7cf;margin-top:12px}
+@media(max-width:700px){.feedAccessPanel{left:0;right:auto}}

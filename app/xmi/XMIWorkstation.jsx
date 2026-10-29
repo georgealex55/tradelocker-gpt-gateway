@@ -5,6 +5,7 @@ import XMIEngineDesk from "./XMIEngineDesk";
 import XMIContext from "./XMIContext";
 import XMIStrategyEngine from "./XMIStrategyEngine";
 import XMIAccountSettings from "./XMIAccountSettings";
+import XMIReadOnlyFeedAccess from "./XMIReadOnlyFeedAccess";
 import {STRATEGIES} from "../../lib/xmiStrategyPresets.mjs";
 import XMICoachPanel from "./XMICoachPanel";
 import {parseInstrument} from "../../lib/xmiLiveMath.mjs";
@@ -53,6 +54,7 @@ export default function XMIWorkstation(){
    {!showTabs?<select aria-label="Switch XMI workspace" value={tab} onChange={e=>setTab(e.target.value)}>
     {TABS.map(t=><option key={t.id} value={t.id}>{t.title}</option>)}
    </select>:null}
+   <XMIReadOnlyFeedAccess/>
    <XMIAccountSettings workspace={workspaceDraft} strategyId={strategyId} layout={{showBanner,showTabs}} onRestore={onRestore}/>
   </div>
   {showBanner?<header className={styles.header}>
@@ -63,9 +65,9 @@ export default function XMIWorkstation(){
      <div><p className={styles.eyebrow}>XMI TERMINAL 2.0 / RESEARCH ONLY</p>
       <h1>Market intelligence terminal</h1></div>
     </div>
-    <p className={styles.subtitle}>Forex-first live candles, five indicators, news and private journal research.</p>
+    <p className={styles.subtitle}>Read-only FX candles (authorization required), five indicators, news and journal research.</p>
    </div>
-   <span className={styles.pill}>DEVELOPMENT PREVIEW · NO ORDERS</span>
+   <span className={styles.pill}>RESEARCH ONLY · NO ORDERS</span>
   </header>:null}
   {showTabs?<nav className={styles.mainNavigation} aria-label="XMI workspaces">
    {TABS.map(t=><button key={t.id} type="button" onClick={()=>setTab(t.id)}
