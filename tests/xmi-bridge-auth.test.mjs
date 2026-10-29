@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
+import {XMI_CROSS_PROJECT_BRIDGE_APPROVED} from "../lib/xmiBridgePolicy.mjs";
 import {bridgeEnabled,validateBridgeParams,signBridge,authorizeBridge,signatureInput}
  from "../lib/xmiBridgeAuth.mjs";
 const secret="dummy-test-key-for-read-only-private-xmi-bridge-2026";
@@ -51,4 +52,14 @@ test("Bridge route cannot use order methods, leak broker metadata or allow produ
  assert.doesNotMatch(route,/\b(placeOrder|executeTrade|TRADING_ENABLED)\b/);
  assert.match(route,/readOnly:true/);
  assert.match(route,/export async function POST/);
+});
+
+test("Owner option C prevents signed cross-project broker requests even with valid flags",()=>{
+ assert.equal(XMI_CROSS_PROJECT_BRIDGE_APPROVED,false);
+ const route=readFileSync(new URL("../app/api/xmi/bridge/route.js",import.meta.url),"utf8");
+ assert.match(route,/XMI_CROSS_PROJECT_BRIDGE_APPROVED/);
+ assert.match(route,/IMPORT_ONLY_POLICY/);
+ assert.ok(route.indexOf("if(!XMI_CROSS_PROJECT_BRIDGE_APPROVED)")<
+  route.indexOf("if(!bridgeEnabled(process.env))"),
+  "Hard policy hold must precede env flag checks and all broker calls");
 });
