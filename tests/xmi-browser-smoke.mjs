@@ -112,6 +112,34 @@ try{
  const account=await page.evaluate(()=>localStorage.getItem("xmi-device-account-v1:smoketest"));
  assert.ok(account&&account.includes("AES-256-GCM"),"Encrypted local backup is stored");
  assert.ok(!account.includes("example-browser-test-password"),"Password is never saved");
+ // Production's read-only broker endpoint is intentionally disabled. The chart must
+ // diagnose this honestly and accept actual user-supplied historical candles instead.
+ await page.route("**/api/xmi/live?**",route=>route.fulfill({
+  status:503,contentType:"application/json",
+  body:JSON.stringify({ok:false,code:"FEED_DISABLED",error:"Feed not enabled in production"})
+ }));
+ await page.getByRole("button",{name:"Refresh EURUSD chart"}).click();
+ await page.getByText("FEED DISABLED",{exact:true}).first().waitFor({timeout:15000});
+ await page.getByRole("link",{name:"Open offline Historical Chart Studio"}).first().waitFor();
+ const live=page.locator('article[aria-label="EURUSD live forex chart"]').first();
+ const resolution=await live.locator("select").first().inputValue();
+ await live.locator('input[type="file"]').setInputFiles({
+  name:"historical.json",mimeType:"application/json",
+  buffer:Buffer.from(JSON.stringify({symbol:"EURUSD",resolution,bars:barsFor(resolution)}))
+ });
+ await page.getByText("IMPORTED HISTORY",{exact:true}).first().waitFor({timeout:15000});
+ assert.equal(await live.locator("canvas").count()>0,true,"Imported historical candles must render");
+ await page.getByRole("button",{name:"Refresh EURUSD chart"}).click();
+ await page.getByText("IMPORTED HISTORY",{exact:true}).first().waitFor();
+ await page.getByRole("button",{name:"Clear import"}).click();
+ await page.getByText("FEED DISABLED",{exact:true}).first().waitFor({timeout:15000});
+ // A device-local account must survive a browser reload without contacting any auth API.
+ await page.reload({waitUntil:"domcontentloaded"});
+ await page.getByRole("button",{name:"Local login / Settings"}).click();
+ await page.getByRole("textbox",{name:"Username"}).fill("smoketest");
+ await page.getByLabel("Password",{exact:true}).fill("example-browser-test-password-123");
+ await page.getByRole("button",{name:"Unlock local account"}).click();
+ await page.getByText("Signed in locally.",{exact:false}).waitFor({timeout:15000});
  assert.deepEqual(runtimeErrors,[],"Client console and page must have no runtime errors");
  console.log("PASS XMI browser: candles mounted, tool settings switched, focus restored, body edge-to-edge");
 }finally{await browser.close();}
