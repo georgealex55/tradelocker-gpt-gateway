@@ -759,3 +759,21 @@
  .analyticsMetrics{grid-template-columns:repeat(2,minmax(0,1fr))}
  .analyticsCategoryRow{grid-template-columns:75px minmax(0,1fr) 50px}
 }
+
+/* Milestone 2H: no broker connections or persisted third-party source assertions. */
+.holdoutLab{display:grid;gap:10px;padding:14px;margin-top:10px;border:1px solid #3c6175;
+ border-radius:10px;background:#0b2a39;font-size:12px}
+.holdoutLab h4{margin:0;font-size:15px}
+.holdoutLab p{margin:0;line-height:1.6}
+.holdoutHashLabel{display:grid;gap:5px;font-size:12px}
+.holdoutHashLabel input{width:100%;box-sizing:border-box;padding:8px;border:1px solid #47738b;
+ border-radius:7px;background:#091f2e;color:#e0f3ff;font-family:monospace;font-size:11px}
+.holdoutResults{display:grid;gap:9px;margin-top:4px;padding:11px;border:1px solid #4e6777;
+ border-radius:8px;background:#08202b;overflow-wrap:anywhere}
+.holdoutResults code{font-size:10px;user-select:all}
+.holdoutResults ul{margin:0;padding-left:20px;line-height:1.6}
+.holdoutResults strong{color:#d2ebef}
+.holdoutPair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.holdoutPair>div{padding:10px;background:#133649;border:1px solid #385d71;border-radius:8px}
+.holdoutPair h5{margin:0 0 7px;color:#d5efff;font-size:12px}
+@media(max-width:620px){.holdoutPair{grid-template-columns:1fr}.holdoutLab{padding:10px}}
