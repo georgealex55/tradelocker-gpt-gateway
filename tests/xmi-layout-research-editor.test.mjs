@@ -8,7 +8,7 @@ const t=1800000000;
 const sample=()=>({lastClosed:{time:t,close:1.18,closed:true},
  overlays:{ema20:[{time:t,value:1.19}],ema50:[{time:t,value:1.16}],
  ema200:[{time:t,value:1.11}],rsi:[{time:t,value:59}],
- macdHistogram:[{time:t,value:0.01}],vwap:[{time:t,value:1.15}]}});
+ macdHistogram:[{time:t,value:-0.01}],vwap:[{time:t,value:1.15}]}});
 test("Bounded strategy editor preserves preset categories and rejects unsafe values",()=>{
  const cfg=normalizeStrategyEdit("day",{timeframe:"30m",rsiBull:62,rsiBear:38,requireMacd:true,requireVwap:true,notes:"Review"});
  assert.equal(cfg.timeframe,"30m");assert.equal(cfg.rsiBull,62);assert.equal(cfg.rsiBear,38);
