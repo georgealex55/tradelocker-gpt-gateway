@@ -11,7 +11,10 @@ import XMIStrategyEngine from "./XMIStrategyEngine";
 import {STRATEGIES,strategyById,evaluateStrategy} from "../../lib/xmiStrategyPresets.mjs";
 import {normalizeStrategyEdit} from "../../lib/xmiStrategyEdits.mjs";
 import {TOOL_CATALOG} from "../../lib/xmiChartTools.mjs";
-import {parseInstrument,validateWatchlist} from "../../lib/xmiLiveMath.mjs";
+import {parseInstrument} from "../../lib/xmiLiveMath.mjs";
+import {normalizeWatchlistCollections,createWatchlistCollection,renameWatchlistCollection,
+ removeWatchlistCollection,updateActiveWatchlistSymbols,MAX_WATCHLIST_COLLECTIONS}
+ from "../../lib/xmiWatchlistCollections.mjs";
 import {defaultStructureSettings,STRUCTURE_CONCEPTS} from "../../lib/xmiStructure.mjs";
 import {DEFAULT_CHART_SETTINGS,DEFAULT_TECH,resolveChartSettings,
  validateDrawings,serializeWorkspace,deserializeWorkspace,drawingsForSymbol,samePatternEvents} from "../../lib/xmiChartTools.mjs";
@@ -19,7 +22,10 @@ const START=["EURUSD","GBPUSD","USDJPY","USDCHF","AUDUSD","NASDAQ:AAPL","AMEX:SP
 const DEFAULT=START.map(parseInstrument),KEY="xmi-chart-workbench-v1";
 export default function XMIEngineDesk({selected,onSelected,onResearch,active=true,focusMode=false,onFocusMode,strategyId="day",onStrategyChange,onResearchModel,onWorkspaceChange,remoteWorkspace,remotePatterns,remoteChartUI,strategyEdits={}}){
  const root=useRef(null),counter=useRef(0),presetHydrated=useRef(false);
- const [watchlist,setWatchlist]=useState(DEFAULT),[watchInput,setWatchInput]=useState(""),[error,setError]=useState("");
+ const [collections,setCollections]=useState(()=>normalizeWatchlistCollections(null,null,DEFAULT.map(x=>x.key)));
+ const [watchInput,setWatchInput]=useState(""),[newListName,setNewListName]=useState(""),[error,setError]=useState("");
+ const activeCollection=collections.lists.find(x=>x.id===collections.activeId);
+ const watchlist=activeCollection.symbols.map(parseInstrument);
  const [layout,setLayout]=useState(1),[focus,setFocus]=useState(0);
  const [watchOpen,setWatchOpen]=useState(true),[watchVisible,setWatchVisible]=useState(true);
  const [leftView,setLeftView]=useState("watchlist");
@@ -59,7 +65,7 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
    const raw=window.localStorage.getItem(CHART_UI_KEY);
    if(raw){
     const ui=normalizeChartUI(JSON.parse(raw));
-    setWatchlist(ui.watchlist.map(parseInstrument));setChartKeys(ui.chartKeys);
+    setCollections(normalizeWatchlistCollections(ui.watchlists,ui.activeWatchlistId,ui.watchlist));setChartKeys(ui.chartKeys);
     setResolutions(ui.resolutions);setLayout(ui.layout);setFocus(ui.focus);
     setWatchOpen(ui.watchOpen);setWatchVisible(ui.watchVisible);
     setIntelOpen(ui.intelOpen);setIntelVisible(ui.intelVisible);
@@ -73,12 +79,13 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
  useEffect(()=>{
   if(!loaded)return;
   try{
-   const ui=normalizeChartUI({watchlist:watchlist.map(item=>item.key),chartKeys,resolutions,
+   const ui=normalizeChartUI({watchlist:activeCollection.symbols,
+    watchlists:collections.lists,activeWatchlistId:collections.activeId,chartKeys,resolutions,
     layout,focus,watchOpen,watchVisible,intelOpen,intelVisible,leftView,orientation,
     autoPatterns,autoFib,maximized});
    window.localStorage.setItem(CHART_UI_KEY,JSON.stringify(ui));
   }catch{setError("Chart layout could not be saved in this browser.");}
- },[loaded,watchlist,chartKeys,resolutions,layout,focus,watchOpen,watchVisible,
+ },[loaded,collections,chartKeys,resolutions,layout,focus,watchOpen,watchVisible,
     intelOpen,intelVisible,leftView,orientation,autoPatterns,autoFib,maximized]);
  useEffect(()=>{
   if(!loaded)return;
@@ -91,7 +98,7 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
   if(!remoteChartUI||!loaded)return;
   try{
    const ui=normalizeChartUI(remoteChartUI);
-   setWatchlist(ui.watchlist.map(parseInstrument));setChartKeys(ui.chartKeys);
+   setCollections(normalizeWatchlistCollections(ui.watchlists,ui.activeWatchlistId,ui.watchlist));setChartKeys(ui.chartKeys);
    setResolutions(ui.resolutions);setLayout(ui.layout);setFocus(ui.focus);
    setWatchOpen(ui.watchOpen);setWatchVisible(ui.watchVisible);
    setIntelOpen(ui.intelOpen);setIntelVisible(ui.intelVisible);
@@ -136,15 +143,42 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
   try{
    const item=parseInstrument(watchInput);
    if(watchlist.some(x=>x.key===item.key))throw Error("Already in the watchlist");
-   setWatchlist(validateWatchlist([...watchlist.map(x=>x.key),item.key]));
+   setCollections(updateActiveWatchlistSymbols(collections,[...activeCollection.symbols,item.key]));
    setWatchInput("");setError("");choose(item.key);
   }catch(e){setError(e.message);}
  }
  function remove(key){
   const next=watchlist.filter(x=>x.key!==key);
   if(!next.length){setError("Keep at least one instrument.");return;}
-  setWatchlist(next);setChartKeys(old=>old.map(x=>x===key?next[0].key:x));
-  if(selected===key)onSelected(next[0].key);
+  try{setCollections(updateActiveWatchlistSymbols(collections,next.map(x=>x.key)));
+   setError("");setChartKeys(old=>old.map(x=>x===key?next[0].key:x));
+   if(selected===key)onSelected(next[0].key);
+  }catch(e){setError(e.message);}
+ }
+ function selectWatchlist(id){
+  const list=collections.lists.find(x=>x.id===id);
+  if(!list)return;
+  setCollections(old=>({...old,activeId:id}));
+  setNewListName("");setError("");choose(list.symbols[0]);
+ }
+ function createNewWatchlist(){
+  try{
+   const id="list-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,7);
+   const next=createWatchlistCollection(collections,{id,name:newListName,symbol:current.key});
+   setCollections(next);setNewListName("");setError("");
+  }catch(e){setError(e.message);}
+ }
+ function renameCurrentWatchlist(){
+  try{setCollections(renameWatchlistCollection(collections,newListName));
+   setNewListName("");setError("");
+  }catch(e){setError(e.message);}
+ }
+ function deleteCurrentWatchlist(){
+  if(!window.confirm("Delete watchlist "+activeCollection.name+"? The instruments and chart drawings are not deleted."))return;
+  try{
+   const next=removeWatchlistCollection(collections);
+   setCollections(next);choose(next.lists[0].symbols[0]);setNewListName("");setError("");
+  }catch(e){setError(e.message);}
  }
  function changeLayout(num){setLayout(num);if(focus>=num){setFocus(0);onSelected(chartKeys[0]);}}
  function setResolution(slot,value){
@@ -229,11 +263,22 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
     </div>
     {leftView==="watchlist"?<>
      <div className={styles.liveSideTitle}><strong>Watchlist</strong>
-      <div className={styles.sideTitleActions}><span>{watchlist.length}/10</span>
+      <div className={styles.sideTitleActions}><span>{watchlist.length}/10 · {collections.lists.length}/6 lists</span>
        <button type="button" aria-expanded={watchOpen} onClick={()=>setWatchOpen(x=>!x)}>
         {watchOpen?"Collapse":"Expand"}</button></div>
      </div>
-     {watchOpen?<><p className={styles.sideHint}>Select a ticker to focus the chart</p>
+     {watchOpen?<><div className={styles.watchCollectionControls} role="group" aria-label="Named watchlists">
+       <select aria-label="Active watchlist" value={collections.activeId} onChange={e=>selectWatchlist(e.target.value)}>
+        {collections.lists.map(list=><option key={list.id} value={list.id}>{list.name}</option>)}
+       </select>
+       <input aria-label="New or renamed watchlist name" placeholder="List name (1–32 chars)"
+        maxLength={32} value={newListName} onChange={e=>setNewListName(e.target.value)}/>
+       <div>
+        <button type="button" onClick={createNewWatchlist} disabled={collections.lists.length>=MAX_WATCHLIST_COLLECTIONS}>New</button>
+        <button type="button" onClick={renameCurrentWatchlist}>Rename</button>
+        <button type="button" onClick={deleteCurrentWatchlist} disabled={collections.lists.length===1}>Delete</button>
+       </div>
+      </div><p className={styles.sideHint}>Select a ticker to focus the chart</p>
       <div className={styles.watchRows} role="list">
        {watchlist.map(item=><div key={item.key} role="listitem" className={styles.watchRow+
         (item.key===current.key?" "+styles.watchActive:"")}>
