@@ -25,6 +25,10 @@ export default function XMIWorkstation(){
  const onRestore=useCallback(prefs=>{
   if(typeof prefs.workspace==="string")setRestoreWorkspace(prefs.workspace);
   if(STRATEGIES.some(s=>s.id===prefs.strategyId))setStrategyId(prefs.strategyId);
+  if(prefs.layout&&typeof prefs.layout==="object"){
+   if(typeof prefs.layout.showBanner==="boolean")setShowBanner(prefs.layout.showBanner);
+   if(typeof prefs.layout.showTabs==="boolean")setShowTabs(prefs.layout.showTabs);
+  }
   if(prefs.pins&&typeof prefs.pins==="object")try{localStorage.setItem("xmi-news-pins-v1",JSON.stringify(prefs.pins));}catch{}
   if(prefs.patterns&&typeof prefs.patterns==="object"){setRemotePatterns(prefs.patterns);
    try{localStorage.setItem("xmi-pattern-types-v1",JSON.stringify(prefs.patterns));}catch{}}
@@ -49,7 +53,7 @@ export default function XMIWorkstation(){
    {!showTabs?<select aria-label="Switch XMI workspace" value={tab} onChange={e=>setTab(e.target.value)}>
     {TABS.map(t=><option key={t.id} value={t.id}>{t.title}</option>)}
    </select>:null}
-   <XMIAccountSettings workspace={workspaceDraft} strategyId={strategyId} onRestore={onRestore}/>
+   <XMIAccountSettings workspace={workspaceDraft} strategyId={strategyId} layout={{showBanner,showTabs}} onRestore={onRestore}/>
   </div>
   {showBanner?<header className={styles.header}>
    <div>
