@@ -10,6 +10,8 @@ on:
       - 'lib/xmiChartTools.mjs'
       - 'lib/xmiDrawingPrimitive.mjs'
       - 'tests/xmi-chart-tools.test.mjs'
+      - 'tests/xmi-browser-smoke.mjs'
+      - 'app/xmi/xmi-root.css'
       - 'tests/xmi-structure.test.mjs'
       - 'tests/xmi-live-engine.test.mjs'
       - 'tests/xmi-chart-lifecycle.test.mjs'
@@ -59,3 +61,29 @@ jobs:
           node --check app/api/xmi/context/route.js
       - name: Test equity boundaries and widget configuration
         run: node --test tests/xmi-*.test.mjs
+      - name: Install Chromium for client-side chart smoke tests
+        run: |
+          npm install --no-save --ignore-scripts --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Browser smoke test actual chart mount and edge-to-edge layout
+        timeout-minutes: 8
+        run: |
+          npm run dev -- --hostname 127.0.0.1 --port 3000 > /tmp/xmi-next.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          READY=0
+          for i in $(seq 1 90); do
+            if curl --silent --fail http://127.0.0.1:3000/xmi >/dev/null; then
+              READY=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$READY" -ne 1 ]; then
+            cat /tmp/xmi-next.log
+            exit 1
+          fi
+          if ! node tests/xmi-browser-smoke.mjs; then
+            cat /tmp/xmi-next.log
+            exit 1
+          fi
