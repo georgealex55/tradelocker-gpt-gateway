@@ -3,7 +3,7 @@ import {useEffect,useRef,useState} from "react";
 import styles from "./xmi.module.css";
 function nonce(){const bytes=new Uint8Array(24);crypto.getRandomValues(bytes);
  return btoa(String.fromCharCode(...bytes)).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");}
-export default function XMIAccountSettings({workspace,strategyId,onRestore}){
+export default function XMIAccountSettings({workspace,strategyId,layout,onRestore}){
  const [open,setOpen]=useState(false),[config,setConfig]=useState(null);
  const [signedIn,setSignedIn]=useState(false),[status,setStatus]=useState("Checking account configuration…");
  const [busy,setBusy]=useState(false);
@@ -64,7 +64,7 @@ export default function XMIAccountSettings({workspace,strategyId,onRestore}){
    const patterns=JSON.parse(localStorage.getItem("xmi-pattern-types-v1")||"{}");
    const result=await fetch("/api/xmi/preferences",{method:"PUT",credentials:"same-origin",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({workspace,strategyId,pins,patterns})});
+    body:JSON.stringify({workspace,strategyId,layout,pins,patterns})});
    const data=await result.json();if(result.status===401)setSignedIn(false);
    if(!result.ok||!data.ok)throw Error(data.error||"Save failed");
    setStatus("Account settings saved in the isolated, owner-scoped preview database.");
