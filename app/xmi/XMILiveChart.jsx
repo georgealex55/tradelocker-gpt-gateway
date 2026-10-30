@@ -47,7 +47,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   sourceSymbol:symbol,sourceResolution:resolution});
  useEffect(()=>{if(selected)onAnalysisRef.current?.({stats:feed.stats,quality:feed.quality||"UNAVAILABLE",asOf:feed.asOf});},[feed.stats,feed.quality,feed.asOf,selected]);
  const [libReady,setLibReady]=useState(false);
- useEffect(()=>{interaction.current={points:[],stroke:[],count:0};setPendingCount(0);setDrawingError("");},[drawTool,symbol]);
+ useEffect(()=>{interaction.current={points:[],stroke:[],count:0};moving.current=null;setPendingCount(0);setDrawingError("");},[drawTool,symbol]);
  useEffect(()=>{
   if(!el.current)return;
   let live=true,resize;
@@ -328,14 +328,20 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   const display=feed.stats.bars;
   const result=assembleStructure(structureSettings,byResolution,resolution,display);
   try{
-   overlay.marker.setMarkers(toStructureMarkers(result.annotations));
-   overlay.primitive.setAnnotations(result.annotations,display.at(-1)?.time??null);
+   const closeTimes=new Set(display.filter(b=>b.closed).map(b=>b.time));
+    const structureMarkers=toStructureMarkers(result.annotations).filter(m=>closeTimes.has(m.time));
+    const indicatorMarkers=buildIndicatorMarkers(display,feed.stats.overlays,{
+     mode:chartSettings.markerStyle,palette:chartSettings.markerPalette,enabled:technicalEnabled});
+    overlay.marker.setMarkers(combineChartMarkers(structureMarkers,indicatorMarkers,chartSettings.markerStyle));
+   overlay.primitive.setAnnotations(chartSettings.markerStyle==="compact"?[]:result.annotations,
+     display.at(-1)?.time??null);
    setOverlayMessage(result.annotations.length+" annotations · "+result.unavailable.length+" timeframes awaiting data");
   }catch(err){
    setOverlayMessage("Structure drawing unavailable; candle feed remains read-only");
   }
   if(selected)onStructureRef.current?.(result);
- },[symbol,resolution,feed.stats,feed.asOf,structureSettings,auxData,libReady,selected,active,extraKey]);
+ },[symbol,resolution,feed.stats,feed.asOf,structureSettings,auxData,libReady,selected,active,extraKey,
+  technicalEnabled,chartSettings.markerStyle,chartSettings.markerPalette]);
  // Manual drawings, completed price patterns, and swing-anchored Fibonacci use the
  // existing chart data only. Missing data clears every optional drawing primitive.
  useEffect(()=>{
@@ -388,6 +394,23 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
  function pointerDown(e){
   if(!drawTool)return;
   e.preventDefault();e.stopPropagation();
+  if(drawTool==="Move saved drawings"){
+   const root=el.current,scale=chart.current?.timeScale(),price=series.current?.candle;
+   if(!root||!scale||!price)return;
+   const rect=root.getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top;
+   let best=null;
+   for(const d of savedDrawings)for(let i=0;i<d.points.length;i++){
+    const p=d.points[i],px=scale.timeToCoordinate(p.time),py=price.priceToCoordinate(p.price);
+    if(px==null||py==null)continue;
+    const distance=Math.hypot(px-x,py-y);
+    if(distance<=18&&(!best||distance<best.distance))
+     best={id:d.id,index:i,distance};
+   }
+   if(!best){setDrawingError("Drag within 18 pixels of a saved drawing anchor");return;}
+   moving.current={...best,point:null};
+   e.currentTarget.setPointerCapture(e.pointerId);
+   setDrawingError("");return;
+  }
   const point=pointerPoint(e);
   if(!point){setDrawingError("Click inside the plotted price area");return;}
   try{
@@ -403,6 +426,14 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   }catch{setDrawingError("Invalid chart point");}
  }
  function pointerMove(e){
+  if(drawTool==="Move saved drawings"&&moving.current){
+   const point=pointerPoint(e);if(!point)return;
+   moving.current.point=point;
+   const changed=savedDrawings.map(d=>d.id===moving.current.id?
+    {...d,points:d.points.map((p,i)=>i===moving.current.index?point:p)}:d);
+   drawings.current?.manualPrimitive?.setDrawings(changed);
+   return;
+  }
   if(drawTool!=="Freehand drawing"||!interaction.current.stroke.length)return;
   const point=pointerPoint(e);
   if(point&&interaction.current.stroke.length<600){
@@ -411,6 +442,12 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   }
  }
  function pointerUp(e){
+  if(drawTool==="Move saved drawings"&&moving.current){
+   const drag=moving.current;moving.current=null;
+   if(drag.point)onDrawingMoveRef.current?.(drag.id,drag.index,drag.point);
+   if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);
+   return;
+  }
   if(drawTool!=="Freehand drawing"||!interaction.current.stroke.length)return;
   const stroke=interaction.current.stroke.slice();
   if(stroke.length>1)commitPoints(drawTool,stroke);
@@ -445,7 +482,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   </div>
   <div className={styles.engineDrawingCaption}>
    <span>{chartSettings.chartType}{chartSettings.chartType==="Heikin Ashi"?" · transformed prices (not broker executions)":""}</span>
-   <span>Indicators & patterns · unified toolbar</span>
+   <span>Indicators · {chartSettings.markerStyle==="compact"?"non-overlapping dots":chartSettings.markerStyle==="full"?"color symbols":"markers hidden"} · read-only</span>
    {chartSettings.candleTimer?<span role="timer">Candle boundary in {countdown} · local-clock estimate</span>:null}
   </div>
   <div className={styles.engineDrawHost}>
@@ -464,7 +501,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
     onPointerUp={pointerUp} onPointerCancel={pointerUp}/>:null}
   </div>
   {drawTool?<div className={styles.engineDrawStatus} role="status">
-   Drawing: {drawTool} · {TOOL_CATALOG.Fibonacci.includes(drawTool)?"Automatically anchored to confirmed swings":drawTool==="Freehand drawing"?"Drag on chart":"Select "+requiredClicks(drawTool)+" chart point(s)"}
+   Drawing: {drawTool} · {drawTool==="Move saved drawings"?"Drag a saved endpoint to reposition it":TOOL_CATALOG.Fibonacci.includes(drawTool)?"Automatically anchored to confirmed swings":drawTool==="Freehand drawing"?"Drag on chart":"Select "+requiredClicks(drawTool)+" chart point(s)"}
    {pendingCount?" · "+pendingCount+" point(s) selected":""}
    {drawingError?" · "+drawingError:""}
   </div>:null}
