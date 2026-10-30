@@ -146,7 +146,7 @@ export default function XMIWorkstation(){
  return <main data-xmi-root="true" data-density={density} className={styles.shell+" "+(tab==="live"?styles.studioShell:"")+
    (tab==="live"&&focusMode?" "+styles.studioFocus:"")}>
   <div className={styles.layoutSwitch} role="toolbar" aria-label="XMI layout and account controls">
-   <span className={styles.terminalIdentity}><b>XMI <small>2.0</small></b><span>RESEARCH ONLY</span></span>
+   <a href="/" aria-label="Gateway home" className={styles.terminalIdentity}><b>XMI <small>2.0</small></b><span>RESEARCH ONLY</span></a>
    <details ref={viewMenu} className={styles.viewMenu}>
     <summary>View & shortcuts</summary>
     <section aria-label="Workspace view options" className={styles.viewOptions}>

@@ -893,3 +893,4 @@
 }
 @media(max-width:480px){.strategyLabRail{grid-template-columns:1fr}.strategyLabRail .strategyMatrix{max-width:140px}.strategyScroll{grid-template-columns:repeat(2,minmax(0,1fr));max-height:none}.strategyScroll button{min-height:65px}.terminalIdentity{gap:7px}.terminalIdentity>b{font-size:15px}.viewMenu>summary{font-size:10px;padding:5px 7px}.tickerNewsStatus small{flex-basis:70%}}
 .journalRecords{min-width:0}.recordPagination{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:11px;color:#b6d0e3}.recordPagination>span{margin-right:auto}
+.terminalIdentity{text-decoration:none;color:var(--text)!important}.viewOptions fieldset label,.shortcutToggle{min-height:28px}
