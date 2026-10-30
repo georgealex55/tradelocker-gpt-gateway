@@ -11,6 +11,7 @@ import XMIStrategyEngine from "./XMIStrategyEngine";
 import {STRATEGIES,strategyById,evaluateStrategy} from "../../lib/xmiStrategyPresets.mjs";
 import {normalizeStrategyEdit} from "../../lib/xmiStrategyEdits.mjs";
 import {TOOL_CATALOG} from "../../lib/xmiChartTools.mjs";
+import {INDICATOR_SETTINGS_KEY,DEFAULT_INDICATOR_SETTINGS,normalizeIndicatorSettings} from "../../lib/xmiIndicatorSettings.mjs";
 import {parseInstrument} from "../../lib/xmiLiveMath.mjs";
 import {normalizeWatchlistCollections,createWatchlistCollection,renameWatchlistCollection,
  removeWatchlistCollection,updateActiveWatchlistSymbols,MAX_WATCHLIST_COLLECTIONS}
@@ -36,6 +37,7 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
  const [docked,setDocked]=useState(false),[pinned,setPinned]=useState(false);
  const [structure,setStructure]=useState(defaultStructureSettings);
  const [tech,setTech]=useState({...DEFAULT_TECH});
+ const [indicatorSettings,setIndicatorSettings]=useState({...DEFAULT_INDICATOR_SETTINGS});
  const [globalSettings,setGlobalSettings]=useState({...DEFAULT_CHART_SETTINGS});
  const [chartOverride,setChartOverride]=useState({});
  const [drawTool,setDrawTool]=useState(null),[savedDrawings,setSavedDrawings]=useState([]);
@@ -62,6 +64,8 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
    if(raw){const data=deserializeWorkspace(raw);setSavedDrawings(data.drawings);
     setGlobalSettings(data.settings);setChartOverride(data.overrides);setTech(data.technical);}
   }catch{ /* Private browsing / older schema: fail closed to default settings. */ }
+  try{setIndicatorSettings(normalizeIndicatorSettings(
+   JSON.parse(window.localStorage.getItem(INDICATOR_SETTINGS_KEY)||"{}")));}catch{}
   try{const value=JSON.parse(window.localStorage.getItem("xmi-pattern-types-v1")||"null");if(value&&typeof value==="object"&&Object.keys(value).every(k=>TOOL_CATALOG.Patterns.includes(k)))setPatternEnabled(value);}catch{}
   try{
    const raw=window.localStorage.getItem(CHART_UI_KEY);
@@ -94,6 +98,9 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
   try{window.localStorage.setItem(KEY,serializeWorkspace(savedDrawings,globalSettings,tech,chartOverride));}
   catch{setError("Local drawing storage unavailable. Export JSON to retain this session.");}
  },[loaded,savedDrawings,globalSettings,tech,chartOverride]);
+ useEffect(()=>{if(!loaded)return;
+  try{window.localStorage.setItem(INDICATOR_SETTINGS_KEY,JSON.stringify(indicatorSettings));}catch{}
+ },[loaded,indicatorSettings]);
  useEffect(()=>{if(loaded)onWorkspaceChange?.(serializeWorkspace(savedDrawings,globalSettings,tech,chartOverride));},
   [loaded,savedDrawings,globalSettings,tech,chartOverride,onWorkspaceChange]);
  useEffect(()=>{
@@ -242,7 +249,7 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
  const patternReport=patterns[focus+"|"+current.key+"|"+resolutions[focus]]||[];
  const activeReport=strategyReports[focus+"|"+current.key+"|"+resolutions[focus]];
  const strategyResult=useMemo(()=>evaluateStrategy(strategyId,activeReport?.stats,activeReport?.quality,edit,current.symbol),
-  [strategyId,activeReport?.stats,activeReport?.quality,edit.rsiBull,edit.rsiBear,edit.requireMacd,edit.requireVwap,edit.adxMin,edit.atrMinPips,edit.requireAdx,edit.requireAtr,current.symbol]);
+  [strategyId,activeReport?.stats,activeReport?.quality,edit.rsiBull,edit.rsiBear,edit.requireMacd,edit.requireVwap,edit.adxMin,edit.atrMinPips,edit.requireAdx,edit.requireAtr,edit.stopAtr,edit.rewardRisk,edit.maxHoldBars,current.symbol]);
  const strategyInfo=strategyById(strategyId);
  const count=STRUCTURE_CONCEPTS.filter(x=>structure[x.id].enabled).length;
  useEffect(()=>{onResearchModel?.({model:strategyResult,symbol:current.symbol,resolution:resolutions[focus],
@@ -321,7 +328,8 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
     <XMIToolbox activePanel={activePanel} setActivePanel={setActivePanel}
      orientation={orientation} setOrientation={setOrientation}
      docked={docked} setDocked={setDocked} pinned={pinned} setPinned={setPinned}
-     tech={tech} setTech={setTech} structure={structure} setStructure={setStructure}
+     tech={tech} setTech={setTech} indicatorSettings={indicatorSettings} setIndicatorSettings={setIndicatorSettings}
+     structure={structure} setStructure={setStructure}
      strategyId={strategyId} onStrategyChange={onStrategyChange}
      drawTool={drawTool} setDrawTool={setDrawTool} autoPatterns={autoPatterns}
      setAutoPatterns={setAutoPatterns} patternEnabled={patternEnabled} setPatternEnabled={setPatternEnabled}
@@ -341,7 +349,9 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
          <XMILiveChart symbol={item.symbol} resolution={resolutions[index]}
          onResolution={v=>setResolution(index,v)}
          selected={index===focus} onFocus={()=>{setFocus(index);onSelected(key);}}
-         structureSettings={structure} technicalEnabled={tech} strategyName={strategyInfo?.name||"No preset"}
+         structureSettings={structure} technicalEnabled={tech}
+         indicatorSettings={indicatorSettings} strategyId={strategyId} strategyEdit={edit}
+         strategyName={strategyInfo?.name||"No preset"}
           onTechnicalChange={(id,on)=>setTech(old=>({...old,[id]:on}))}
           onStructureChange={(id,on)=>setStructure(old=>setStructureOption(old,id,{enabled:on}))}
           onPatternChange={(id,on)=>setPatternEnabled(old=>({...old,[id]:on}))}
