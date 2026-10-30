@@ -10,6 +10,8 @@ import {StructureOverlayPrimitive,toStructureMarkers} from "../../lib/xmiStructu
 import {XMIDrawingPrimitive} from "../../lib/xmiDrawingPrimitive.mjs";
 import {buildIndicatorMarkers,stackChartMarkers,markerSeriesPayload} from "../../lib/xmiIndicatorMarkers.mjs";
 import {computeChartAlgorithms} from "../../lib/xmiChartAlgorithms.mjs";
+import {DEFAULT_INDICATOR_SETTINGS} from "../../lib/xmiIndicatorSettings.mjs";
+import {SCALP_PRESET_ID,evaluateScalpResearch} from "../../lib/xmiScalpResearch.mjs";
 import {DEFAULT_CHART_SETTINGS,DEFAULT_TECH,chartSeriesData,autoFibonacci,detectClassicPatterns,requiredClicks,drawingPoint,TOOL_CATALOG} from "../../lib/xmiChartTools.mjs";
 const COLOR={ema20:"#59c9d8",ema50:"#d1ad5b",ema200:"#a690fa",vwap:"#ef9ed9",
  rsi:"#60ccf5",macd:"#7c95ed",macdSignal:"#f1a45d"};
@@ -17,6 +19,7 @@ const TIMEFRAMES=Object.keys(FX_RESOLUTIONS);
 const NO_STRUCTURE=defaultStructureSettings();
 export default function XMILiveChart({symbol,resolution,onResolution,selected,onFocus,compact=false,active=true,
  structureSettings=NO_STRUCTURE,onStructure,technicalEnabled=DEFAULT_TECH,
+ indicatorSettings=DEFAULT_INDICATOR_SETTINGS,strategyId="day",strategyEdit={},
  chartSettings=DEFAULT_CHART_SETTINGS,drawTool=null,savedDrawings=[],onDrawing,onDrawingMove,
  autoPatterns=true,autoFib=false,onPatterns,patternEnabled={},onAnalysis,strategyName="No preset",
  onTechnicalChange,onStructureChange,onPatternChange,onPatternsEnabled,onChartSettingChange}){
@@ -44,8 +47,10 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
  const onStructureRef=useRef(onStructure);onStructureRef.current=onStructure;
  const [auxData,setAuxData]=useState({});
  const [overlayMessage,setOverlayMessage]=useState("");
+ const scalpActive=strategyId===SCALP_PRESET_ID&&symbol==="EURUSD"&&resolution==="5m";
  const extraRes=requiredStructureTimeframes(structureSettings,resolution);
- const extraKey=extraRes.join("|");
+ if(scalpActive&&!extraRes.includes("15m"))extraRes.push("15m");
+ const extraKey=extraRes.sort().join("|");
  const [feed,setFeed]=useState({phase:"loading",message:"Waiting for read-only forex data",
   last:null,stats:null,asOf:null,quality:"UNAVAILABLE",failures:0,
   lastCheckedAt:null,lastSuccessAt:null,lastClosedAt:null,nextRefreshMs:null,
@@ -109,6 +114,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
    const histogram=macdPane?c.addSeries(lib.HistogramSeries,{priceLineVisible:false,
       priceFormat:{type:"price",precision:5,minMove:0.00001}},macdPane):null;
    const atr=atrPane?newLine("#ffca73",atrPane):null;
+   const volumeMA=volumePane?newLine("#d8b96b",volumePane):null;
    const volume=volumePane?c.addSeries(lib.HistogramSeries,{priceLineVisible:false,
      priceFormat:{type:"volume"},priceScaleId:""},volumePane):null;
    const bbUpper=newLine("#b88fff"),bbBasis=newLine("#a39ab3"),bbLower=newLine("#b88fff");
@@ -116,7 +122,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
    try{for(let i=1;i<=pane;i++)c.panes()[i]?.setHeight(i===momentumPane?110:85);}catch{}
    const regLine=newLine("#f2c86e"),regUpper=newLine("#edaa58"),regLower=newLine("#edaa58");
    const atrUpper=newLine("#39bfa5"),atrLower=newLine("#df8ca0");
-   series.current={candle,ema20,ema50,ema200,vwap,rsi,macd,macdSignal,histogram,volume,
+   series.current={candle,ema20,ema50,ema200,vwap,rsi,macd,macdSignal,histogram,volume,volumeMA,
     regLine,regUpper,regLower,atrUpper,atrLower,
     atr,adx,plusDI,minusDI,stochK,stochD,bbUpper,bbBasis,bbLower,donchianUpper,donchianLower};
    const primitive=new StructureOverlayPrimitive();
@@ -169,7 +175,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   const visible={
    ema20:technicalEnabled.EMA,ema50:technicalEnabled.EMA,ema200:technicalEnabled.EMA,vwap:technicalEnabled.VWAP,
    rsi:technicalEnabled.RSI,macd:technicalEnabled.MACD,macdSignal:technicalEnabled.MACD,histogram:technicalEnabled.MACD,
-   volume:technicalEnabled.Volume,atr:technicalEnabled.ATR,
+   volume:technicalEnabled.Volume,volumeMA:technicalEnabled.Volume&&indicatorSettings.volumeAverage>1,atr:technicalEnabled.ATR,
    adx:technicalEnabled.ADX,plusDI:technicalEnabled.ADX,minusDI:technicalEnabled.ADX,
    stochK:technicalEnabled.Stochastic,stochD:technicalEnabled.Stochastic,
    bbUpper:technicalEnabled.Bollinger,bbBasis:technicalEnabled.Bollinger,bbLower:technicalEnabled.Bollinger,
@@ -182,7 +188,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
    atrLower:mode==="atrBands"||mode==="both"
   });
   for(const [key,on] of Object.entries(visible))all[key]?.applyOptions({visible:!!on});
- },[technicalEnabled,libReady,chartSettings.algorithmMode]);
+ },[technicalEnabled,libReady,chartSettings.algorithmMode,indicatorSettings.volumeAverage]);
  useEffect(()=>{
   if(!libReady||!series.current||!active)return;
   let running=true,abort=null,timer=null,failures=0,inFlight=false;
@@ -228,7 +234,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
     const reportedAt=Date.parse(data.asOf),observedNow=Date.now();
     if(!Number.isFinite(reportedAt))
      throw Error("Candle source observation time is invalid; no current data inferred");
-    const stats=computeFive(data.bars,resolution,reportedAt,data.volumeBasis);
+    const stats=computeFive(data.bars,resolution,reportedAt,data.volumeBasis,indicatorSettings);
     if(!running)return;
     const observedQuality=local?"HISTORICAL":quoteState(stats.lastClosed,observedNow,resolution);
     if(observedQuality==="INVALID_TIME")
@@ -251,6 +257,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
       }
       all.histogram?.setData(stats.overlays.macdHistogram.map(p=>({...p,color:p.value>=0?"#339a9a":"#b66c84"})));
       all.volume?.setData(stats.overlays.volume);
+      all.volumeMA?.setData(stats.overlays.volumeMA);
       if(priorVisible&&Number.isFinite(priorVisible.from)&&Number.isFinite(priorVisible.to))
        chart.current?.timeScale().setVisibleLogicalRange(priorVisible);
       if(!fitted){
@@ -304,7 +311,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   refresh();
   return ()=>{running=false;document.removeEventListener("visibilitychange",onVisible);
    abort?.abort();if(timer)clearTimeout(timer);};
- },[symbol,resolution,libReady,active,chartSettings.chartType,chartSettings.refreshProfile,offline,refreshNonce]);
+ },[symbol,resolution,libReady,active,chartSettings.chartType,chartSettings.refreshProfile,offline,refreshNonce,indicatorSettings]);
  // Additional timeframes use the same protected, read-only candle API.
  // Each distinct selected timeframe is fetched once; settings are shared by all charts.
  useEffect(()=>{
@@ -323,8 +330,16 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
       {cache:"no-store",signal:controller.signal});
      const data=await res.json();
      if(!res.ok||!data.ok)throw Error(data.error||"No verified market candles");
-     const structure=detectStructure(data.bars,tf,Date.parse(data.asOf));
-     if(running)setAuxData(old=>({...old,[key]:{structure,loadedAt:Date.parse(data.asOf)}}));
+     const reported=Date.parse(data.asOf);
+     if(!Number.isFinite(reported))throw Error("Invalid auxiliary source observation time");
+     const structured=computeFive(data.bars,tf,reported,data.volumeBasis,indicatorSettings);
+     const quality=quoteState(structured.lastClosed,Date.now(),tf);
+     const health=inspectCandleQuality({bars:structured.bars,overlays:structured.overlays,
+      resolution:tf,asOf:reported,now:Date.now(),sourceQuality:quality});
+     if(!health.researchReady||quality!=="CURRENT")throw Error("Unverified or stale "+tf+" candles");
+     const structure=detectStructure(structured.bars,tf,reported);
+     if(running)setAuxData(old=>({...old,[key]:{structure,loadedAt:reported,
+      scalpStats:tf==="15m"?structured:null}}));
     }catch(err){
      if(running&&err.name!=="AbortError")
       setAuxData(old=>({...old,[key]:{error:"Market data unavailable for "+tf}}));
@@ -334,7 +349,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   }
   load();
   return ()=>{running=false;if(timer)clearTimeout(timer);controllers.forEach(c=>c.abort());};
- },[symbol,resolution,active,libReady,extraKey,offline,refreshNonce]);
+ },[symbol,resolution,active,libReady,extraKey,offline,refreshNonce,indicatorSettings]);
  useEffect(()=>{
   const overlay=drawings.current;
   if(!libReady||!overlay)return;
