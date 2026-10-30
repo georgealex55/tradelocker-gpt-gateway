@@ -194,6 +194,16 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
    setSavedDrawings(next);setError("");return true;
   }catch(e){setError(e.message);return false;}
  }
+ function moveChartDrawing(symbol,id,pointIndex,point){
+  try{
+   if(!Number.isInteger(pointIndex)||pointIndex<0)throw Error("Invalid drawing handle");
+   const target=savedDrawings.find(x=>x.symbol===symbol&&x.id===id);
+   if(!target||!target.points[pointIndex])throw Error("Saved drawing handle not found");
+   const next=validateDrawings(savedDrawings.map(d=>d.id===id&&d.symbol===symbol?
+    {...d,points:d.points.map((p,i)=>i===pointIndex?drawingPoint(point.time,point.price):p)}:d));
+   setSavedDrawings(next);setError("");return true;
+  }catch(e){setError(e.message);return false;}
+ }
  function undo(){
   const current=parseInstrument(chartKeys[focus]);
   setSavedDrawings(old=>{
@@ -231,8 +241,8 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
  const current=parseInstrument(chartKeys[focus]),report=observations[focus+"|"+current.key+"|"+resolutions[focus]];
  const patternReport=patterns[focus+"|"+current.key+"|"+resolutions[focus]]||[];
  const activeReport=strategyReports[focus+"|"+current.key+"|"+resolutions[focus]];
- const strategyResult=useMemo(()=>evaluateStrategy(strategyId,activeReport?.stats,activeReport?.quality,edit),
-  [strategyId,activeReport?.stats,activeReport?.quality,edit.rsiBull,edit.rsiBear,edit.requireMacd,edit.requireVwap]);
+ const strategyResult=useMemo(()=>evaluateStrategy(strategyId,activeReport?.stats,activeReport?.quality,edit,current.symbol),
+  [strategyId,activeReport?.stats,activeReport?.quality,edit.rsiBull,edit.rsiBear,edit.requireMacd,edit.requireVwap,edit.adxMin,edit.atrMinPips,edit.requireAdx,edit.requireAtr,current.symbol]);
  const strategyInfo=strategyById(strategyId);
  const count=STRUCTURE_CONCEPTS.filter(x=>structure[x.id].enabled).length;
  useEffect(()=>{onResearchModel?.({model:strategyResult,symbol:current.symbol,resolution:resolutions[focus],
@@ -334,6 +344,7 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
          structureSettings={structure} technicalEnabled={tech} strategyName={strategyInfo?.name||"No preset"}
          chartSettings={chartSettingsBySlot[index]}
          drawTool={index===focus?drawTool:null} onDrawing={d=>onChartDrawing(item.symbol,d)}
+          onDrawingMove={(id,pointIndex,point)=>moveChartDrawing(item.symbol,id,pointIndex,point)}
          savedDrawings={chartDrawingMap[item.symbol]}
          autoPatterns={autoPatterns} autoFib={autoFib} patternEnabled={patternEnabled}
          onAnalysis={result=>setStrategyReports(old=>{
