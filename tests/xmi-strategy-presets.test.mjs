@@ -12,7 +12,7 @@ function fake(overrides={}){
  };
 }
 test("One research-only preset per scalp, day and swing type plus parked owner strategy",()=>{
- assert.deepEqual(STRATEGIES.map(x=>x.id),["scalp","day","swing","xmi"]);
+ assert.deepEqual(STRATEGIES.map(x=>x.id),["scalp","day","swing","eur-london","gbp-breakout","jpy-pullback","xmi"]);
  assert.equal(strategyById("day").timeframe,"15m");
  assert.equal(strategyById("scalp").timeframe,"1m");
  assert.equal(strategyById("swing").timeframe,"4H");

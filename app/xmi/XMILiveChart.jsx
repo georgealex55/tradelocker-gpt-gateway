@@ -8,6 +8,7 @@ import styles from "./xmi.module.css";
 import {defaultStructureSettings,requiredStructureTimeframes,detectStructure,assembleStructure} from "../../lib/xmiStructure.mjs";
 import {StructureOverlayPrimitive,toStructureMarkers} from "../../lib/xmiStructureOverlay.mjs";
 import {XMIDrawingPrimitive} from "../../lib/xmiDrawingPrimitive.mjs";
+import {buildIndicatorMarkers,combineChartMarkers} from "../../lib/xmiIndicatorMarkers.mjs";
 import {DEFAULT_CHART_SETTINGS,DEFAULT_TECH,chartSeriesData,autoFibonacci,detectClassicPatterns,requiredClicks,drawingPoint,TOOL_CATALOG} from "../../lib/xmiChartTools.mjs";
 const COLOR={ema20:"#59c9d8",ema50:"#d1ad5b",ema200:"#a690fa",vwap:"#ef9ed9",
  rsi:"#60ccf5",macd:"#7c95ed",macdSignal:"#f1a45d"};
@@ -15,7 +16,7 @@ const TIMEFRAMES=Object.keys(FX_RESOLUTIONS);
 const NO_STRUCTURE=defaultStructureSettings();
 export default function XMILiveChart({symbol,resolution,onResolution,selected,onFocus,compact=false,active=true,
  structureSettings=NO_STRUCTURE,onStructure,technicalEnabled=DEFAULT_TECH,
- chartSettings=DEFAULT_CHART_SETTINGS,drawTool=null,savedDrawings=[],onDrawing,
+ chartSettings=DEFAULT_CHART_SETTINGS,drawTool=null,savedDrawings=[],onDrawing,onDrawingMove,
  autoPatterns=true,autoFib=false,onPatterns,patternEnabled={},onAnalysis,strategyName="No preset"}){
  const el=useRef(null),chart=useRef(null),series=useRef(null),drawings=useRef(null);
  const importInput=useRef(null);
@@ -33,6 +34,8 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
  const [clock,setClock]=useState(0);
  useEffect(()=>{if(!chartSettings.candleTimer)return;setClock(Date.now());const id=setInterval(()=>setClock(Date.now()),1000);return ()=>clearInterval(id);},[chartSettings.candleTimer]);
  const onDrawingRef=useRef(onDrawing);onDrawingRef.current=onDrawing;
+ const onDrawingMoveRef=useRef(onDrawingMove);onDrawingMoveRef.current=onDrawingMove;
+ const moving=useRef(null);
  const onStructureRef=useRef(onStructure);onStructureRef.current=onStructure;
  const [auxData,setAuxData]=useState({});
  const [overlayMessage,setOverlayMessage]=useState("");
@@ -44,7 +47,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   sourceSymbol:symbol,sourceResolution:resolution});
  useEffect(()=>{if(selected)onAnalysisRef.current?.({stats:feed.stats,quality:feed.quality||"UNAVAILABLE",asOf:feed.asOf});},[feed.stats,feed.quality,feed.asOf,selected]);
  const [libReady,setLibReady]=useState(false);
- useEffect(()=>{interaction.current={points:[],stroke:[],count:0};setPendingCount(0);setDrawingError("");},[drawTool,symbol]);
+ useEffect(()=>{interaction.current={points:[],stroke:[],count:0};moving.current=null;setPendingCount(0);setDrawingError("");},[drawTool,symbol]);
  useEffect(()=>{
   if(!el.current)return;
   let live=true,resize;
@@ -80,14 +83,30 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
     crosshairMarkerVisible:false},pane);
    const ema20=newLine(COLOR.ema20),ema50=newLine(COLOR.ema50),ema200=newLine(COLOR.ema200);
    const vwap=newLine(COLOR.vwap);
-   const rsi=newLine(COLOR.rsi,1);
-   const macd=newLine(COLOR.macd,2),macdSignal=newLine(COLOR.macdSignal,2);
-   const histogram=c.addSeries(lib.HistogramSeries,{priceLineVisible:false,
-      priceFormat:{type:"price",precision:5,minMove:0.00001}},2);
-   const volume=c.addSeries(lib.HistogramSeries,{priceLineVisible:false,
-     priceFormat:{type:"volume"},priceScaleId:""},3);
-   try{c.panes()[1]?.setHeight(100);c.panes()[2]?.setHeight(95);c.panes()[3]?.setHeight(85);}catch{}
-   series.current={candle,ema20,ema50,ema200,vwap,rsi,macd,macdSignal,histogram,volume};
+   // Allocate only visible lower panes; disabled oscillators never leave empty space.
+   let pane=0;
+   const momentumPane=technicalEnabled.RSI||technicalEnabled.ADX||technicalEnabled.Stochastic?++pane:null;
+   const macdPane=technicalEnabled.MACD?++pane:null;
+   const atrPane=technicalEnabled.ATR?++pane:null;
+   const volumePane=technicalEnabled.Volume?++pane:null;
+   const rsi=momentumPane?newLine(COLOR.rsi,momentumPane):null;
+   const adx=momentumPane?newLine("#f4c760",momentumPane):null;
+   const plusDI=momentumPane?newLine("#24cea4",momentumPane):null;
+   const minusDI=momentumPane?newLine("#f46e87",momentumPane):null;
+   const stochK=momentumPane?newLine("#a28afc",momentumPane):null;
+   const stochD=momentumPane?newLine("#ffbd75",momentumPane):null;
+   const macd=macdPane?newLine(COLOR.macd,macdPane):null;
+   const macdSignal=macdPane?newLine(COLOR.macdSignal,macdPane):null;
+   const histogram=macdPane?c.addSeries(lib.HistogramSeries,{priceLineVisible:false,
+      priceFormat:{type:"price",precision:5,minMove:0.00001}},macdPane):null;
+   const atr=atrPane?newLine("#ffca73",atrPane):null;
+   const volume=volumePane?c.addSeries(lib.HistogramSeries,{priceLineVisible:false,
+     priceFormat:{type:"volume"},priceScaleId:""},volumePane):null;
+   const bbUpper=newLine("#b88fff"),bbBasis=newLine("#a39ab3"),bbLower=newLine("#b88fff");
+   const donchianUpper=newLine("#54d8ad"),donchianLower=newLine("#e58f9f");
+   try{for(let i=1;i<=pane;i++)c.panes()[i]?.setHeight(i===momentumPane?110:85);}catch{}
+   series.current={candle,ema20,ema50,ema200,vwap,rsi,macd,macdSignal,histogram,volume,
+    atr,adx,plusDI,minusDI,stochK,stochD,bbUpper,bbBasis,bbLower,donchianUpper,donchianLower};
    const primitive=new StructureOverlayPrimitive();
    candle.attachPrimitive(primitive);
    const manualPrimitive=new XMIDrawingPrimitive();candle.attachPrimitive(manualPrimitive);
@@ -100,7 +119,8 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
    setLibReady(true);
   }).catch(()=>setFeed(x=>({...x,phase:"error",message:"Chart engine unavailable"})));
   return ()=>{live=false;resize?.disconnect();chart.current?.remove();chart.current=null;series.current=null;drawings.current=null;setLibReady(false);};
- },[chartSettings.chartType]);
+ },[chartSettings.chartType,technicalEnabled.RSI,technicalEnabled.MACD,
+  technicalEnabled.ADX,technicalEnabled.Stochastic,technicalEnabled.ATR,technicalEnabled.Volume]);
  useEffect(()=>{
   if(!libReady||!chart.current||!series.current)return;
   const dark=chartSettings.theme==="dark",bg=dark?"#0b1729":"#f7faff",grid=dark?"#1c2e43":"#dce4ee";
@@ -131,9 +151,13 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   const visible={
    ema20:technicalEnabled.EMA,ema50:technicalEnabled.EMA,ema200:technicalEnabled.EMA,vwap:technicalEnabled.VWAP,
    rsi:technicalEnabled.RSI,macd:technicalEnabled.MACD,macdSignal:technicalEnabled.MACD,histogram:technicalEnabled.MACD,
-   volume:technicalEnabled.Volume
+   volume:technicalEnabled.Volume,atr:technicalEnabled.ATR,
+   adx:technicalEnabled.ADX,plusDI:technicalEnabled.ADX,minusDI:technicalEnabled.ADX,
+   stochK:technicalEnabled.Stochastic,stochD:technicalEnabled.Stochastic,
+   bbUpper:technicalEnabled.Bollinger,bbBasis:technicalEnabled.Bollinger,bbLower:technicalEnabled.Bollinger,
+   donchianUpper:technicalEnabled.Donchian,donchianLower:technicalEnabled.Donchian
   };
-  for(const [key,on] of Object.entries(visible))all[key].applyOptions({visible:on});
+  for(const [key,on] of Object.entries(visible))all[key]?.applyOptions({visible:!!on});
  },[technicalEnabled,libReady]);
  useEffect(()=>{
   if(!libReady||!series.current||!active)return;
@@ -144,6 +168,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   function schedule(){
    if(!running)return;
    const delay=nextFeedDelay({resolution,now:Date.now(),failures,
+    profile:chartSettings.refreshProfile,
     hidden:document.visibilityState==="hidden"});
    setFeed(prev=>({...prev,nextRefreshMs:delay}));
    timer=setTimeout(refresh,delay);
@@ -194,11 +219,14 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
     const mapped=stats.bars.map(({time,open,high,low,close})=>({time,open,high,low,close}));
     if(mapped.length){
      all.candle.setData(chartSeriesData(mapped,chartSettings.chartType));
-     for(const key of ["ema20","ema50","ema200","vwap","rsi","macd","macdSignal"])
-      all[key].setData(stats.overlays[key]);
-     all.histogram.setData(stats.overlays.macdHistogram.map(p=>({...p,color:p.value>=0?"#339a9a":"#b66c84"})));
-     all.volume.setData(stats.overlays.volume);
-     if(!fitted){
+     for(const key of ["ema20","ema50","ema200","vwap","rsi","macd","macdSignal",
+       "atr","adx","plusDI","minusDI","stochK","stochD","bbUpper","bbBasis","bbLower",
+       "donchianUpper","donchianLower"]){
+       if(all[key])all[key].setData(stats.overlays[key]||[]);
+      }
+      all.histogram?.setData(stats.overlays.macdHistogram.map(p=>({...p,color:p.value>=0?"#339a9a":"#b66c84"})));
+      all.volume?.setData(stats.overlays.volume);
+      if(!fitted){
       const last=mapped.length-1;
       chart.current?.timeScale().setVisibleLogicalRange({from:Math.max(0,last-69),to:last+5});
       fitted=true;
@@ -245,11 +273,11 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   // the last verified plotted bars, prominently flagged as not current, while
   // analytical stats are invalidated until fresh data is verified.
   const retained=feed.sourceSymbol===symbol&&feed.sourceResolution===resolution&&!!feed.last;
-  if(!retained)for(const key of Object.keys(all))all[key].setData([]);
+  if(!retained)for(const key of Object.keys(all))all[key]?.setData([]);
   refresh();
   return ()=>{running=false;document.removeEventListener("visibilitychange",onVisible);
    abort?.abort();if(timer)clearTimeout(timer);};
- },[symbol,resolution,libReady,active,chartSettings.chartType,offline,refreshNonce]);
+ },[symbol,resolution,libReady,active,chartSettings.chartType,chartSettings.refreshProfile,offline,refreshNonce]);
  // Additional timeframes use the same protected, read-only candle API.
  // Each distinct selected timeframe is fetched once; settings are shared by all charts.
  useEffect(()=>{
@@ -300,14 +328,20 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   const display=feed.stats.bars;
   const result=assembleStructure(structureSettings,byResolution,resolution,display);
   try{
-   overlay.marker.setMarkers(toStructureMarkers(result.annotations));
-   overlay.primitive.setAnnotations(result.annotations,display.at(-1)?.time??null);
+   const closeTimes=new Set(display.filter(b=>b.closed).map(b=>b.time));
+    const structureMarkers=toStructureMarkers(result.annotations).filter(m=>closeTimes.has(m.time));
+    const indicatorMarkers=buildIndicatorMarkers(display,feed.stats.overlays,{
+     mode:chartSettings.markerStyle,palette:chartSettings.markerPalette,enabled:technicalEnabled});
+    overlay.marker.setMarkers(combineChartMarkers(structureMarkers,indicatorMarkers,chartSettings.markerStyle));
+   overlay.primitive.setAnnotations(chartSettings.markerStyle==="compact"?[]:result.annotations,
+     display.at(-1)?.time??null);
    setOverlayMessage(result.annotations.length+" annotations · "+result.unavailable.length+" timeframes awaiting data");
   }catch(err){
    setOverlayMessage("Structure drawing unavailable; candle feed remains read-only");
   }
   if(selected)onStructureRef.current?.(result);
- },[symbol,resolution,feed.stats,feed.asOf,structureSettings,auxData,libReady,selected,active,extraKey]);
+ },[symbol,resolution,feed.stats,feed.asOf,structureSettings,auxData,libReady,selected,active,extraKey,
+  technicalEnabled,chartSettings.markerStyle,chartSettings.markerPalette]);
  // Manual drawings, completed price patterns, and swing-anchored Fibonacci use the
  // existing chart data only. Missing data clears every optional drawing primitive.
  useEffect(()=>{
@@ -360,6 +394,23 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
  function pointerDown(e){
   if(!drawTool)return;
   e.preventDefault();e.stopPropagation();
+  if(drawTool==="Move saved drawings"){
+   const root=el.current,scale=chart.current?.timeScale(),price=series.current?.candle;
+   if(!root||!scale||!price)return;
+   const rect=root.getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top;
+   let best=null;
+   for(const d of savedDrawings)for(let i=0;i<d.points.length;i++){
+    const p=d.points[i],px=scale.timeToCoordinate(p.time),py=price.priceToCoordinate(p.price);
+    if(px==null||py==null)continue;
+    const distance=Math.hypot(px-x,py-y);
+    if(distance<=18&&(!best||distance<best.distance))
+     best={id:d.id,index:i,distance};
+   }
+   if(!best){setDrawingError("Drag within 18 pixels of a saved drawing anchor");return;}
+   moving.current={...best,point:null};
+   e.currentTarget.setPointerCapture(e.pointerId);
+   setDrawingError("");return;
+  }
   const point=pointerPoint(e);
   if(!point){setDrawingError("Click inside the plotted price area");return;}
   try{
@@ -375,6 +426,14 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   }catch{setDrawingError("Invalid chart point");}
  }
  function pointerMove(e){
+  if(drawTool==="Move saved drawings"&&moving.current){
+   const point=pointerPoint(e);if(!point)return;
+   moving.current.point=point;
+   const changed=savedDrawings.map(d=>d.id===moving.current.id?
+    {...d,points:d.points.map((p,i)=>i===moving.current.index?point:p)}:d);
+   drawings.current?.manualPrimitive?.setDrawings(changed);
+   return;
+  }
   if(drawTool!=="Freehand drawing"||!interaction.current.stroke.length)return;
   const point=pointerPoint(e);
   if(point&&interaction.current.stroke.length<600){
@@ -383,6 +442,12 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   }
  }
  function pointerUp(e){
+  if(drawTool==="Move saved drawings"&&moving.current){
+   const drag=moving.current;moving.current=null;
+   if(drag.point)onDrawingMoveRef.current?.(drag.id,drag.index,drag.point);
+   if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);
+   return;
+  }
   if(drawTool!=="Freehand drawing"||!interaction.current.stroke.length)return;
   const stroke=interaction.current.stroke.slice();
   if(stroke.length>1)commitPoints(drawTool,stroke);
@@ -417,7 +482,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   </div>
   <div className={styles.engineDrawingCaption}>
    <span>{chartSettings.chartType}{chartSettings.chartType==="Heikin Ashi"?" · transformed prices (not broker executions)":""}</span>
-   <span>Indicators & patterns · unified toolbar</span>
+   <span>Indicators · {chartSettings.markerStyle==="compact"?"non-overlapping dots":chartSettings.markerStyle==="full"?"color symbols":"markers hidden"} · read-only</span>
    {chartSettings.candleTimer?<span role="timer">Candle boundary in {countdown} · local-clock estimate</span>:null}
   </div>
   <div className={styles.engineDrawHost}>
@@ -436,7 +501,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
     onPointerUp={pointerUp} onPointerCancel={pointerUp}/>:null}
   </div>
   {drawTool?<div className={styles.engineDrawStatus} role="status">
-   Drawing: {drawTool} · {TOOL_CATALOG.Fibonacci.includes(drawTool)?"Automatically anchored to confirmed swings":drawTool==="Freehand drawing"?"Drag on chart":"Select "+requiredClicks(drawTool)+" chart point(s)"}
+   Drawing: {drawTool} · {drawTool==="Move saved drawings"?"Drag a saved endpoint to reposition it":TOOL_CATALOG.Fibonacci.includes(drawTool)?"Automatically anchored to confirmed swings":drawTool==="Freehand drawing"?"Drag on chart":"Select "+requiredClicks(drawTool)+" chart point(s)"}
    {pendingCount?" · "+pendingCount+" point(s) selected":""}
    {drawingError?" · "+drawingError:""}
   </div>:null}

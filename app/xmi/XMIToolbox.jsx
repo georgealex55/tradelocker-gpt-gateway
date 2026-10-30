@@ -2,10 +2,11 @@
 import {useEffect,useRef,useState} from "react";
 import styles from "./xmi.module.css";
 import {STRATEGIES} from "../../lib/xmiStrategyPresets.mjs";
-import {TOOL_CATALOG,PANEL_NAMES,CHART_TYPES} from "../../lib/xmiChartTools.mjs";
+import {TOOL_CATALOG,PANEL_NAMES,CHART_TYPES,DEFAULT_TECH} from "../../lib/xmiChartTools.mjs";
+import {ADVANCED_INDICATORS} from "../../lib/xmiAdvancedIndicators.mjs";
 import {STRUCTURE_CONCEPTS,STRUCTURE_TIMEFRAMES,setStructureOption,defaultStructureSettings} from "../../lib/xmiStructure.mjs";
-const TECH=["EMA","VWAP","RSI","MACD","Volume"];
-const DEFAULT_INDICATORS={EMA:true,VWAP:true,RSI:true,MACD:true,Volume:true};
+const TECH=["EMA","VWAP","RSI","MACD","Volume",...ADVANCED_INDICATORS.map(x=>x.id)];
+const DEFAULT_INDICATORS=DEFAULT_TECH;
 const ICONS={"Strategy":"▦","Indicators":"∑","Annotations":"✎","Patterns":"◇","Fibonacci":"φ","Lines":"／","Measurements":"↔","Chart Settings":"⚙"};
 const SETTINGS=[
  ["theme","Theme","select",["dark","light"]],["bull","Up color","color"],["bear","Down color","color"],
@@ -17,7 +18,10 @@ const SETTINGS=[
  ["priceLine","Last-price line","check"],["bidAsk","Bid / ask labels (only when supplied)","check"],
  ["syncTimeframes","Sync timeframes across charts","check"],
  ["indicatorDefaults","Show indicators by default","check"],
- ["candleTimer","Candle-close countdown (local clock)","check"]
+ ["candleTimer","Candle-close countdown (local clock)","check"],
+ ["markerStyle","Chart marker detail","select",["compact","full","off"]],
+ ["markerPalette","Chart marker palette","select",["vivid","contrast"]],
+ ["refreshProfile","Read-only candle polling","select",["balanced","responsive"]]
 ];
 export default function XMIToolbox({
  activePanel,setActivePanel,orientation,setOrientation,docked,setDocked,pinned,setPinned,
@@ -106,8 +110,9 @@ export default function XMIToolbox({
      {group("technical","Technical indicators",<div className={styles.toolboxRows}>
       {TECH.filter(x=>x.toLowerCase().includes(search.toLowerCase())).map(id=><label key={id}>
        <input type="checkbox" checked={tech[id]} onChange={e=>setTech(prev=>({...prev,[id]:e.target.checked}))}/>
-       <span>{id==="EMA"?"EMA 20 / 50 / 200":id==="VWAP"?"VWAP (FX tick-volume proxy)":id}</span></label>)}
+       <span>{id==="EMA"?"EMA 20 / 50 / 200":id==="VWAP"?"VWAP (FX tick-volume proxy)":ADVANCED_INDICATORS.find(x=>x.id===id)?.label||id}</span></label>)}
      </div>)}
+     <p className={styles.toolboxNote}>Advanced indicators are causal calculations. Compact markers use at most one color-coded dot per confirmed bar; full markers show labeled symbols. Vivid: mint ▲ bullish, pink ▼ bearish, yellow ■ strength, purple ● momentum. No indicator is inherently profitable.</p>
      {group("patterns","Automatic chart patterns · per-type toggles",<div className={styles.toolboxRows}>
       <label><input type="checkbox" checked={autoPatterns} onChange={e=>setAutoPatterns(e.target.checked)}/> Enable automatic detection</label>
       {TOOL_CATALOG.Patterns.filter(x=>x.toLowerCase().includes(search.toLowerCase())).map(name=><div key={name} className={styles.toolboxIndicatorRow}>
@@ -152,6 +157,8 @@ export default function XMIToolbox({
        {tool}{drawTool===tool?" ✓":""}</button>)}
      </div>
      <div className={styles.toolboxInline}>
+      <button type="button" onClick={()=>setDrawTool("Move saved drawings")}
+       aria-pressed={drawTool==="Move saved drawings"}>Drag saved handles</button>
       <button type="button" onClick={()=>setDrawTool(null)}>Exit drawing</button>
       <button type="button" onClick={onUndo}>Undo last</button>
       <button type="button" onClick={onClear}>Clear symbol</button>
@@ -186,6 +193,7 @@ export default function XMIToolbox({
          {options.map(x=><option key={x} value={x}>{x}</option>)}</select>}
       </label>):null}
      </section>
+     <p className={styles.toolboxNote}>Responsive polling only shortens requests to the existing authorized OHLC endpoint. No tick-streaming, future-bar signals or price interpolation.</p>
      <p className={styles.toolboxNote}>Bid/ask values require a verified quote feed; this chart never invents one. Heikin Ashi prices are transformed, not executable broker prices. Timezone changes presentation only; structure session rules retain UTC.</p>
      {scope==="chart"?<button type="button" onClick={()=>setChartOverride(prev=>{
       const next={...prev};delete next[slot];return next;

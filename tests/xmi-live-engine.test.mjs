@@ -48,7 +48,7 @@ test("All five indicator families compute from real warm history, without synthe
  assert.ok(result.overlays.macdHistogram.length>0);
  assert.ok(result.overlays.vwap.length>0);
  assert.equal(result.overlays.volume.length,260);
- assert.deepEqual(result.readiness,{ema:true,rsi:true,macd:true,vwap:true,volume:true});
+ assert.deepEqual(result.readiness,{ema:true,rsi:true,macd:true,vwap:true,volume:true,atr:true,adx:true,bollinger:true,donchian:true,stochastic:true});
  assert.equal(result.signal.state,"NO_ACTIVE_STRATEGY");
  assert.match(result.vwapLabel,/proxy/);
 });

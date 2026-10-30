@@ -151,10 +151,16 @@ try{
 
  await page.locator('button[title="Indicators"]').click();
  await page.getByPlaceholder("Search indicators, patterns or market structure…").waitFor();
+ await page.getByPlaceholder("Search indicators, patterns or market structure…").fill("Donchian");
+ await page.getByText("Donchian 20 · prior-bar breakout").waitFor();
  await page.getByPlaceholder("Search indicators, patterns or market structure…").fill("BOS");
  assert.ok(await page.getByLabel("BOS timeframe").count()===1);
  await page.locator('button[title="Chart Settings"]').click();
  await page.getByLabel("Chart type").waitFor({timeout:15000});
+ await page.getByLabel("Chart marker detail").selectOption("full");
+ await page.getByLabel("Chart marker palette").selectOption("contrast");
+ await page.getByLabel("Read-only candle polling").selectOption("responsive");
+ assert.equal(await page.getByLabel("Chart marker detail").inputValue(),"full");
  await page.getByLabel("Chart type").selectOption("Line");
  await page.waitForTimeout(950);
  assert.equal(await page.getByText("Chart display unavailable").count(),0,
@@ -200,6 +206,8 @@ try{
  await page.getByRole("combobox",{name:"Switch XMI workspace"}).selectOption("strategy");
  assert.ok(await page.getByText("Strategy presets & 9-cell engine").isVisible(),"The strategy tab remains accessible while tabs are hidden");
  await page.getByRole("button",{name:/Swing · EMA Structure/}).last().click();
+ await page.getByRole("spinbutton",{name:"Minimum ADX strength"}).fill("23");
+ await page.getByRole("spinbutton",{name:"Minimum ATR pips"}).fill("1.5");
  await page.getByRole("spinbutton",{name:"RSI positive threshold"}).fill("62");
  await page.getByRole("combobox",{name:"Edit strategy timeframe"}).selectOption("1D");
  assert.equal(await page.getByRole("combobox",{name:"Edit strategy timeframe"}).inputValue(),"1D"); 
