@@ -17,7 +17,7 @@ test("Seven chart tool groups contain every selected drawing, pattern, Fibonacci
  assert.equal(TOOL_CATALOG.Lines.length,5);
  assert.equal(TOOL_CATALOG.Measurements.length,4);
  assert.deepEqual(CHART_TYPES,["Candlesticks","Hollow Candles","Heikin Ashi","OHLC Bars","Line","Area"]);
- assert.equal(Object.keys(DEFAULT_TECH).length,5);
+ assert.equal(Object.keys(DEFAULT_TECH).length,10);
 });
 test("Global defaults and per-chart overrides are validated rather than using arbitrary options",()=>{
  const base=validateChartSettings(DEFAULT_CHART_SETTINGS);
