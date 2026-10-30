@@ -14,6 +14,9 @@ on:
       - 'lib/xmiResearchValidation.mjs'
       - 'lib/xmiResearchAnalytics.mjs'
       - 'lib/xmiAdvancedIndicators.mjs'
+      - 'lib/xmiIndicatorSettings.mjs'
+      - 'lib/xmiScalpResearch.mjs'
+      - 'tests/xmi-scalp-indicator-config.test.mjs'
       - 'lib/xmiIndicatorMarkers.mjs'
       - 'lib/xmiChartAlgorithms.mjs'
       - 'tests/xmi-chart-controls-algorithms.test.mjs'
@@ -85,6 +88,8 @@ jobs:
           node --check lib/xmiResearchValidation.mjs
           node --check lib/xmiResearchAnalytics.mjs
           node --check lib/xmiAdvancedIndicators.mjs
+          node --check lib/xmiIndicatorSettings.mjs
+          node --check lib/xmiScalpResearch.mjs
           node --check lib/xmiIndicatorMarkers.mjs
           node --check lib/xmiChartAlgorithms.mjs
           node --check lib/xmiResearchHoldout.mjs
