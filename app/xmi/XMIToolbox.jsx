@@ -4,6 +4,7 @@ import styles from "./xmi.module.css";
 import {STRATEGIES} from "../../lib/xmiStrategyPresets.mjs";
 import {TOOL_CATALOG,PANEL_NAMES,CHART_TYPES,DEFAULT_TECH} from "../../lib/xmiChartTools.mjs";
 import {ADVANCED_INDICATORS} from "../../lib/xmiAdvancedIndicators.mjs";
+import {INDICATOR_PARAMETERS,DEFAULT_INDICATOR_SETTINGS,normalizeIndicatorSettings} from "../../lib/xmiIndicatorSettings.mjs";
 import {STRUCTURE_CONCEPTS,STRUCTURE_TIMEFRAMES,setStructureOption,defaultStructureSettings} from "../../lib/xmiStructure.mjs";
 const TECH=["EMA","VWAP","RSI","MACD","Volume",...ADVANCED_INDICATORS.map(x=>x.id)];
 const DEFAULT_INDICATORS=DEFAULT_TECH;
@@ -43,7 +44,7 @@ const SETTINGS=[
 ];
 export default function XMIToolbox({
  activePanel,setActivePanel,orientation,setOrientation,docked,setDocked,pinned,setPinned,
- tech,setTech,structure,setStructure,drawTool,setDrawTool,strategyId,onStrategyChange,
+ tech,setTech,indicatorSettings=DEFAULT_INDICATOR_SETTINGS,setIndicatorSettings,structure,setStructure,drawTool,setDrawTool,strategyId,onStrategyChange,
  autoPatterns,setAutoPatterns,patternEnabled,setPatternEnabled,autoFib,setAutoFib,
  globalSettings,setGlobalSettings,chartOverride,setChartOverride,slot,
  onUndo,onClear,onExport,onImport,onFullscreen,onMaximize,maximized,
@@ -91,10 +92,23 @@ export default function XMIToolbox({
      aria-label={"Apply all "+section.name+" indicators"}>Apply all</button>
     <button type="button" onClick={()=>toggleIndicatorSection(section.ids,false)}
      aria-label={"Hide all "+section.name+" indicators"}>Hide all</button></div>
-   {shown.map(id=><label key={id}><input type="checkbox" checked={!!tech[id]}
-    onChange={e=>setTech(old=>({...old,[id]:e.target.checked}))}/>
-    <span>{id==="EMA"?"EMA 20 / 50 / 200":id==="VWAP"?"VWAP (FX tick-volume proxy)":
-     ADVANCED_INDICATORS.find(x=>x.id===id)?.label||id}</span></label>)}
+   {shown.map(id=><div key={id} className={styles.toolboxStudySettings}>
+    <label><input type="checkbox" checked={!!tech[id]}
+     onChange={e=>setTech(old=>({...old,[id]:e.target.checked}))}/>
+     <span>{id==="EMA"?"EMA":id==="VWAP"?"VWAP tick-volume proxy":
+      ADVANCED_INDICATORS.find(x=>x.id===id)?.label?.split(" · ")[0]||id}</span></label>
+    <div className={styles.toolboxParamGrid}>
+     {INDICATOR_PARAMETERS.filter(p=>p.section===id).map(p=><label key={p.key}>
+      <span>{p.label}</span>
+      {p.choices?<select aria-label={p.label} value={indicatorSettings[p.key]}
+       onChange={e=>setIndicatorSettings(old=>normalizeIndicatorSettings({...old,[p.key]:e.target.value}))}>
+       {p.choices.map(v=><option key={v} value={v}>{v}</option>)}</select>:
+       <input aria-label={p.label} type="number" min={p.min} max={p.max} step={p.step}
+        value={indicatorSettings[p.key]}
+        onChange={e=>setIndicatorSettings(old=>normalizeIndicatorSettings({...old,[p.key]:Number(e.target.value)}))}/>}
+     </label>)}
+    </div>
+   </div>)}
   </section>;
  });
  const active=activePanel;
@@ -148,6 +162,7 @@ export default function XMIToolbox({
        <button type="button" onClick={()=>toggleIndicatorSection(TECH,false)}>Hide all technical</button>
       </div>
       {indicatorSections}
+      <button type="button" onClick={()=>setIndicatorSettings({...DEFAULT_INDICATOR_SETTINGS})}>Reset indicator periods</button>
      </div>)}
      {group("markers","Marker overlays",<div className={styles.toolboxRows}>
       <div className={styles.toolboxInline}>
@@ -160,7 +175,7 @@ export default function XMIToolbox({
        checked={globalSettings[key]} onChange={e=>setGlobalSettings(old=>({...old,[key]:e.target.checked}))}/>
        {label}</label>)}
      </div>)}
-     <p className={styles.toolboxNote}>Advanced indicators are causal calculations. Compact markers use at most one color-coded dot per confirmed bar; full markers show labeled symbols. Vivid: mint ▲ bullish, pink ▼ bearish, yellow ■ strength, purple ● momentum. No indicator is inherently profitable.</p>
+     <p className={styles.toolboxNote}>Study parameters use verified candle history. Marker stacks show multiple closed-candle observations; click a dot to reveal its label. No study guarantees profitable trades.</p>
      {group("patterns","Automatic chart patterns · per-type toggles",<div className={styles.toolboxRows}>
       <div className={styles.toolboxInline}>
        <button type="button" onClick={()=>{setAutoPatterns(true);setPatternEnabled(
