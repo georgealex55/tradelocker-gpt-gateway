@@ -44,7 +44,7 @@ export default function XMIHistoricalReplay({symbol,resolution,strategyId,edit})
   catch{setError("Research summaries could not be stored on this device.");}
  },[versionsReady,summaries]);
  useEffect(()=>{setResult(null);setComparison(null);setAnalytics(null);setError("");setNotice("");},
-  [symbol,resolution,strategyId,edit?.rsiBull,edit?.rsiBear,edit?.requireMacd,edit?.requireVwap]);
+  [symbol,resolution,strategyId,edit?.rsiBull,edit?.rsiBear,edit?.requireMacd,edit?.requireVwap,edit?.requireAdx,edit?.requireAtr,edit?.adxMin,edit?.atrMinPips]);
  useEffect(()=>{setBaselineId("");setCandidateId("");},[strategyId,resolution]);
  const relevant=versions.filter(x=>x.strategyId===strategyId);
  const comparable=relevant.filter(x=>x.edit.timeframe===resolution);
