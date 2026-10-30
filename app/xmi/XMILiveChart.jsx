@@ -5,10 +5,11 @@ import {parseHistoricalFile} from "../../lib/xmiHistoricalFile.mjs";
 import {nextFeedDelay,feedHealth,retryableFeedError} from "../../lib/xmiFeedRecovery.mjs";
 import {inspectCandleQuality} from "../../lib/xmiDataQuality.mjs";
 import styles from "./xmi.module.css";
-import {defaultStructureSettings,requiredStructureTimeframes,detectStructure,assembleStructure} from "../../lib/xmiStructure.mjs";
+import {defaultStructureSettings,STRUCTURE_CONCEPTS,requiredStructureTimeframes,detectStructure,assembleStructure} from "../../lib/xmiStructure.mjs";
 import {StructureOverlayPrimitive,toStructureMarkers} from "../../lib/xmiStructureOverlay.mjs";
 import {XMIDrawingPrimitive} from "../../lib/xmiDrawingPrimitive.mjs";
-import {buildIndicatorMarkers,combineChartMarkers} from "../../lib/xmiIndicatorMarkers.mjs";
+import {buildIndicatorMarkers,stackChartMarkers,markerSeriesPayload} from "../../lib/xmiIndicatorMarkers.mjs";
+import {computeChartAlgorithms} from "../../lib/xmiChartAlgorithms.mjs";
 import {DEFAULT_CHART_SETTINGS,DEFAULT_TECH,chartSeriesData,autoFibonacci,detectClassicPatterns,requiredClicks,drawingPoint,TOOL_CATALOG} from "../../lib/xmiChartTools.mjs";
 const COLOR={ema20:"#59c9d8",ema50:"#d1ad5b",ema200:"#a690fa",vwap:"#ef9ed9",
  rsi:"#60ccf5",macd:"#7c95ed",macdSignal:"#f1a45d"};
@@ -17,9 +18,13 @@ const NO_STRUCTURE=defaultStructureSettings();
 export default function XMILiveChart({symbol,resolution,onResolution,selected,onFocus,compact=false,active=true,
  structureSettings=NO_STRUCTURE,onStructure,technicalEnabled=DEFAULT_TECH,
  chartSettings=DEFAULT_CHART_SETTINGS,drawTool=null,savedDrawings=[],onDrawing,onDrawingMove,
- autoPatterns=true,autoFib=false,onPatterns,patternEnabled={},onAnalysis,strategyName="No preset"}){
+ autoPatterns=true,autoFib=false,onPatterns,patternEnabled={},onAnalysis,strategyName="No preset",
+ onTechnicalChange,onStructureChange,onPatternChange,onPatternsEnabled,onChartSettingChange}){
  const el=useRef(null),chart=useRef(null),series=useRef(null),drawings=useRef(null);
  const importInput=useRef(null);
+ const markerItems=useRef([]);
+ const [expandedMarkerId,setExpandedMarkerId]=useState("");
+ const [zoomStatus,setZoomStatus]=useState("");
  const [offline,setOffline]=useState(null),[refreshNonce,setRefreshNonce]=useState(0);
  useEffect(()=>{
   const changed=()=>setRefreshNonce(n=>n+1);
@@ -62,7 +67,11 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
     grid:{vertLines:{color:chartSettings.grid?grid:"transparent"},horzLines:{color:chartSettings.grid?grid:"transparent"}},
     rightPriceScale:{borderColor:"#354862",mode:chartSettings.scale==="log"?1:0},
     crosshair:{mode:chartSettings.crosshair?0:2},
-    timeScale:{timeVisible:true,secondsVisible:false,borderColor:"#354862",rightOffset:5}
+    handleScroll:{mouseWheel:true,pressedMouseMove:true,horzTouchDrag:true,vertTouchDrag:true},
+    handleScale:{mouseWheel:true,pinch:true,axisPressedMouseMove:{time:true,price:true},
+     axisDoubleClickReset:{time:true,price:true}},
+    kineticScroll:{mouse:chartSettings.kineticScroll,touch:chartSettings.kineticScroll},
+    timeScale:{timeVisible:true,secondsVisible:false,borderColor:"#354862",rightOffset:5,minBarSpacing:2,barSpacing:8}
    });
    chart.current=c;
    const type=chartSettings.chartType;
@@ -105,12 +114,20 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
    const bbUpper=newLine("#b88fff"),bbBasis=newLine("#a39ab3"),bbLower=newLine("#b88fff");
    const donchianUpper=newLine("#54d8ad"),donchianLower=newLine("#e58f9f");
    try{for(let i=1;i<=pane;i++)c.panes()[i]?.setHeight(i===momentumPane?110:85);}catch{}
+   const regLine=newLine("#f2c86e"),regUpper=newLine("#edaa58"),regLower=newLine("#edaa58");
+   const atrUpper=newLine("#39bfa5"),atrLower=newLine("#df8ca0");
    series.current={candle,ema20,ema50,ema200,vwap,rsi,macd,macdSignal,histogram,volume,
+    regLine,regUpper,regLower,atrUpper,atrLower,
     atr,adx,plusDI,minusDI,stochK,stochD,bbUpper,bbBasis,bbLower,donchianUpper,donchianLower};
    const primitive=new StructureOverlayPrimitive();
    candle.attachPrimitive(primitive);
    const manualPrimitive=new XMIDrawingPrimitive();candle.attachPrimitive(manualPrimitive);
    drawings.current={marker:lib.createSeriesMarkers(candle,[]),primitive,manualPrimitive};
+   c.subscribeClick(param=>{
+    const id=param?.hoveredInfo?.objectId??param?.hoveredObjectId;
+    if(typeof id==="string"&&id.startsWith("xmi:")&&markerItems.current.some(m=>m.id===id))
+     setExpandedMarkerId(old=>old===id?"":id);
+   });
    const resizeObserver=new ResizeObserver(entries=>{
     const rect=entries[0]?.contentRect;
     if(rect&&live)c.applyOptions({width:Math.max(300,Math.floor(rect.width)),height:Math.max(290,Math.floor(rect.height))});
@@ -129,6 +146,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
    grid:{vertLines:{color:chartSettings.grid?grid:"transparent"},horzLines:{color:chartSettings.grid?grid:"transparent"}},
    crosshair:{mode:chartSettings.crosshair?0:2},
    rightPriceScale:{mode:chartSettings.scale==="log"?1:0},
+   kineticScroll:{mouse:chartSettings.kineticScroll,touch:chartSettings.kineticScroll},
    localization:{timeFormatter:t=>new Intl.DateTimeFormat("en-US",{timeZone:chartSettings.timezone,
     month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date(t*1000))},
    timeScale:{tickMarkFormatter:t=>new Intl.DateTimeFormat("en-US",{timeZone:chartSettings.timezone,
@@ -157,8 +175,14 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
    bbUpper:technicalEnabled.Bollinger,bbBasis:technicalEnabled.Bollinger,bbLower:technicalEnabled.Bollinger,
    donchianUpper:technicalEnabled.Donchian,donchianLower:technicalEnabled.Donchian
   };
+  const mode=chartSettings.algorithmMode;
+  Object.assign(visible,{
+   regLine:mode==="regression"||mode==="both",regUpper:mode==="regression"||mode==="both",
+   regLower:mode==="regression"||mode==="both",atrUpper:mode==="atrBands"||mode==="both",
+   atrLower:mode==="atrBands"||mode==="both"
+  });
   for(const [key,on] of Object.entries(visible))all[key]?.applyOptions({visible:!!on});
- },[technicalEnabled,libReady]);
+ },[technicalEnabled,libReady,chartSettings.algorithmMode]);
  useEffect(()=>{
   if(!libReady||!series.current||!active)return;
   let running=true,abort=null,timer=null,failures=0,inFlight=false;
@@ -218,6 +242,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
     const quality=dataHealth.researchReady?observedQuality:outdated?"STALE":"UNAVAILABLE";
     const mapped=stats.bars.map(({time,open,high,low,close})=>({time,open,high,low,close}));
     if(mapped.length){
+     const priorVisible=fitted?chart.current?.timeScale().getVisibleLogicalRange():null;
      all.candle.setData(chartSeriesData(mapped,chartSettings.chartType));
      for(const key of ["ema20","ema50","ema200","vwap","rsi","macd","macdSignal",
        "atr","adx","plusDI","minusDI","stochK","stochD","bbUpper","bbBasis","bbLower",
@@ -226,6 +251,8 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
       }
       all.histogram?.setData(stats.overlays.macdHistogram.map(p=>({...p,color:p.value>=0?"#339a9a":"#b66c84"})));
       all.volume?.setData(stats.overlays.volume);
+      if(priorVisible&&Number.isFinite(priorVisible.from)&&Number.isFinite(priorVisible.to))
+       chart.current?.timeScale().setVisibleLogicalRange(priorVisible);
       if(!fitted){
       const last=mapped.length-1;
       chart.current?.timeScale().setVisibleLogicalRange({from:Math.max(0,last-69),to:last+5});
