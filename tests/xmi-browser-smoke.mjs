@@ -149,6 +149,25 @@ try{
  },null,{timeout:12000});
  await page.getByText("CANDLES RECEIVING",{exact:true}).first().waitFor({timeout:30000});
 
+ // Chart-native marker controls, log price scale, causal research channel and zoom.
+ const firstChart=page.getByRole("article",{name:/EURUSD live forex chart/}).first();
+ const quick=firstChart.locator("details").filter({hasText:"Live Chart · Indicators & Markers"}).first();
+ await quick.locator("summary").click();
+ const markerGroup=quick.getByRole("group",{name:/Marker sources/});
+ await markerGroup.getByRole("button",{name:"Hide all"}).click();
+ assert.equal(await markerGroup.getByRole("checkbox",{name:"Structure"}).isChecked(),false);
+ await markerGroup.getByRole("button",{name:"Apply all"}).click();
+ assert.equal(await markerGroup.getByRole("checkbox",{name:"Structure"}).isChecked(),true);
+ await firstChart.getByRole("button",{name:"EURUSD Zoom in"}).click();
+ await firstChart.getByRole("button",{name:"Log scale"}).click();
+ assert.equal(await firstChart.getByRole("button",{name:"Log ✓"}).getAttribute("aria-pressed"),"true");
+ await firstChart.getByRole("combobox",{name:"EURUSD chart algorithm"}).selectOption("regression");
+ await quick.getByRole("combobox",{name:"EURUSD algorithm lookback"}).selectOption("20");
+ assert.equal(await firstChart.getByRole("combobox",{name:"EURUSD chart algorithm"}).inputValue(),"regression");
+ await firstChart.getByRole("combobox",{name:"EURUSD chart algorithm"}).selectOption("off");
+ await firstChart.getByRole("button",{name:"Log ✓"}).click();
+ await quick.locator("summary").click();
+ assert.equal(await page.getByText("Chart display unavailable").count(),0);
  await page.locator('button[title="Indicators"]').click();
  await page.getByPlaceholder("Search indicators, patterns or market structure…").waitFor();
  await page.getByPlaceholder("Search indicators, patterns or market structure…").fill("Donchian");

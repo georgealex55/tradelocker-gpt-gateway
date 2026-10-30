@@ -15,7 +15,7 @@ import {parseInstrument} from "../../lib/xmiLiveMath.mjs";
 import {normalizeWatchlistCollections,createWatchlistCollection,renameWatchlistCollection,
  removeWatchlistCollection,updateActiveWatchlistSymbols,MAX_WATCHLIST_COLLECTIONS}
  from "../../lib/xmiWatchlistCollections.mjs";
-import {defaultStructureSettings,STRUCTURE_CONCEPTS} from "../../lib/xmiStructure.mjs";
+import {setStructureOption,defaultStructureSettings,STRUCTURE_CONCEPTS} from "../../lib/xmiStructure.mjs";
 import {DEFAULT_CHART_SETTINGS,DEFAULT_TECH,resolveChartSettings,
  validateDrawings,serializeWorkspace,deserializeWorkspace,drawingsForSymbol,samePatternEvents} from "../../lib/xmiChartTools.mjs";
 const START=["EURUSD","GBPUSD","USDJPY","USDCHF","AUDUSD","NASDAQ:AAPL","AMEX:SPY"];
@@ -342,6 +342,12 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
          onResolution={v=>setResolution(index,v)}
          selected={index===focus} onFocus={()=>{setFocus(index);onSelected(key);}}
          structureSettings={structure} technicalEnabled={tech} strategyName={strategyInfo?.name||"No preset"}
+          onTechnicalChange={(id,on)=>setTech(old=>({...old,[id]:on}))}
+          onStructureChange={(id,on)=>setStructure(old=>setStructureOption(old,id,{enabled:on}))}
+          onPatternChange={(id,on)=>setPatternEnabled(old=>({...old,[id]:on}))}
+          onPatternsEnabled={setAutoPatterns}
+          onChartSettingChange={(name,value)=>setChartOverride(old=>({...old,
+           [index]:{...(old[index]||{}),[name]:value}}))}
          chartSettings={chartSettingsBySlot[index]}
          drawTool={index===focus?drawTool:null} onDrawing={d=>onChartDrawing(item.symbol,d)}
           onDrawingMove={(id,pointIndex,point)=>moveChartDrawing(item.symbol,id,pointIndex,point)}

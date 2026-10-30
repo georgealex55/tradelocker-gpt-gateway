@@ -5,10 +5,11 @@ import {parseHistoricalFile} from "../../lib/xmiHistoricalFile.mjs";
 import {nextFeedDelay,feedHealth,retryableFeedError} from "../../lib/xmiFeedRecovery.mjs";
 import {inspectCandleQuality} from "../../lib/xmiDataQuality.mjs";
 import styles from "./xmi.module.css";
-import {defaultStructureSettings,requiredStructureTimeframes,detectStructure,assembleStructure} from "../../lib/xmiStructure.mjs";
+import {defaultStructureSettings,STRUCTURE_CONCEPTS,requiredStructureTimeframes,detectStructure,assembleStructure} from "../../lib/xmiStructure.mjs";
 import {StructureOverlayPrimitive,toStructureMarkers} from "../../lib/xmiStructureOverlay.mjs";
 import {XMIDrawingPrimitive} from "../../lib/xmiDrawingPrimitive.mjs";
-import {buildIndicatorMarkers,combineChartMarkers} from "../../lib/xmiIndicatorMarkers.mjs";
+import {buildIndicatorMarkers,stackChartMarkers,markerSeriesPayload} from "../../lib/xmiIndicatorMarkers.mjs";
+import {computeChartAlgorithms} from "../../lib/xmiChartAlgorithms.mjs";
 import {DEFAULT_CHART_SETTINGS,DEFAULT_TECH,chartSeriesData,autoFibonacci,detectClassicPatterns,requiredClicks,drawingPoint,TOOL_CATALOG} from "../../lib/xmiChartTools.mjs";
 const COLOR={ema20:"#59c9d8",ema50:"#d1ad5b",ema200:"#a690fa",vwap:"#ef9ed9",
  rsi:"#60ccf5",macd:"#7c95ed",macdSignal:"#f1a45d"};
@@ -17,9 +18,13 @@ const NO_STRUCTURE=defaultStructureSettings();
 export default function XMILiveChart({symbol,resolution,onResolution,selected,onFocus,compact=false,active=true,
  structureSettings=NO_STRUCTURE,onStructure,technicalEnabled=DEFAULT_TECH,
  chartSettings=DEFAULT_CHART_SETTINGS,drawTool=null,savedDrawings=[],onDrawing,onDrawingMove,
- autoPatterns=true,autoFib=false,onPatterns,patternEnabled={},onAnalysis,strategyName="No preset"}){
+ autoPatterns=true,autoFib=false,onPatterns,patternEnabled={},onAnalysis,strategyName="No preset",
+ onTechnicalChange,onStructureChange,onPatternChange,onPatternsEnabled,onChartSettingChange}){
  const el=useRef(null),chart=useRef(null),series=useRef(null),drawings=useRef(null);
  const importInput=useRef(null);
+ const markerItems=useRef([]);
+ const [expandedMarkerId,setExpandedMarkerId]=useState("");
+ const [zoomStatus,setZoomStatus]=useState("");
  const [offline,setOffline]=useState(null),[refreshNonce,setRefreshNonce]=useState(0);
  useEffect(()=>{
   const changed=()=>setRefreshNonce(n=>n+1);
@@ -62,7 +67,11 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
     grid:{vertLines:{color:chartSettings.grid?grid:"transparent"},horzLines:{color:chartSettings.grid?grid:"transparent"}},
     rightPriceScale:{borderColor:"#354862",mode:chartSettings.scale==="log"?1:0},
     crosshair:{mode:chartSettings.crosshair?0:2},
-    timeScale:{timeVisible:true,secondsVisible:false,borderColor:"#354862",rightOffset:5}
+    handleScroll:{mouseWheel:true,pressedMouseMove:true,horzTouchDrag:true,vertTouchDrag:true},
+    handleScale:{mouseWheel:true,pinch:true,axisPressedMouseMove:{time:true,price:true},
+     axisDoubleClickReset:{time:true,price:true}},
+    kineticScroll:{mouse:chartSettings.kineticScroll,touch:chartSettings.kineticScroll},
+    timeScale:{timeVisible:true,secondsVisible:false,borderColor:"#354862",rightOffset:5,minBarSpacing:2,barSpacing:8}
    });
    chart.current=c;
    const type=chartSettings.chartType;
@@ -105,12 +114,20 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
    const bbUpper=newLine("#b88fff"),bbBasis=newLine("#a39ab3"),bbLower=newLine("#b88fff");
    const donchianUpper=newLine("#54d8ad"),donchianLower=newLine("#e58f9f");
    try{for(let i=1;i<=pane;i++)c.panes()[i]?.setHeight(i===momentumPane?110:85);}catch{}
+   const regLine=newLine("#f2c86e"),regUpper=newLine("#edaa58"),regLower=newLine("#edaa58");
+   const atrUpper=newLine("#39bfa5"),atrLower=newLine("#df8ca0");
    series.current={candle,ema20,ema50,ema200,vwap,rsi,macd,macdSignal,histogram,volume,
+    regLine,regUpper,regLower,atrUpper,atrLower,
     atr,adx,plusDI,minusDI,stochK,stochD,bbUpper,bbBasis,bbLower,donchianUpper,donchianLower};
    const primitive=new StructureOverlayPrimitive();
    candle.attachPrimitive(primitive);
    const manualPrimitive=new XMIDrawingPrimitive();candle.attachPrimitive(manualPrimitive);
    drawings.current={marker:lib.createSeriesMarkers(candle,[]),primitive,manualPrimitive};
+   c.subscribeClick(param=>{
+    const id=param?.hoveredInfo?.objectId??param?.hoveredObjectId;
+    if(typeof id==="string"&&id.startsWith("xmi:")&&markerItems.current.some(m=>m.id===id))
+     setExpandedMarkerId(old=>old===id?"":id);
+   });
    const resizeObserver=new ResizeObserver(entries=>{
     const rect=entries[0]?.contentRect;
     if(rect&&live)c.applyOptions({width:Math.max(300,Math.floor(rect.width)),height:Math.max(290,Math.floor(rect.height))});
@@ -129,6 +146,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
    grid:{vertLines:{color:chartSettings.grid?grid:"transparent"},horzLines:{color:chartSettings.grid?grid:"transparent"}},
    crosshair:{mode:chartSettings.crosshair?0:2},
    rightPriceScale:{mode:chartSettings.scale==="log"?1:0},
+   kineticScroll:{mouse:chartSettings.kineticScroll,touch:chartSettings.kineticScroll},
    localization:{timeFormatter:t=>new Intl.DateTimeFormat("en-US",{timeZone:chartSettings.timezone,
     month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date(t*1000))},
    timeScale:{tickMarkFormatter:t=>new Intl.DateTimeFormat("en-US",{timeZone:chartSettings.timezone,
@@ -157,8 +175,14 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
    bbUpper:technicalEnabled.Bollinger,bbBasis:technicalEnabled.Bollinger,bbLower:technicalEnabled.Bollinger,
    donchianUpper:technicalEnabled.Donchian,donchianLower:technicalEnabled.Donchian
   };
+  const mode=chartSettings.algorithmMode;
+  Object.assign(visible,{
+   regLine:mode==="regression"||mode==="both",regUpper:mode==="regression"||mode==="both",
+   regLower:mode==="regression"||mode==="both",atrUpper:mode==="atrBands"||mode==="both",
+   atrLower:mode==="atrBands"||mode==="both"
+  });
   for(const [key,on] of Object.entries(visible))all[key]?.applyOptions({visible:!!on});
- },[technicalEnabled,libReady]);
+ },[technicalEnabled,libReady,chartSettings.algorithmMode]);
  useEffect(()=>{
   if(!libReady||!series.current||!active)return;
   let running=true,abort=null,timer=null,failures=0,inFlight=false;
@@ -218,6 +242,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
     const quality=dataHealth.researchReady?observedQuality:outdated?"STALE":"UNAVAILABLE";
     const mapped=stats.bars.map(({time,open,high,low,close})=>({time,open,high,low,close}));
     if(mapped.length){
+     const priorVisible=fitted?chart.current?.timeScale().getVisibleLogicalRange():null;
      all.candle.setData(chartSeriesData(mapped,chartSettings.chartType));
      for(const key of ["ema20","ema50","ema200","vwap","rsi","macd","macdSignal",
        "atr","adx","plusDI","minusDI","stochK","stochD","bbUpper","bbBasis","bbLower",
@@ -226,6 +251,8 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
       }
       all.histogram?.setData(stats.overlays.macdHistogram.map(p=>({...p,color:p.value>=0?"#339a9a":"#b66c84"})));
       all.volume?.setData(stats.overlays.volume);
+      if(priorVisible&&Number.isFinite(priorVisible.from)&&Number.isFinite(priorVisible.to))
+       chart.current?.timeScale().setVisibleLogicalRange(priorVisible);
       if(!fitted){
       const last=mapped.length-1;
       chart.current?.timeScale().setVisibleLogicalRange({from:Math.max(0,last-69),to:last+5});
@@ -313,6 +340,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   if(!libReady||!overlay)return;
   if(!feed.stats){
    overlay.marker.setMarkers([]);
+   markerItems.current=[];
    overlay.primitive.setAnnotations([],null);
    setOverlayMessage("");
    if(selected)onStructureRef.current?.({summaries:[],annotations:[],unavailable:[{concept:"Market data",resolution,reason:"Awaiting verified candles"}]});
@@ -329,19 +357,49 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   const result=assembleStructure(structureSettings,byResolution,resolution,display);
   try{
    const closeTimes=new Set(display.filter(b=>b.closed).map(b=>b.time));
-    const structureMarkers=toStructureMarkers(result.annotations).filter(m=>closeTimes.has(m.time));
-    const indicatorMarkers=buildIndicatorMarkers(display,feed.stats.overlays,{
-     mode:chartSettings.markerStyle,palette:chartSettings.markerPalette,enabled:technicalEnabled});
-    overlay.marker.setMarkers(combineChartMarkers(structureMarkers,indicatorMarkers,chartSettings.markerStyle));
-   overlay.primitive.setAnnotations(chartSettings.markerStyle==="compact"?[]:result.annotations,
-     display.at(-1)?.time??null);
-   setOverlayMessage(result.annotations.length+" annotations · "+result.unavailable.length+" timeframes awaiting data");
-  }catch(err){
-   setOverlayMessage("Structure drawing unavailable; candle feed remains read-only");
+   const structures=chartSettings.markerStructure?
+    toStructureMarkers(result.annotations).filter(m=>closeTimes.has(m.time)):[];
+   const indicators=buildIndicatorMarkers(display,feed.stats.overlays,{
+    mode:chartSettings.markerStyle,palette:chartSettings.markerPalette,
+    enabled:{
+     ADX:technicalEnabled.ADX&&chartSettings.markerADX,
+     Bollinger:technicalEnabled.Bollinger&&chartSettings.markerBollinger,
+     Donchian:technicalEnabled.Donchian&&chartSettings.markerDonchian,
+     Stochastic:technicalEnabled.Stochastic&&chartSettings.markerStochastic
+    }
+   });
+   const stacked=stackChartMarkers(structures,indicators,{
+    mode:chartSettings.markerStyle,expandedId:expandedMarkerId});
+   markerItems.current=stacked;
+   overlay.marker.setMarkers(markerSeriesPayload(stacked));
+   overlay.primitive.setAnnotations(
+    chartSettings.markerStructure&&chartSettings.markerStyle!=="compact"?result.annotations:[],
+    display.at(-1)?.time??null);
+   setOverlayMessage(stacked.length+" stacked markers · "+result.unavailable.length+" unavailable structure timeframes");
+  }catch{
+   setOverlayMessage("Optional chart markers unavailable; candle feed remains read-only");
   }
   if(selected)onStructureRef.current?.(result);
  },[symbol,resolution,feed.stats,feed.asOf,structureSettings,auxData,libReady,selected,active,extraKey,
-  technicalEnabled,chartSettings.markerStyle,chartSettings.markerPalette]);
+  technicalEnabled,chartSettings.markerStyle,chartSettings.markerPalette,
+  chartSettings.markerStructure,chartSettings.markerADX,chartSettings.markerBollinger,
+  chartSettings.markerDonchian,chartSettings.markerStochastic,expandedMarkerId]);
+ // Causal algorithmic overlays consume only confirmed closed price history.
+ useEffect(()=>{
+  const all=series.current;if(!all||!libReady)return;
+  const keys=["regLine","regUpper","regLower","atrUpper","atrLower"];
+  if(!feed.stats){for(const key of keys)all[key]?.setData([]);return;}
+  try{
+   const out=computeChartAlgorithms(feed.stats.bars,{
+    mode:chartSettings.algorithmMode,window:chartSettings.algorithmWindow,
+    multiplier:chartSettings.algorithmMultiplier
+   });
+   for(const [name,key] of [["regression","regLine"],["regUpper","regUpper"],
+    ["regLower","regLower"],["atrUpper","atrUpper"],["atrLower","atrLower"]])
+    all[key]?.setData(out[name]);
+  }catch{for(const key of keys)all[key]?.setData([]);}
+ },[feed.stats,libReady,chartSettings.algorithmMode,chartSettings.algorithmWindow,
+  chartSettings.algorithmMultiplier]);
  // Manual drawings, completed price patterns, and swing-anchored Fibonacci use the
  // existing chart data only. Missing data clears every optional drawing primitive.
  useEffect(()=>{
@@ -455,6 +513,14 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   setPendingCount(0);
   if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);
  }
+ function zoomChart(factor){
+  const scale=chart.current?.timeScale();const range=scale?.getVisibleLogicalRange();
+  if(!range)return;
+  const width=range.to-range.from,next=Math.max(8,Math.min(800,width*factor));
+  try{scale.setVisibleLogicalRange({from:(range.from+range.to-next)/2,
+   to:(range.from+range.to+next)/2});setZoomStatus("Zoom adjusted");}
+  catch{setZoomStatus("Zoom unavailable");}
+ }
  const stats=feed.stats;const ready=feed.phase==="ready";
  const health=feedHealth({...feed,now:clock||Date.now()});
  const untilClose=Math.ceil((FX_RESOLUTIONS[resolution]*1000-clock%(FX_RESOLUTIONS[resolution]*1000))/1000);
@@ -480,6 +546,82 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
       <button type="button" onClick={()=>{setOffline(null);setRefreshNonce(n=>n+1);}}>Clear import</button>:null}
    </div>
   </div>
+  <div className={styles.chartZoomTools} role="toolbar" aria-label={symbol+" chart navigation"}>
+   <button type="button" onClick={()=>zoomChart(0.8)} aria-label={symbol+" Zoom in"}>＋ Zoom</button>
+   <button type="button" onClick={()=>zoomChart(1.25)} aria-label={symbol+" Zoom out"}>− Zoom</button>
+   <button type="button" onClick={()=>{chart.current?.timeScale().fitContent();setZoomStatus("Fit all");}}>Fit</button>
+   <button type="button" onClick={()=>{chart.current?.timeScale().scrollToRealTime();setZoomStatus("Latest candle");}}>Latest</button>
+   <button type="button" aria-pressed={chartSettings.scale==="log"}
+    onClick={()=>onChartSettingChange?.("scale",chartSettings.scale==="log"?"normal":"log")}>
+    {chartSettings.scale==="log"?"Log ✓":"Log scale"}</button>
+   <label>Algorithm <select aria-label={symbol+" chart algorithm"} value={chartSettings.algorithmMode}
+    onChange={e=>onChartSettingChange?.("algorithmMode",e.target.value)}>
+    <option value="off">Off</option><option value="regression">Regression channel</option>
+    <option value="atrBands">ATR bands</option><option value="both">Both</option>
+   </select></label>
+   {zoomStatus?<small role="status">{zoomStatus}</small>:null}
+  </div>
+  <details className={styles.chartQuickStudies}>
+   <summary>Live Chart · Indicators & Markers</summary>
+   <div className={styles.chartQuickSections}>
+    <fieldset><legend>Technical indicators · shared</legend>
+     <div className={styles.chartQuickActions}>
+      <button type="button" onClick={()=>Object.keys(DEFAULT_TECH).forEach(id=>onTechnicalChange?.(id,true))}>Apply all</button>
+      <button type="button" onClick={()=>Object.keys(DEFAULT_TECH).forEach(id=>onTechnicalChange?.(id,false))}>Hide all</button>
+     </div><div className={styles.chartQuickChecks}>
+      {Object.keys(DEFAULT_TECH).map(id=><label key={id}>
+       <input type="checkbox" checked={!!technicalEnabled[id]}
+        onChange={e=>onTechnicalChange?.(id,e.target.checked)}/>{id}</label>)}
+     </div>
+    </fieldset>
+    <fieldset><legend>Marker sources · this chart</legend>
+     <div className={styles.chartQuickActions}>
+      <button type="button" onClick={()=>["markerStructure","markerADX","markerBollinger","markerDonchian","markerStochastic"].forEach(key=>onChartSettingChange?.(key,true))}>Apply all</button>
+      <button type="button" onClick={()=>["markerStructure","markerADX","markerBollinger","markerDonchian","markerStochastic"].forEach(key=>onChartSettingChange?.(key,false))}>Hide all</button>
+      <select aria-label={symbol+" marker display"} value={chartSettings.markerStyle}
+       onChange={e=>onChartSettingChange?.("markerStyle",e.target.value)}>
+       <option value="compact">Stacked dots</option><option value="full">Shapes</option><option value="off">Off</option>
+      </select></div><div className={styles.chartQuickChecks}>
+      {["markerStructure","markerADX","markerBollinger","markerDonchian","markerStochastic"].map(key=>
+       <label key={key}><input type="checkbox" checked={!!chartSettings[key]}
+        onChange={e=>onChartSettingChange?.(key,e.target.checked)}/>{key.slice(6)}</label>)}
+     </div>
+    </fieldset>
+    <fieldset><legend>Market structure · shared</legend>
+     <div className={styles.chartQuickActions}>
+      <button type="button" onClick={()=>STRUCTURE_CONCEPTS.forEach(x=>onStructureChange?.(x.id,true))}>Apply all</button>
+      <button type="button" onClick={()=>STRUCTURE_CONCEPTS.forEach(x=>onStructureChange?.(x.id,false))}>Hide all</button>
+     </div><div className={styles.chartQuickChecks}>
+      {STRUCTURE_CONCEPTS.map(x=><label key={x.id}><input type="checkbox"
+       checked={!!structureSettings[x.id]?.enabled}
+       onChange={e=>onStructureChange?.(x.id,e.target.checked)}/>{x.label}</label>)}
+     </div>
+    </fieldset>
+    <fieldset><legend>Patterns · shared</legend>
+     <div className={styles.chartQuickActions}>
+      <button type="button" onClick={()=>{onPatternsEnabled?.(true);TOOL_CATALOG.Patterns.forEach(x=>onPatternChange?.(x,true));}}>Apply all</button>
+      <button type="button" onClick={()=>{onPatternsEnabled?.(false);TOOL_CATALOG.Patterns.forEach(x=>onPatternChange?.(x,false));}}>Hide all</button>
+     </div>
+     <label><input type="checkbox" checked={autoPatterns}
+      onChange={e=>onPatternsEnabled?.(e.target.checked)}/>Auto-detection</label>
+     <div className={styles.chartQuickChecks}>
+      {TOOL_CATALOG.Patterns.map(x=><label key={x}><input type="checkbox"
+       checked={patternEnabled[x]!==false} onChange={e=>onPatternChange?.(x,e.target.checked)}/>{x}</label>)}
+     </div>
+    </fieldset>
+    <fieldset><legend>Algorithms & motion</legend>
+     <label>Lookback <select aria-label={symbol+" algorithm lookback"} value={chartSettings.algorithmWindow}
+      onChange={e=>onChartSettingChange?.("algorithmWindow",Number(e.target.value))}>
+      {[20,50,100].map(n=><option key={n} value={n}>{n}</option>)}</select></label>
+     <label>Band multiplier <select aria-label={symbol+" algorithm multiplier"} value={chartSettings.algorithmMultiplier}
+      onChange={e=>onChartSettingChange?.("algorithmMultiplier",Number(e.target.value))}>
+      {[1,1.5,2,3].map(n=><option key={n} value={n}>{n}</option>)}</select></label>
+     <label><input type="checkbox" checked={chartSettings.kineticScroll}
+      onChange={e=>onChartSettingChange?.("kineticScroll",e.target.checked)}/>Smooth inertial scroll</label>
+    </fieldset>
+   </div>
+   <small>Closed-bar chart research only. Click a stacked dot to toggle its label.</small>
+  </details>
   <div className={styles.engineDrawingCaption}>
    <span>{chartSettings.chartType}{chartSettings.chartType==="Heikin Ashi"?" · transformed prices (not broker executions)":""}</span>
    <span>Indicators · {chartSettings.markerStyle==="compact"?"non-overlapping dots":chartSettings.markerStyle==="full"?"color symbols":"markers hidden"} · read-only</span>
@@ -500,6 +642,11 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
     onPointerDown={pointerDown} onPointerMove={pointerMove}
     onPointerUp={pointerUp} onPointerCancel={pointerUp}/>:null}
   </div>
+  {expandedMarkerId&&markerItems.current.some(x=>x.id===expandedMarkerId)?
+   <div className={styles.chartMarkerDetail} role="status">
+    <strong>Marker label: </strong>{markerItems.current.find(x=>x.id===expandedMarkerId)?.label}
+    <button type="button" onClick={()=>setExpandedMarkerId("")}>Hide label</button>
+   </div>:null}
   {drawTool?<div className={styles.engineDrawStatus} role="status">
    Drawing: {drawTool} · {drawTool==="Move saved drawings"?"Drag a saved endpoint to reposition it":TOOL_CATALOG.Fibonacci.includes(drawTool)?"Automatically anchored to confirmed swings":drawTool==="Freehand drawing"?"Drag on chart":"Select "+requiredClicks(drawTool)+" chart point(s)"}
    {pendingCount?" · "+pendingCount+" point(s) selected":""}

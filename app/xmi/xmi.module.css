@@ -894,3 +894,30 @@
 @media(max-width:480px){.strategyLabRail{grid-template-columns:1fr}.strategyLabRail .strategyMatrix{max-width:140px}.strategyScroll{grid-template-columns:repeat(2,minmax(0,1fr));max-height:none}.strategyScroll button{min-height:65px}.terminalIdentity{gap:7px}.terminalIdentity>b{font-size:15px}.viewMenu>summary{font-size:10px;padding:5px 7px}.tickerNewsStatus small{flex-basis:70%}}
 .journalRecords{min-width:0}.recordPagination{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:11px;color:#b6d0e3}.recordPagination>span{margin-right:auto}
 .terminalIdentity{text-decoration:none;color:var(--text)!important}.viewOptions fieldset label,.shortcutToggle{min-height:28px}
+
+/* Chart-native research controls. Compact and non-modal so the price canvas remains visible. */
+.chartZoomTools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 10px;background:#0c1727;border-top:1px solid #26384e}
+.chartZoomTools button,.chartZoomTools select,.chartQuickStudies button,.chartQuickStudies select{padding:5px 8px;min-height:28px;border-radius:6px;font-size:11px}
+.chartZoomTools label{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#b0c6dc}
+.chartQuickStudies{border-block:1px solid #29405a;background:#0c1929;color:#d7e7f8;padding:5px 10px}
+.chartQuickStudies summary{cursor:pointer;font-weight:700;font-size:12px;padding:4px 0;user-select:none}
+.chartQuickStudies small{display:block;padding:5px 0;color:#b3c3db}
+.chartQuickSections{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;padding:8px 0}
+.chartQuickSections fieldset{margin:0;padding:9px;border:1px solid #2b425b;border-radius:8px;min-width:0}
+.chartQuickSections legend{font-size:11px;font-weight:700;color:#d7e7f8}
+.chartQuickSections fieldset>label{display:inline-flex;align-items:center;gap:6px;margin:4px 6px 4px 0;font-size:11px}
+.chartQuickActions,.toolboxSectionActions{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin:3px 0 7px}
+.chartQuickChecks{display:grid;grid-template-columns:repeat(auto-fit,minmax(95px,1fr));gap:4px}
+.chartQuickChecks label{display:flex;gap:5px;align-items:center;font-size:11px;min-width:0;overflow-wrap:anywhere}
+.chartQuickChecks input,.chartQuickSections input,.toolboxSubsection input{accent-color:#55bdec}
+.chartMarkerDetail{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:6px 9px;background:#122c3f;border-top:1px solid #466681;font-size:12px;color:#d8f2ff}
+.chartMarkerDetail button{padding:4px 8px}
+.toolboxSubsection{padding:6px 0;border-bottom:1px solid #293d51}
+.toolboxSubsection>label{display:flex;gap:7px;align-items:center;padding:4px 0;font-size:12px}
+.toolboxSectionActions strong{flex:1;min-width:80px;font-size:12px}
+.toolboxSectionActions button{font-size:11px;padding:4px 7px;min-height:27px}
+@media(max-width:560px){
+ .chartQuickSections{grid-template-columns:1fr}
+ .chartZoomTools{gap:4px}
+ .chartZoomTools button,.chartZoomTools select{font-size:11px;padding:4px}
+}
