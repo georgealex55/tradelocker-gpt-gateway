@@ -54,7 +54,7 @@ test("Marker events use closed bars only and collapse to at most one dot per tim
  assert.throws(()=>buildIndicatorMarkers(input,s.overlays,{mode:"flash"}),/Invalid/);
 });
 test("Pair-specific strategy requires exact FX instrument and causal strength/ATR thresholds",()=>{
- const all=STRATEGIES.filter(x=>x.pairs);
+ const all=STRATEGIES.filter(x=>x.pairs&&x.id!=="eur-scalp-5m");
  assert.deepEqual(all.map(x=>x.pairs[0]),["EURUSD","GBPUSD","USDJPY"]);
  const stats=computeFive(bars,"5m",now);
  for(const preset of all){

@@ -172,6 +172,11 @@ try{
  await page.getByPlaceholder("Search indicators, patterns or market structure…").waitFor();
  await page.getByPlaceholder("Search indicators, patterns or market structure…").fill("Donchian");
  await page.getByText("Donchian 20 · prior-bar breakout").waitFor();
+ await page.getByPlaceholder("Search indicators, patterns or market structure…").fill("RSI");
+ await page.getByRole("spinbutton",{name:"RSI period"}).fill("10");
+ assert.equal(await page.getByRole("spinbutton",{name:"RSI period"}).inputValue(),"10");
+ await page.getByRole("button",{name:"Reset indicator periods"}).click();
+ assert.equal(await page.getByRole("spinbutton",{name:"RSI period"}).inputValue(),"14");
  await page.getByPlaceholder("Search indicators, patterns or market structure…").fill("BOS");
  assert.ok(await page.getByLabel("BOS timeframe").count()===1);
  await page.locator('button[title="Chart Settings"]').click();
