@@ -340,6 +340,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   if(!libReady||!overlay)return;
   if(!feed.stats){
    overlay.marker.setMarkers([]);
+   markerItems.current=[];
    overlay.primitive.setAnnotations([],null);
    setOverlayMessage("");
    if(selected)onStructureRef.current?.({summaries:[],annotations:[],unavailable:[{concept:"Market data",resolution,reason:"Awaiting verified candles"}]});
@@ -356,19 +357,49 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   const result=assembleStructure(structureSettings,byResolution,resolution,display);
   try{
    const closeTimes=new Set(display.filter(b=>b.closed).map(b=>b.time));
-    const structureMarkers=toStructureMarkers(result.annotations).filter(m=>closeTimes.has(m.time));
-    const indicatorMarkers=buildIndicatorMarkers(display,feed.stats.overlays,{
-     mode:chartSettings.markerStyle,palette:chartSettings.markerPalette,enabled:technicalEnabled});
-    overlay.marker.setMarkers(combineChartMarkers(structureMarkers,indicatorMarkers,chartSettings.markerStyle));
-   overlay.primitive.setAnnotations(chartSettings.markerStyle==="compact"?[]:result.annotations,
-     display.at(-1)?.time??null);
-   setOverlayMessage(result.annotations.length+" annotations · "+result.unavailable.length+" timeframes awaiting data");
-  }catch(err){
-   setOverlayMessage("Structure drawing unavailable; candle feed remains read-only");
+   const structures=chartSettings.markerStructure?
+    toStructureMarkers(result.annotations).filter(m=>closeTimes.has(m.time)):[];
+   const indicators=buildIndicatorMarkers(display,feed.stats.overlays,{
+    mode:chartSettings.markerStyle,palette:chartSettings.markerPalette,
+    enabled:{
+     ADX:technicalEnabled.ADX&&chartSettings.markerADX,
+     Bollinger:technicalEnabled.Bollinger&&chartSettings.markerBollinger,
+     Donchian:technicalEnabled.Donchian&&chartSettings.markerDonchian,
+     Stochastic:technicalEnabled.Stochastic&&chartSettings.markerStochastic
+    }
+   });
+   const stacked=stackChartMarkers(structures,indicators,{
+    mode:chartSettings.markerStyle,expandedId:expandedMarkerId});
+   markerItems.current=stacked;
+   overlay.marker.setMarkers(markerSeriesPayload(stacked));
+   overlay.primitive.setAnnotations(
+    chartSettings.markerStructure&&chartSettings.markerStyle!=="compact"?result.annotations:[],
+    display.at(-1)?.time??null);
+   setOverlayMessage(stacked.length+" stacked markers · "+result.unavailable.length+" unavailable structure timeframes");
+  }catch{
+   setOverlayMessage("Optional chart markers unavailable; candle feed remains read-only");
   }
   if(selected)onStructureRef.current?.(result);
  },[symbol,resolution,feed.stats,feed.asOf,structureSettings,auxData,libReady,selected,active,extraKey,
-  technicalEnabled,chartSettings.markerStyle,chartSettings.markerPalette]);
+  technicalEnabled,chartSettings.markerStyle,chartSettings.markerPalette,
+  chartSettings.markerStructure,chartSettings.markerADX,chartSettings.markerBollinger,
+  chartSettings.markerDonchian,chartSettings.markerStochastic,expandedMarkerId]);
+ // Causal algorithmic overlays consume only confirmed closed price history.
+ useEffect(()=>{
+  const all=series.current;if(!all||!libReady)return;
+  const keys=["regLine","regUpper","regLower","atrUpper","atrLower"];
+  if(!feed.stats){for(const key of keys)all[key]?.setData([]);return;}
+  try{
+   const out=computeChartAlgorithms(feed.stats.bars,{
+    mode:chartSettings.algorithmMode,window:chartSettings.algorithmWindow,
+    multiplier:chartSettings.algorithmMultiplier
+   });
+   for(const [name,key] of [["regression","regLine"],["regUpper","regUpper"],
+    ["regLower","regLower"],["atrUpper","atrUpper"],["atrLower","atrLower"]])
+    all[key]?.setData(out[name]);
+  }catch{for(const key of keys)all[key]?.setData([]);}
+ },[feed.stats,libReady,chartSettings.algorithmMode,chartSettings.algorithmWindow,
+  chartSettings.algorithmMultiplier]);
  // Manual drawings, completed price patterns, and swing-anchored Fibonacci use the
  // existing chart data only. Missing data clears every optional drawing primitive.
  useEffect(()=>{
