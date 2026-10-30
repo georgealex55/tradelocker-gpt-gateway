@@ -252,7 +252,21 @@ export default function XMIWorkstation(){
        disabled={detail.preset.unscored} onChange={e=>editField("requireMacd",e.target.checked)}/>Require MACD availability</label>
       <label className={styles.strategyEditCheck}><input type="checkbox" checked={selectedEdit.requireVwap}
        disabled={detail.preset.unscored} onChange={e=>editField("requireVwap",e.target.checked)}/>Require VWAP availability & alignment</label>
-      <label className={styles.strategyEditNotes}>Research notes (local only)
+      <label>Minimum ADX trend strength
+        <input aria-label="Minimum ADX strength" type="number" min="10" max="45"
+         disabled={detail.preset.unscored} value={selectedEdit.adxMin}
+         onChange={e=>editField("adxMin",Number(e.target.value))}/></label>
+       <label>Minimum ATR (approximate pips)
+        <input aria-label="Minimum ATR pips" type="number" min="0" max="50" step="0.5"
+         disabled={detail.preset.unscored} value={selectedEdit.atrMinPips}
+         onChange={e=>editField("atrMinPips",Number(e.target.value))}/></label>
+       <label className={styles.strategyEditCheck}><input type="checkbox" checked={selectedEdit.requireAdx}
+        disabled={detail.preset.unscored||!!detail.preset.pairs}
+        onChange={e=>editField("requireAdx",e.target.checked)}/>Require ADX trend strength</label>
+       <label className={styles.strategyEditCheck}><input type="checkbox" checked={selectedEdit.requireAtr}
+        disabled={detail.preset.unscored||!!detail.preset.pairs}
+        onChange={e=>editField("requireAtr",e.target.checked)}/>Require ATR volatility</label>
+       <label className={styles.strategyEditNotes}>Research notes (local only)
        <textarea aria-label="Strategy research notes" maxLength={600} rows={3} value={selectedEdit.notes}
         onChange={e=>editField("notes",e.target.value)} placeholder="Add your observations and review notes…"/></label>
      </div>
