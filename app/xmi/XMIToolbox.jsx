@@ -157,6 +157,8 @@ export default function XMIToolbox({
        {tool}{drawTool===tool?" ✓":""}</button>)}
      </div>
      <div className={styles.toolboxInline}>
+      <button type="button" onClick={()=>setDrawTool("Move saved drawings")}
+       aria-pressed={drawTool==="Move saved drawings"}>Drag saved handles</button>
       <button type="button" onClick={()=>setDrawTool(null)}>Exit drawing</button>
       <button type="button" onClick={onUndo}>Undo last</button>
       <button type="button" onClick={onClear}>Clear symbol</button>
