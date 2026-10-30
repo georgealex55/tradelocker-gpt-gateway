@@ -7,6 +7,19 @@ import {ADVANCED_INDICATORS} from "../../lib/xmiAdvancedIndicators.mjs";
 import {STRUCTURE_CONCEPTS,STRUCTURE_TIMEFRAMES,setStructureOption,defaultStructureSettings} from "../../lib/xmiStructure.mjs";
 const TECH=["EMA","VWAP","RSI","MACD","Volume",...ADVANCED_INDICATORS.map(x=>x.id)];
 const DEFAULT_INDICATORS=DEFAULT_TECH;
+const INDICATOR_SECTIONS=Object.freeze([
+ {name:"Trend",ids:["EMA","VWAP"]},
+ {name:"Momentum",ids:["RSI","MACD","Stochastic"]},
+ {name:"Trend strength",ids:["ADX"]},
+ {name:"Volatility",ids:["ATR","Bollinger"]},
+ {name:"Breakouts",ids:["Donchian"]},
+ {name:"Activity",ids:["Volume"]}
+]);
+const MARKER_FIELDS=Object.freeze([
+ ["markerStructure","Market-structure events"],["markerADX","ADX strength markers"],
+ ["markerBollinger","Bollinger markers"],["markerDonchian","Donchian markers"],
+ ["markerStochastic","Stochastic markers"]
+]);
 const ICONS={"Strategy":"▦","Indicators":"∑","Annotations":"✎","Patterns":"◇","Fibonacci":"φ","Lines":"／","Measurements":"↔","Chart Settings":"⚙"};
 const SETTINGS=[
  ["theme","Theme","select",["dark","light"]],["bull","Up color","color"],["bear","Down color","color"],
@@ -21,7 +34,12 @@ const SETTINGS=[
  ["candleTimer","Candle-close countdown (local clock)","check"],
  ["markerStyle","Chart marker detail","select",["compact","full","off"]],
  ["markerPalette","Chart marker palette","select",["vivid","contrast"]],
- ["refreshProfile","Read-only candle polling","select",["balanced","responsive"]]
+ ["refreshProfile","Read-only candle polling","select",["balanced","responsive"]],
+ ["kineticScroll","Smooth inertial panning","check"],
+ ["algorithmMode","Algorithmic overlay","select",["off","regression","atrBands","both"]],
+ ["algorithmWindow","Regression lookback bars","select",[20,50,100]],
+ ["algorithmMultiplier","Algorithm channel multiplier","select",[1,1.5,2,3]],
+ ...MARKER_FIELDS.map(([key,label])=>[key,label,"check"])
 ];
 export default function XMIToolbox({
  activePanel,setActivePanel,orientation,setOrientation,docked,setDocked,pinned,setPinned,
@@ -32,7 +50,7 @@ export default function XMIToolbox({
  onFocusMode,focusMode,drawingsCount
 }){
  const [search,setSearch]=useState("");
- const [groups,setGroups]=useState({technical:true,market:true,patterns:true});
+ const [groups,setGroups]=useState({technical:true,market:true,markers:true,patterns:true});
  const [scope,setScope]=useState("global");
  const [settingsExpanded,setSettingsExpanded]=useState(true);
  const ref=useRef(null),upload=useRef(null);
@@ -62,6 +80,23 @@ export default function XMIToolbox({
     aria-expanded={groups[key]!==false}>{label}<span>{groups[key]===false?"＋":"−"}</span></button>
    {groups[key]!==false?children:null}
   </section>;
+ const toggleIndicatorSection=(ids,checked)=>setTech(prev=>({...prev,...Object.fromEntries(ids.map(id=>[id,checked]))}));
+ const indicatorSections=INDICATOR_SECTIONS.map(section=>{
+  const shown=section.ids.filter(id=>(id+" "+
+   (ADVANCED_INDICATORS.find(x=>x.id===id)?.label||"")).toLowerCase().includes(search.toLowerCase()));
+  if(!shown.length)return null;
+  return <section key={section.name} className={styles.toolboxSubsection}>
+   <div className={styles.toolboxSectionActions}><strong>{section.name}</strong>
+    <button type="button" onClick={()=>toggleIndicatorSection(section.ids,true)}
+     aria-label={"Apply all "+section.name+" indicators"}>Apply all</button>
+    <button type="button" onClick={()=>toggleIndicatorSection(section.ids,false)}
+     aria-label={"Hide all "+section.name+" indicators"}>Hide all</button></div>
+   {shown.map(id=><label key={id}><input type="checkbox" checked={!!tech[id]}
+    onChange={e=>setTech(old=>({...old,[id]:e.target.checked}))}/>
+    <span>{id==="EMA"?"EMA 20 / 50 / 200":id==="VWAP"?"VWAP (FX tick-volume proxy)":
+     ADVANCED_INDICATORS.find(x=>x.id===id)?.label||id}</span></label>)}
+  </section>;
+ });
  const active=activePanel;
  return <div ref={ref} className={styles.toolShell+" "+(orientation==="vertical"?styles.toolVertical:styles.toolHorizontal)}>
   <div className={styles.toolButtons} role="toolbar" aria-label="Chart tools">
@@ -108,12 +143,31 @@ export default function XMIToolbox({
      <input className={styles.toolboxSearch} placeholder="Search indicators, patterns or market structure…"
       aria-label="Search indicators" value={search} onChange={e=>setSearch(e.target.value)} />
      {group("technical","Technical indicators",<div className={styles.toolboxRows}>
-      {TECH.filter(x=>x.toLowerCase().includes(search.toLowerCase())).map(id=><label key={id}>
-       <input type="checkbox" checked={tech[id]} onChange={e=>setTech(prev=>({...prev,[id]:e.target.checked}))}/>
-       <span>{id==="EMA"?"EMA 20 / 50 / 200":id==="VWAP"?"VWAP (FX tick-volume proxy)":ADVANCED_INDICATORS.find(x=>x.id===id)?.label||id}</span></label>)}
+      <div className={styles.toolboxInline}>
+       <button type="button" onClick={()=>toggleIndicatorSection(TECH,true)}>Apply all technical</button>
+       <button type="button" onClick={()=>toggleIndicatorSection(TECH,false)}>Hide all technical</button>
+      </div>
+      {indicatorSections}
+     </div>)}
+     {group("markers","Marker overlays",<div className={styles.toolboxRows}>
+      <div className={styles.toolboxInline}>
+       <button type="button" onClick={()=>setGlobalSettings(old=>({...old,
+        markerStyle:"compact",...Object.fromEntries(MARKER_FIELDS.map(([key])=>[key,true]))}))}>Apply all markers</button>
+       <button type="button" onClick={()=>setGlobalSettings(old=>({...old,
+        ...Object.fromEntries(MARKER_FIELDS.map(([key])=>[key,false]))}))}>Hide all markers</button>
+      </div>
+      {MARKER_FIELDS.map(([key,label])=><label key={key}><input type="checkbox"
+       checked={globalSettings[key]} onChange={e=>setGlobalSettings(old=>({...old,[key]:e.target.checked}))}/>
+       {label}</label>)}
      </div>)}
      <p className={styles.toolboxNote}>Advanced indicators are causal calculations. Compact markers use at most one color-coded dot per confirmed bar; full markers show labeled symbols. Vivid: mint ▲ bullish, pink ▼ bearish, yellow ■ strength, purple ● momentum. No indicator is inherently profitable.</p>
      {group("patterns","Automatic chart patterns · per-type toggles",<div className={styles.toolboxRows}>
+      <div className={styles.toolboxInline}>
+       <button type="button" onClick={()=>{setAutoPatterns(true);setPatternEnabled(
+        Object.fromEntries(TOOL_CATALOG.Patterns.map(id=>[id,true])));}}>Apply all patterns</button>
+       <button type="button" onClick={()=>{setAutoPatterns(false);setPatternEnabled(
+        Object.fromEntries(TOOL_CATALOG.Patterns.map(id=>[id,false])));}}>Hide all patterns</button>
+      </div>
       <label><input type="checkbox" checked={autoPatterns} onChange={e=>setAutoPatterns(e.target.checked)}/> Enable automatic detection</label>
       {TOOL_CATALOG.Patterns.filter(x=>x.toLowerCase().includes(search.toLowerCase())).map(name=><div key={name} className={styles.toolboxIndicatorRow}>
         <label><input type="checkbox" checked={patternEnabled[name]!==false}
@@ -189,7 +243,7 @@ export default function XMIToolbox({
         onChange={e=>updateSetting(key,e.target.checked)}/>:
         kind==="color"?<input type="color" value={settings[key]}
         onChange={e=>updateSetting(key,e.target.value)}/>:
-        <select value={settings[key]} onChange={e=>updateSetting(key,key==="precision"?Number(e.target.value):e.target.value)}>
+        <select value={settings[key]} onChange={e=>updateSetting(key,["precision","algorithmWindow","algorithmMultiplier"].includes(key)?Number(e.target.value):e.target.value)}>
          {options.map(x=><option key={x} value={x}>{x}</option>)}</select>}
       </label>):null}
      </section>
