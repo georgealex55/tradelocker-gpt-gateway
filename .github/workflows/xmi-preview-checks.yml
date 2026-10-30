@@ -23,6 +23,9 @@ on:
       - 'lib/xmiStrategyPresets.mjs'
       - 'tests/xmi-data-quality.test.mjs'
       - 'lib/xmiWorkspaceState.mjs'
+      - 'lib/xmiWorkspaceUX.mjs'
+      - 'tests/xmi-workstation-ux.test.mjs'
+      - 'tests/xmi-ux-browser-smoke.mjs'
       - 'lib/xmiWatchlistCollections.mjs'
       - 'tests/xmi-named-watchlists.test.mjs'
       - 'tests/xmi-feed-recovery.test.mjs'
@@ -79,6 +82,7 @@ jobs:
           node --check lib/xmiResearchHoldout.mjs
           node --check lib/xmiStrategyPresets.mjs
           node --check lib/xmiWorkspaceState.mjs
+          node --check lib/xmiWorkspaceUX.mjs
           node --check lib/xmiWatchlistCollections.mjs
           node --check lib/xmiProductionFeedAuth.mjs
           node --check app/api/xmi/feed-session/route.js
@@ -121,6 +125,10 @@ jobs:
             exit 1
           fi
           if ! node tests/xmi-browser-smoke.mjs; then
+            cat /tmp/xmi-next.log
+            exit 1
+          fi
+          if ! node tests/xmi-ux-browser-smoke.mjs; then
             cat /tmp/xmi-next.log
             exit 1
           fi
