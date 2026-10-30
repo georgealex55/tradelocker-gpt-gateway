@@ -96,7 +96,7 @@ export default function XMIToolbox({
     <label><input type="checkbox" checked={!!tech[id]}
      onChange={e=>setTech(old=>({...old,[id]:e.target.checked}))}/>
      <span>{id==="EMA"?"EMA":id==="VWAP"?"VWAP tick-volume proxy":
-      ADVANCED_INDICATORS.find(x=>x.id===id)?.label?.split(" · ")[0]||id}</span></label>
+      ADVANCED_INDICATORS.find(x=>x.id===id)?.label||id}</span></label>
     <div className={styles.toolboxParamGrid}>
      {INDICATOR_PARAMETERS.filter(p=>p.section===id).map(p=><label key={p.key}>
       <span>{p.label}</span>
