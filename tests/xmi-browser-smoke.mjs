@@ -151,7 +151,7 @@ try{
 
  // Chart-native marker controls, log price scale, causal research channel and zoom.
  const firstChart=page.getByRole("article",{name:/EURUSD live forex chart/}).first();
- const quick=firstChart.locator("details").filter({has:firstChart.locator("summary",{hasText:"Live Chart · Indicators & Markers"})});
+ const quick=firstChart.locator("details").filter({hasText:"Live Chart · Indicators & Markers"}).first();
  await quick.locator("summary").click();
  const markerGroup=quick.getByRole("group",{name:/Marker sources/});
  await markerGroup.getByRole("button",{name:"Hide all"}).click();
