@@ -513,6 +513,14 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   setPendingCount(0);
   if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);
  }
+ function zoomChart(factor){
+  const scale=chart.current?.timeScale();const range=scale?.getVisibleLogicalRange();
+  if(!range)return;
+  const width=range.to-range.from,next=Math.max(8,Math.min(800,width*factor));
+  try{scale.setVisibleLogicalRange({from:(range.from+range.to-next)/2,
+   to:(range.from+range.to+next)/2});setZoomStatus("Zoom adjusted");}
+  catch{setZoomStatus("Zoom unavailable");}
+ }
  const stats=feed.stats;const ready=feed.phase==="ready";
  const health=feedHealth({...feed,now:clock||Date.now()});
  const untilClose=Math.ceil((FX_RESOLUTIONS[resolution]*1000-clock%(FX_RESOLUTIONS[resolution]*1000))/1000);
@@ -538,6 +546,82 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
       <button type="button" onClick={()=>{setOffline(null);setRefreshNonce(n=>n+1);}}>Clear import</button>:null}
    </div>
   </div>
+  <div className={styles.chartZoomTools} role="toolbar" aria-label={symbol+" chart navigation"}>
+   <button type="button" onClick={()=>zoomChart(0.8)} aria-label={symbol+" Zoom in"}>＋ Zoom</button>
+   <button type="button" onClick={()=>zoomChart(1.25)} aria-label={symbol+" Zoom out"}>− Zoom</button>
+   <button type="button" onClick={()=>{chart.current?.timeScale().fitContent();setZoomStatus("Fit all");}}>Fit</button>
+   <button type="button" onClick={()=>{chart.current?.timeScale().scrollToRealTime();setZoomStatus("Latest candle");}}>Latest</button>
+   <button type="button" aria-pressed={chartSettings.scale==="log"}
+    onClick={()=>onChartSettingChange?.("scale",chartSettings.scale==="log"?"normal":"log")}>
+    {chartSettings.scale==="log"?"Log ✓":"Log scale"}</button>
+   <label>Algorithm <select aria-label={symbol+" chart algorithm"} value={chartSettings.algorithmMode}
+    onChange={e=>onChartSettingChange?.("algorithmMode",e.target.value)}>
+    <option value="off">Off</option><option value="regression">Regression channel</option>
+    <option value="atrBands">ATR bands</option><option value="both">Both</option>
+   </select></label>
+   {zoomStatus?<small role="status">{zoomStatus}</small>:null}
+  </div>
+  <details className={styles.chartQuickStudies}>
+   <summary>Live Chart · Indicators & Markers</summary>
+   <div className={styles.chartQuickSections}>
+    <fieldset><legend>Technical indicators · shared</legend>
+     <div className={styles.chartQuickActions}>
+      <button type="button" onClick={()=>Object.keys(DEFAULT_TECH).forEach(id=>onTechnicalChange?.(id,true))}>Apply all</button>
+      <button type="button" onClick={()=>Object.keys(DEFAULT_TECH).forEach(id=>onTechnicalChange?.(id,false))}>Hide all</button>
+     </div><div className={styles.chartQuickChecks}>
+      {Object.keys(DEFAULT_TECH).map(id=><label key={id}>
+       <input type="checkbox" checked={!!technicalEnabled[id]}
+        onChange={e=>onTechnicalChange?.(id,e.target.checked)}/>{id}</label>)}
+     </div>
+    </fieldset>
+    <fieldset><legend>Marker sources · this chart</legend>
+     <div className={styles.chartQuickActions}>
+      <button type="button" onClick={()=>["markerStructure","markerADX","markerBollinger","markerDonchian","markerStochastic"].forEach(key=>onChartSettingChange?.(key,true))}>Apply all</button>
+      <button type="button" onClick={()=>["markerStructure","markerADX","markerBollinger","markerDonchian","markerStochastic"].forEach(key=>onChartSettingChange?.(key,false))}>Hide all</button>
+      <select aria-label={symbol+" marker display"} value={chartSettings.markerStyle}
+       onChange={e=>onChartSettingChange?.("markerStyle",e.target.value)}>
+       <option value="compact">Stacked dots</option><option value="full">Shapes</option><option value="off">Off</option>
+      </select></div><div className={styles.chartQuickChecks}>
+      {["markerStructure","markerADX","markerBollinger","markerDonchian","markerStochastic"].map(key=>
+       <label key={key}><input type="checkbox" checked={!!chartSettings[key]}
+        onChange={e=>onChartSettingChange?.(key,e.target.checked)}/>{key.slice(6)}</label>)}
+     </div>
+    </fieldset>
+    <fieldset><legend>Market structure · shared</legend>
+     <div className={styles.chartQuickActions}>
+      <button type="button" onClick={()=>STRUCTURE_CONCEPTS.forEach(x=>onStructureChange?.(x.id,true))}>Apply all</button>
+      <button type="button" onClick={()=>STRUCTURE_CONCEPTS.forEach(x=>onStructureChange?.(x.id,false))}>Hide all</button>
+     </div><div className={styles.chartQuickChecks}>
+      {STRUCTURE_CONCEPTS.map(x=><label key={x.id}><input type="checkbox"
+       checked={!!structureSettings[x.id]?.enabled}
+       onChange={e=>onStructureChange?.(x.id,e.target.checked)}/>{x.label}</label>)}
+     </div>
+    </fieldset>
+    <fieldset><legend>Patterns · shared</legend>
+     <div className={styles.chartQuickActions}>
+      <button type="button" onClick={()=>{onPatternsEnabled?.(true);TOOL_CATALOG.Patterns.forEach(x=>onPatternChange?.(x,true));}}>Apply all</button>
+      <button type="button" onClick={()=>{onPatternsEnabled?.(false);TOOL_CATALOG.Patterns.forEach(x=>onPatternChange?.(x,false));}}>Hide all</button>
+     </div>
+     <label><input type="checkbox" checked={autoPatterns}
+      onChange={e=>onPatternsEnabled?.(e.target.checked)}/>Auto-detection</label>
+     <div className={styles.chartQuickChecks}>
+      {TOOL_CATALOG.Patterns.map(x=><label key={x}><input type="checkbox"
+       checked={patternEnabled[x]!==false} onChange={e=>onPatternChange?.(x,e.target.checked)}/>{x}</label>)}
+     </div>
+    </fieldset>
+    <fieldset><legend>Algorithms & motion</legend>
+     <label>Lookback <select aria-label={symbol+" algorithm lookback"} value={chartSettings.algorithmWindow}
+      onChange={e=>onChartSettingChange?.("algorithmWindow",Number(e.target.value))}>
+      {[20,50,100].map(n=><option key={n} value={n}>{n}</option>)}</select></label>
+     <label>Band multiplier <select aria-label={symbol+" algorithm multiplier"} value={chartSettings.algorithmMultiplier}
+      onChange={e=>onChartSettingChange?.("algorithmMultiplier",Number(e.target.value))}>
+      {[1,1.5,2,3].map(n=><option key={n} value={n}>{n}</option>)}</select></label>
+     <label><input type="checkbox" checked={chartSettings.kineticScroll}
+      onChange={e=>onChartSettingChange?.("kineticScroll",e.target.checked)}/>Smooth inertial scroll</label>
+    </fieldset>
+   </div>
+   <small>Closed-bar chart research only. Click a stacked dot to toggle its label.</small>
+  </details>
   <div className={styles.engineDrawingCaption}>
    <span>{chartSettings.chartType}{chartSettings.chartType==="Heikin Ashi"?" · transformed prices (not broker executions)":""}</span>
    <span>Indicators · {chartSettings.markerStyle==="compact"?"non-overlapping dots":chartSettings.markerStyle==="full"?"color symbols":"markers hidden"} · read-only</span>
@@ -558,6 +642,11 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
     onPointerDown={pointerDown} onPointerMove={pointerMove}
     onPointerUp={pointerUp} onPointerCancel={pointerUp}/>:null}
   </div>
+  {expandedMarkerId&&markerItems.current.some(x=>x.id===expandedMarkerId)?
+   <div className={styles.chartMarkerDetail} role="status">
+    <strong>Marker label: </strong>{markerItems.current.find(x=>x.id===expandedMarkerId)?.label}
+    <button type="button" onClick={()=>setExpandedMarkerId("")}>Hide label</button>
+   </div>:null}
   {drawTool?<div className={styles.engineDrawStatus} role="status">
    Drawing: {drawTool} · {drawTool==="Move saved drawings"?"Drag a saved endpoint to reposition it":TOOL_CATALOG.Fibonacci.includes(drawTool)?"Automatically anchored to confirmed swings":drawTool==="Freehand drawing"?"Drag on chart":"Select "+requiredClicks(drawTool)+" chart point(s)"}
    {pendingCount?" · "+pendingCount+" point(s) selected":""}
