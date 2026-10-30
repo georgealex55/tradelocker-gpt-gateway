@@ -921,3 +921,9 @@
  .chartZoomTools{gap:4px}
  .chartZoomTools button,.chartZoomTools select{font-size:11px;padding:4px}
 }
+
+.toolboxStudySettings{display:grid;gap:4px;border-bottom:1px solid #2b4055;padding:6px 0}
+.toolboxStudySettings>label{display:flex;align-items:center;gap:7px;font-size:12px}
+.toolboxParamGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:5px;padding:3px 4px 5px}
+.toolboxParamGrid label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:#b7cce0}
+.toolboxParamGrid input,.toolboxParamGrid select{width:100%;min-height:29px;padding:4px 6px;border:1px solid #3b526a;border-radius:5px;color:inherit;background:#0c1a2c}
