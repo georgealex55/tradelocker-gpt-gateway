@@ -55,7 +55,20 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   last:null,stats:null,asOf:null,quality:"UNAVAILABLE",failures:0,
   lastCheckedAt:null,lastSuccessAt:null,lastClosedAt:null,nextRefreshMs:null,
   sourceSymbol:symbol,sourceResolution:resolution});
- useEffect(()=>{if(selected)onAnalysisRef.current?.({stats:feed.stats,quality:feed.quality||"UNAVAILABLE",asOf:feed.asOf});},[feed.stats,feed.quality,feed.asOf,selected]);
+ useEffect(()=>{
+  if(!selected)return;
+  const higher=auxData[symbol+"|15m"];
+  const trusted=scalpActive&&feed.quality==="CURRENT"&&feed.stats?.dataHealth?.researchReady===true&&
+   higher?.scalpStats&&Date.now()-higher.loadedAt<10*60000&&
+   quoteState(higher.scalpStats.lastClosed,Date.now(),"15m")==="CURRENT";
+  const research=scalpActive?
+   trusted?evaluateScalpResearch(feed.stats,higher.scalpStats,strategyEdit):
+    {ready:false,reason:"Waiting for a fresh, validated 15m trend source",markers:[]}:
+   null;
+  onAnalysisRef.current?.({stats:research&&feed.stats?{...feed.stats,scalpResearch:research}:feed.stats,
+   quality:feed.quality||"UNAVAILABLE",asOf:feed.asOf});
+ },[feed.stats,feed.quality,feed.asOf,selected,scalpActive,symbol,auxData,
+  strategyEdit.adxMin,strategyEdit.stopAtr,strategyEdit.rewardRisk,strategyEdit.maxHoldBars]);
  const [libReady,setLibReady]=useState(false);
  useEffect(()=>{interaction.current={points:[],stroke:[],count:0};moving.current=null;setPendingCount(0);setDrawingError("");},[drawTool,symbol]);
  useEffect(()=>{
@@ -361,15 +374,34 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
    if(selected)onStructureRef.current?.({summaries:[],annotations:[],unavailable:[{concept:"Market data",resolution,reason:"Awaiting verified candles"}]});
    return;
   }
-  const byResolution={
-   [resolution]:{structure:detectStructure(feed.stats.bars,resolution,Date.parse(feed.asOf))}
-  };
+  let localStructure;
+  try{
+   const at=Date.parse(feed.asOf);
+   if(!Number.isFinite(at))throw Error("Invalid source observation timestamp");
+   localStructure=detectStructure(feed.stats.bars,resolution,at);
+  }catch{
+   overlay.marker.setMarkers([]);
+   markerItems.current=[];
+   overlay.primitive.setAnnotations([],null);
+   setOverlayMessage("Structure source unavailable; chart candles retained");
+   if(selected)onStructureRef.current?.({summaries:[],annotations:[],
+    unavailable:[{concept:"Market structure",resolution,reason:"Invalid or incomplete candle timing"}]});
+   return;
+  }
+  const byResolution={[resolution]:{structure:localStructure}};
   for(const tf of extraRes){
    const stored=auxData[symbol+"|"+tf];
    if(stored)byResolution[tf]=stored;
   }
   const display=feed.stats.bars;
-  const result=assembleStructure(structureSettings,byResolution,resolution,display);
+  let result;
+  try{result=assembleStructure(structureSettings,byResolution,resolution,display);}
+  catch{
+   overlay.marker.setMarkers([]);markerItems.current=[];
+   overlay.primitive.setAnnotations([],null);
+   setOverlayMessage("Market-structure projection unavailable; candles retained");
+   return;
+  }
   try{
    const closeTimes=new Set(display.filter(b=>b.closed).map(b=>b.time));
    const structures=chartSettings.markerStructure?
@@ -383,8 +415,13 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
      Stochastic:technicalEnabled.Stochastic&&chartSettings.markerStochastic
     }
    });
+   const higher=auxData[symbol+"|15m"];
+   const trusted=scalpActive&&feed.quality==="CURRENT"&&feed.stats?.dataHealth?.researchReady===true&&
+    higher?.scalpStats&&Date.now()-higher.loadedAt<10*60000&&
+    quoteState(higher.scalpStats.lastClosed,Date.now(),"15m")==="CURRENT";
+   const candidate=trusted?evaluateScalpResearch(feed.stats,higher.scalpStats,strategyEdit):null;
    const stacked=stackChartMarkers(structures,indicators,{
-    mode:chartSettings.markerStyle,expandedId:expandedMarkerId});
+    mode:chartSettings.markerStyle,expandedId:expandedMarkerId,strategy:candidate?.markers||[]});
    markerItems.current=stacked;
    overlay.marker.setMarkers(markerSeriesPayload(stacked));
    overlay.primitive.setAnnotations(
@@ -398,7 +435,9 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
  },[symbol,resolution,feed.stats,feed.asOf,structureSettings,auxData,libReady,selected,active,extraKey,
   technicalEnabled,chartSettings.markerStyle,chartSettings.markerPalette,
   chartSettings.markerStructure,chartSettings.markerADX,chartSettings.markerBollinger,
-  chartSettings.markerDonchian,chartSettings.markerStochastic,expandedMarkerId]);
+  chartSettings.markerDonchian,chartSettings.markerStochastic,expandedMarkerId,
+  scalpActive,feed.quality,strategyEdit.adxMin,strategyEdit.stopAtr,
+  strategyEdit.rewardRisk,strategyEdit.maxHoldBars]);
  // Causal algorithmic overlays consume only confirmed closed price history.
  useEffect(()=>{
   const all=series.current;if(!all||!libReady)return;
@@ -637,6 +676,11 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
    </div>
    <small>Closed-bar chart research only. Click a stacked dot to toggle its label.</small>
   </details>
+  {scalpActive?<div className={styles.chartMarkerDetail} role="status">
+   EUR/USD 5m pullback research · 15m EMA confirmation · ATR stop {strategyEdit.stopAtr??1.2}× ·
+   target {strategyEdit.rewardRisk??1.5}R · exits are hypothetical, not fills.
+   {auxData[symbol+"|15m"]?.error?" Higher-timeframe source unavailable.":""}
+  </div>:null}
   <div className={styles.engineDrawingCaption}>
    <span>{chartSettings.chartType}{chartSettings.chartType==="Heikin Ashi"?" · transformed prices (not broker executions)":""}</span>
    <span>Indicators · {chartSettings.markerStyle==="compact"?"non-overlapping dots":chartSettings.markerStyle==="full"?"color symbols":"markers hidden"} · read-only</span>
