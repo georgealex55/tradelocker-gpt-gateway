@@ -181,7 +181,7 @@ export default function XMIWorkstation(){
      <div><p className={styles.eyebrow}>XMI TERMINAL 2.0 / RESEARCH ONLY</p>
       <h1>Market intelligence terminal</h1></div>
     </div>
-    <p className={styles.subtitle}>Read-only FX candles (authorization required), five indicators, news and journal research.</p>
+    <p className={styles.subtitle}>Read-only FX candles, configurable technical studies, news and journal research.</p>
    </div>
    <span className={styles.pill}>RESEARCH ONLY · NO ORDERS</span>
   </header>:null}
@@ -266,7 +266,20 @@ export default function XMIWorkstation(){
        <label className={styles.strategyEditCheck}><input type="checkbox" checked={selectedEdit.requireAtr}
         disabled={detail.preset.unscored||!!detail.preset.pairs}
         onChange={e=>editField("requireAtr",e.target.checked)}/>Require ATR volatility</label>
-       <label className={styles.strategyEditNotes}>Research notes (local only)
+       {strategyId==="eur-scalp-5m"?<>
+       <label>ATR stop multiplier
+        <input aria-label="Scalp ATR stop multiplier" type="number" min="0.5" max="3" step="0.1"
+         value={selectedEdit.stopAtr} onChange={e=>editField("stopAtr",Number(e.target.value))}/></label>
+       <label>Hypothetical reward/risk target
+        <input aria-label="Scalp reward risk" type="number" min="1" max="3" step="0.1"
+         value={selectedEdit.rewardRisk} onChange={e=>editField("rewardRisk",Number(e.target.value))}/></label>
+       <label>Exit after closed 5m bars
+        <input aria-label="Scalp exit hold bars" type="number" min="2" max="36" step="1"
+         value={selectedEdit.maxHoldBars} onChange={e=>editField("maxHoldBars",Number(e.target.value))}/></label>
+       <p>These markers indicate retrospective research thresholds, not actual fills.
+        Spread, slippage, margin, broker minimum lots and a live 15m feed must be verified separately.</p>
+      </>:null}
+      <label className={styles.strategyEditNotes}>Research notes (local only)
        <textarea aria-label="Strategy research notes" maxLength={600} rows={3} value={selectedEdit.notes}
         onChange={e=>editField("notes",e.target.value)} placeholder="Add your observations and review notes…"/></label>
      </div>
