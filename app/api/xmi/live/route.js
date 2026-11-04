@@ -25,9 +25,15 @@ export async function GET(req){
   const data=await getLiveSnapshot({symbol:params.instrument.symbol,resolution:params.resolution});
   return json(data,200);
  }catch(e){
-  // Never expose brokerage response bodies, auth tokens, account IDs or stack traces.
-  console.warn("[xmi-live] read-only candle source unavailable:",e?.name||"Error");
-  return json({ok:false,readOnly:true,code:"SOURCE_UNAVAILABLE",
-   error:"Forex candle data is currently unavailable"},503);
+  // Return a bounded diagnostic category; never disclose auth responses or route metadata.
+  const allowed=new Set(["EMPTY_CANDLES","UPSTREAM_AUTH_EXPIRED","UPSTREAM_ACCESS_DENIED",
+   "UPSTREAM_RATE_LIMIT","UPSTREAM_QUOTA","UPSTREAM_UNAVAILABLE","UPSTREAM_BAD_RESPONSE"]);
+  const code=allowed.has(e?.code)?e.code:"SOURCE_UNAVAILABLE";
+  console.warn("[xmi-live] read-only source:",code);
+  return json({ok:false,readOnly:true,code,
+   error:code==="EMPTY_CANDLES"?"No verified candles returned for this symbol/timeframe":
+    code==="UPSTREAM_RATE_LIMIT"?"Market-data provider is rate limiting requests":
+    code==="UPSTREAM_ACCESS_DENIED"?"Market-data provider denied access":
+    "Forex candle data is currently unavailable"},code==="UPSTREAM_RATE_LIMIT"?429:503);
  }
 }

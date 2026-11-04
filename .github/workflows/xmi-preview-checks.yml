@@ -6,6 +6,10 @@ on:
       - 'app/api/xmi/**'
       - 'lib/xmiWorkspace.mjs'
       - 'lib/xmiLive*.mjs'
+      - 'lib/tradelocker.js'
+      - 'lib/forexUniverse.js'
+      - 'tests/xmi-broker-session.test.mjs'
+      - 'tests/xmi-feed-replay-parity.test.mjs'
       - 'lib/xmiProductionFeedAuth.mjs'
       - 'lib/xmiFeedRecovery.mjs'
       - 'lib/xmiDataQuality.mjs'
@@ -81,6 +85,7 @@ jobs:
           node --check lib/xmiChartTools.mjs
           node --check lib/xmiDrawingPrimitive.mjs
           node --check lib/xmiLiveProvider.mjs
+          node --check lib/tradelocker.js
           node --check lib/xmiFeedRecovery.mjs
           node --check lib/xmiDataQuality.mjs
           node --check lib/xmiHistoricalReplay.mjs
