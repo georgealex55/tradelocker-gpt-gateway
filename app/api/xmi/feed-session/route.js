@@ -32,7 +32,7 @@ export async function GET(request){
 export async function POST(request){
  if(!sameOrigin(request)||request.headers.get("origin")!==new URL(request.url).origin)
   return json({ok:false,error:"Same-origin login required"},403);
- if(!configured())return json({ok:false,code:"FEED_DISABLED",error:"Production read-only market feed not configured"},503);
+ if(!configured())return json({ok:false,code:"FEED_DISABLED",error:"Read-only market feed not configured for this environment"},503);
  if(Number(request.headers.get("content-length")||0)>512)
   return json({ok:false,error:"Request too large"},413);
  const key=clientKey(request),now=Date.now();
@@ -45,7 +45,7 @@ export async function POST(request){
  failures.delete(key);
  const response=json({ok:true,authenticated:true,scope:"candles-only"});
  response.cookies.set(COOKIE,issueSession(process.env,now),{
-  path:"/api/xmi",secure:process.env.VERCEL_ENV==="production",
+  path:"/api/xmi",secure:["production","preview"].includes(process.env.VERCEL_ENV),
   httpOnly:true,sameSite:"strict",maxAge:8*3600
  });
  return response;
@@ -55,6 +55,6 @@ export async function DELETE(request){
   return json({ok:false,error:"Same-origin logout required"},403);
  const response=json({ok:true,authenticated:false});
  response.cookies.set(COOKIE,"",{path:"/api/xmi",httpOnly:true,
-  secure:process.env.VERCEL_ENV==="production",sameSite:"strict",maxAge:0});
+  secure:["production","preview"].includes(process.env.VERCEL_ENV),sameSite:"strict",maxAge:0});
  return response;
 }
