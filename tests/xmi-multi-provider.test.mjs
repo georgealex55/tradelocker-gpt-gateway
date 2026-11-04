@@ -123,6 +123,21 @@ test("Concurrent same-symbol provider polls singleflight to one upstream read",a
   })));
  assert.equal(calls,1);assert.equal(fx.length,4);
 });
+test("Twelve Data request cache is aligned with the >=5m credit-safe buckets",async()=>{
+ let calls=0;
+ const data={status:"ok",meta:{timezone:"UTC"},values:rows.map(x=>({
+  datetime:x.t.replace("T"," ").replace(".000Z",""),
+  open:x.o,high:x.h,low:x.l,close:x.c}))};
+ const first=now+31*300000;
+ const fetchImpl=async()=>{calls++;return json(data)};
+ const request={symbol:"USDJPY",resolution:"5m"};
+ await getMultiProviderSnapshot(request,{env,now:first,fetchImpl});
+ await getMultiProviderSnapshot(request,{env,now:first+200000,fetchImpl});
+ assert.equal(calls,1,"Within one 5m bucket do not spend additional FX credit");
+ await getMultiProviderSnapshot(request,{env,now:Math.floor(first/300000)*300000+300000+5000,fetchImpl});
+ assert.equal(calls,2,"A new candle bucket may request a new vendor snapshot");
+});
+
 test("A protected staging preview cannot bypass the signed feed session",()=>{
  const auth={VERCEL_ENV:"preview",VERCEL_GIT_COMMIT_REF:"feature/xmi-alpaca-twelvedata-staging-20261104",
   XMI_STAGING_FEED_ENABLED:"true",XMI_DATA_PROVIDER_MODE:"alpaca-twelvedata",
