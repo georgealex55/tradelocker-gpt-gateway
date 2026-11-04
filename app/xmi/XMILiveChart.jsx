@@ -718,7 +718,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
    <small>Closed-bar chart research only. Click a stacked dot to toggle its label.</small>
   </details>
   {scalpActive?<div className={styles.chartMarkerDetail} role="status">
-   EUR/USD 5m pullback research · 15m EMA confirmation · ATR stop {strategyEdit.stopAtr??1.2}× ·
+   EUR/USD 5m pullback · EMA{indicatorSettings.emaFast}/{indicatorSettings.emaSlow} · 15m EMA confirmation · ATR({indicatorSettings.atrPeriod}) stop {strategyEdit.stopAtr??1.2}× ·
    target {strategyEdit.rewardRisk??1.5}R · exits are hypothetical, not fills.
    {auxData[symbol+"|15m"]?.error?" Higher-timeframe source unavailable.":""}
   </div>:null}
@@ -775,7 +775,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
    {stats?.dataHealth?<span className={styles.feedDiagnostics} aria-label="Closed-candle data integrity">
     {stats.dataHealth.label} · {stats.dataHealth.closedBars} closed bars
     {stats.dataHealth.recentGaps?" · "+stats.dataHealth.recentGaps+" recent gaps (market closures possible)":""}
-    {" · EMA200 "+(stats.dataHealth.indicatorStatus.ema200?"ready":"warming")}
+    {" · EMA"+indicatorSettings.emaLong+" "+(stats.dataHealth.indicatorStatus.ema200?"ready":"warming")}
     {" · RSI "+(stats.dataHealth.indicatorStatus.rsi14?"ready":"warming")}
     {" · MACD "+(stats.dataHealth.indicatorStatus.macd?"ready":"warming")}
     {" · VWAP "+(stats.dataHealth.indicatorStatus.vwap?"ready":"unavailable")}
