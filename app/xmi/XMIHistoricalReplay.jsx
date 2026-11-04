@@ -1,6 +1,7 @@
 "use client";
 import {useEffect,useState} from "react";
 import {replayHistoricalJson} from "../../lib/xmiHistoricalReplay.mjs";
+import {SCALP_PRESET_ID} from "../../lib/xmiScalpResearch.mjs";
 import {STRATEGY_VERSIONS_KEY,RESEARCH_COMPARISONS_KEY,
  normalizeStrategyVersions,saveStrategyVersion,removeStrategyVersion,
  compareSavedStrategyVersions,normalizeComparisonSummaries,saveComparisonSummary}
@@ -13,9 +14,12 @@ import styles from "./xmi.module.css";
 
 /* Research files remain in browser memory. Only explicit version configs and
  * abbreviated comparison summaries are persisted to device-local storage. */
-export default function XMIHistoricalReplay({symbol,resolution,strategyId,edit}){
+export default function XMIHistoricalReplay({symbol,resolution,strategyId,edit,indicatorSettings={}}){
  const [source,setSource]=useState(""),[capturedAt,setCapturedAt]=useState(null);
  const [filename,setFilename]=useState("");
+ const [confirmationSource,setConfirmationSource]=useState("");
+ const [confirmationFilename,setConfirmationFilename]=useState("");
+ const needHigher=strategyId===SCALP_PRESET_ID;
  const [result,setResult]=useState(null),[comparison,setComparison]=useState(null);
  const [analytics,setAnalytics]=useState(null);
  const [versions,setVersions]=useState([]),[summaries,setSummaries]=useState([]);
@@ -44,7 +48,7 @@ export default function XMIHistoricalReplay({symbol,resolution,strategyId,edit})
   catch{setError("Research summaries could not be stored on this device.");}
  },[versionsReady,summaries]);
  useEffect(()=>{setResult(null);setComparison(null);setAnalytics(null);setError("");setNotice("");},
-  [symbol,resolution,strategyId,edit?.rsiBull,edit?.rsiBear,edit?.requireMacd,edit?.requireVwap,edit?.requireAdx,edit?.requireAtr,edit?.adxMin,edit?.atrMinPips]);
+  [symbol,resolution,strategyId,edit?.rsiBull,edit?.rsiBear,edit?.requireMacd,edit?.requireVwap,edit?.requireAdx,edit?.requireAtr,edit?.adxMin,edit?.atrMinPips,edit?.stopAtr,edit?.rewardRisk,edit?.maxHoldBars,indicatorSettings,confirmationSource]);
  useEffect(()=>{setBaselineId("");setCandidateId("");},[strategyId,resolution]);
  const relevant=versions.filter(x=>x.strategyId===strategyId);
  const comparable=relevant.filter(x=>x.edit.timeframe===resolution);
@@ -60,11 +64,20 @@ export default function XMIHistoricalReplay({symbol,resolution,strategyId,edit})
    setCapturedAt(Date.now());setError("");setNotice("");
   }catch{setError("Cannot read the selected local file");setSource("");setFilename("");setCapturedAt(null);}
  }
+ async function receiveConfirmation(event){
+  const file=event.target.files?.[0];event.target.value="";
+  setResult(null);setComparison(null);setAnalytics(null);
+  if(!file)return;
+  if(file.size>900000){setError("15m confirmation JSON exceeds 900 KB");return;}
+  try{setConfirmationSource(await file.text());setConfirmationFilename(file.name.slice(0,100));setError("");}
+  catch{setConfirmationSource("");setConfirmationFilename("");setError("Cannot read 15m confirmation file");}
+ }
  function replay(){
   setResult(null);setReportStatus(null);
   try{
    if(!source)throw Error("Choose a local historical OHLC JSON file first");
-   const record=replayHistoricalJson(source,{symbol,resolution,strategyId,edit,now:capturedAt});
+    if(needHigher&&!confirmationSource)throw Error("Choose independent EURUSD 15m confirmation candles first");
+   const record=replayHistoricalJson(source,{symbol,resolution,strategyId,edit,now:capturedAt,indicatorSettings,confirmationSource});
    setResult(record);setError("");setNotice("");
   }catch(e){fail(e);}
  }
@@ -98,9 +111,9 @@ export default function XMIHistoricalReplay({symbol,resolution,strategyId,edit})
    const baseline=comparable.find(x=>x.id===baselineId);
    const candidate=comparable.find(x=>x.id===candidateId);
    const record=compareSavedStrategyVersions(source,{symbol,resolution,
-    baseline,candidate,now:capturedAt});
+    baseline,candidate,now:capturedAt,indicatorSettings,confirmationSource});
    const analysis=analyzeResearchComparison({source,symbol,resolution,
-    baseline,candidate,comparison:record,now:capturedAt});
+    baseline,candidate,comparison:record,now:capturedAt,indicatorSettings,confirmationSource});
    setComparison(record);setAnalytics(analysis);setError("");setNotice("");
   }catch(e){fail(e);}
  }
@@ -119,7 +132,7 @@ export default function XMIHistoricalReplay({symbol,resolution,strategyId,edit})
    const baseline=comparable.find(x=>x.id===baselineId);
    const candidate=comparable.find(x=>x.id===candidateId);
    const report=await createResearchReport({source,symbol,resolution,
-    baseline,candidate,comparison,now:capturedAt});
+    baseline,candidate,comparison,now:capturedAt,indicatorSettings,confirmationSource});
    const serialized=JSON.stringify(report,null,2);
    await verifyResearchReport(serialized);
    const url=URL.createObjectURL(new Blob([serialized],{type:"application/json"}));
@@ -142,7 +155,7 @@ export default function XMIHistoricalReplay({symbol,resolution,strategyId,edit})
   }catch(e){fail(e);}
   finally{setReportBusy(false);}
  }
- function clear(){setSource("");setFilename("");setCapturedAt(null);
+ function clear(){setSource("");setFilename("");setCapturedAt(null);setConfirmationSource("");setConfirmationFilename("");
   setResult(null);setComparison(null);setAnalytics(null);setReportStatus(null);setError("");setNotice("");}
  return <section className={styles.replayLab} aria-label="Offline historical replay">
   <div className={styles.replayLabHeading}>
@@ -154,9 +167,15 @@ export default function XMIHistoricalReplay({symbol,resolution,strategyId,edit})
   <div className={styles.replayLabControls}>
    <label>Local OHLC JSON <input aria-label="Historical replay OHLC JSON" type="file"
     accept=".json,application/json" onChange={receive}/></label>
-   <button type="button" onClick={replay} disabled={!source}>Replay closed candles</button>
+   {needHigher?<label>Independent EUR/USD 15m OHLC JSON
+    <input aria-label="Scalp independent 15m OHLC JSON" type="file"
+     accept=".json,application/json" onChange={receiveConfirmation}/></label>:null}
+   <button type="button" onClick={replay} disabled={!source||(needHigher&&!confirmationSource)}>Replay closed candles</button>
    <button type="button" onClick={clear} disabled={!source&&!result&&!comparison}>Clear file</button>
   </div>
+  {needHigher?<p className={styles.muted}>EUR/USD scalp replay requires closed 5m and independent 15m imports.
+   {confirmationFilename?" Confirmation: "+confirmationFilename:" 15m file not loaded."}
+   Current indicator periods apply to both comparison versions; each saved version does not independently snapshot study periods.</p>:null}
   <p className={styles.muted}>{filename?"Loaded locally: "+filename:
    "No historical file loaded. This tool does not fetch prices."}</p>
   {error?<p className={styles.replayError} role="alert">{error}</p>:null}
