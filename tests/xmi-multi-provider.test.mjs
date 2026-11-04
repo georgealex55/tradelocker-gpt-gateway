@@ -81,6 +81,21 @@ test("Alpaca stock IEX 5m and crypto BTC/USD canonical OHLC are independently pa
  assert.equal(crypto.bars.at(-1).close>10000,true);
  assert.doesNotMatch(JSON.stringify(crypto),/staging-secret-example/);
 });
+test("Alpaca equity daily New York session dates remain valid UTC chart buckets",async()=>{
+ const dates=["2026-10-30T04:00:00Z","2026-11-02T05:00:00Z","2026-11-03T05:00:00Z"];
+ const value=await getMultiProviderSnapshot({symbol:"NASDAQ:AAPL",resolution:"1D"},{
+  env,now:Date.parse("2026-11-05T03:00:00Z"),useCache:false,
+  fetchImpl:async(url)=>json({bars:dates.map((t,i)=>({
+   t,o:100+i,h:101+i,l:99+i,c:100.5+i,v:10000
+  }))})
+ });
+ assert.equal(value.bars.length,3);
+ assert.deepEqual(value.bars.map(x=>new Date(x.time*1000).toISOString().slice(0,10)),
+  ["2026-10-30","2026-11-02","2026-11-03"]);
+ assert.equal(value.market,"equity");
+ assert.equal(value.bars[0].closed,true);
+});
+
 test("Missing credentials, access denials and provider quotas fail closed with safe reason codes",async()=>{
  await assert.rejects(getMultiProviderSnapshot({symbol:"EURUSD",resolution:"1m"},{env:{},useCache:false}),
   x=>x.code==="PROVIDER_NOT_CONFIGURED");
