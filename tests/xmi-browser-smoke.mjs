@@ -131,7 +131,7 @@ try{
  await lists.getByRole("textbox",{name:"New or renamed watchlist name"}).fill("Growth ETFs");
  await lists.getByRole("button",{name:"Rename"}).click();
  await lists.getByRole("combobox",{name:"Active watchlist"}).selectOption({label:"Main"});
- await page.waitForFunction(()=>JSON.parse(localStorage.getItem("xmi-chart-ui-v1")||"{}").watchlist?.length===7,null,{timeout:12000});
+ await page.waitForFunction(()=>JSON.parse(localStorage.getItem("xmi-chart-ui-v1")||"{}").watchlist?.length===9,null,{timeout:12000});
  await page.reload({waitUntil:"domcontentloaded"});
  lists=page.getByRole("group",{name:"Named watchlists"});
  await lists.getByRole("combobox",{name:"Active watchlist"}).selectOption({label:"Growth ETFs"});
@@ -149,6 +149,16 @@ try{
  },null,{timeout:12000});
  await page.getByText("CANDLES RECEIVING",{exact:true}).first().waitFor({timeout:30000});
 
+ // All three research asset classes must mount actual chart tiles.
+ await page.getByRole("listitem").filter({hasText:"BTC/USD"}).getByRole("button").first().click();
+ await page.getByRole("article",{name:"BTCUSD live crypto chart"}).waitFor({timeout:15000});
+ await page.getByText("CANDLES RECEIVING",{exact:true}).first().waitFor({timeout:15000});
+ await page.getByRole("listitem").filter({hasText:"AAPL"}).getByRole("button").first().click();
+ await page.getByRole("article",{name:"AAPL live equity chart"}).waitFor({timeout:15000});
+ await page.getByText("CANDLES RECEIVING",{exact:true}).first().waitFor({timeout:15000});
+ await page.getByRole("listitem").filter({hasText:"EUR/USD"}).getByRole("button").first().click();
+ await page.getByRole("article",{name:"EURUSD live forex chart"}).waitFor({timeout:15000});
+ await page.getByText("CANDLES RECEIVING",{exact:true}).first().waitFor({timeout:15000});
  // Chart-native marker controls, log price scale, causal research channel and zoom.
  const firstChart=page.getByRole("article",{name:/EURUSD live forex chart/}).first();
  const quick=firstChart.locator("details").filter({hasText:"Live Chart · Indicators & Markers"}).first();
