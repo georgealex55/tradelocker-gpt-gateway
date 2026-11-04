@@ -21,7 +21,7 @@ import {DEFAULT_CHART_SETTINGS,DEFAULT_TECH,resolveChartSettings,
  validateDrawings,serializeWorkspace,deserializeWorkspace,drawingsForSymbol,samePatternEvents} from "../../lib/xmiChartTools.mjs";
 const START=["EURUSD","GBPUSD","USDJPY","USDCHF","AUDUSD","NASDAQ:AAPL","AMEX:SPY"];
 const DEFAULT=START.map(parseInstrument),KEY="xmi-chart-workbench-v1";
-export default function XMIEngineDesk({selected,onSelected,onResearch,active=true,focusMode=false,onFocusMode,strategyId="day",onStrategyChange,onResearchModel,onWorkspaceChange,remoteWorkspace,remotePatterns,remoteChartUI,strategyEdits={}}){
+export default function XMIEngineDesk({selected,onSelected,onResearch,active=true,focusMode=false,onFocusMode,strategyId="day",onStrategyChange,onResearchModel,onWorkspaceChange,remoteWorkspace,remotePatterns,remoteChartUI,strategyEdits={},onIndicatorSettingsChange}){
  const root=useRef(null),counter=useRef(0),presetHydrated=useRef(false);
  const [collections,setCollections]=useState(()=>normalizeWatchlistCollections(null,null,DEFAULT.map(x=>x.key)));
  const [watchInput,setWatchInput]=useState(""),[newListName,setNewListName]=useState(""),[error,setError]=useState("");
@@ -101,6 +101,9 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
  useEffect(()=>{if(!loaded)return;
   try{window.localStorage.setItem(INDICATOR_SETTINGS_KEY,JSON.stringify(indicatorSettings));}catch{}
  },[loaded,indicatorSettings]);
+ useEffect(()=>{
+  if(loaded)onIndicatorSettingsChange?.(indicatorSettings);
+ },[loaded,indicatorSettings,onIndicatorSettingsChange]);
  useEffect(()=>{if(loaded)onWorkspaceChange?.(serializeWorkspace(savedDrawings,globalSettings,tech,chartOverride));},
   [loaded,savedDrawings,globalSettings,tech,chartOverride,onWorkspaceChange]);
  useEffect(()=>{
