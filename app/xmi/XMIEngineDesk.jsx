@@ -19,7 +19,7 @@ import {normalizeWatchlistCollections,createWatchlistCollection,renameWatchlistC
 import {setStructureOption,defaultStructureSettings,STRUCTURE_CONCEPTS} from "../../lib/xmiStructure.mjs";
 import {DEFAULT_CHART_SETTINGS,DEFAULT_TECH,resolveChartSettings,
  validateDrawings,serializeWorkspace,deserializeWorkspace,drawingsForSymbol,samePatternEvents} from "../../lib/xmiChartTools.mjs";
-const START=["EURUSD","GBPUSD","USDJPY","USDCHF","AUDUSD","NASDAQ:AAPL","AMEX:SPY"];
+const START=["EURUSD","GBPUSD","USDJPY","NASDAQ:AAPL","AMEX:SPY","CRYPTO:BTCUSD","CRYPTO:ETHUSD"];
 const DEFAULT=START.map(parseInstrument),KEY="xmi-chart-workbench-v1";
 export default function XMIEngineDesk({selected,onSelected,onResearch,active=true,focusMode=false,onFocusMode,strategyId="day",onStrategyChange,onResearchModel,onWorkspaceChange,remoteWorkspace,remotePatterns,remoteChartUI,strategyEdits={},onIndicatorSettingsChange}){
  const root=useRef(null),counter=useRef(0),presetHydrated=useRef(false);
@@ -348,8 +348,8 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
       {chartKeys.slice(0,layout).map((key,index)=>{
        const item=parseInstrument(key);
        return <div key={index} className={styles.liveChartItem}>
-        {item.asset==="forex"?<XMIChartErrorBoundary key={key+"|"+resolutions[index]}>
-         <XMILiveChart symbol={item.symbol} resolution={resolutions[index]}
+        {<XMIChartErrorBoundary key={key+"|"+resolutions[index]}>
+         <XMILiveChart symbol={item.symbol} instrumentKey={item.key} instrumentAsset={item.asset} instrumentLabel={item.label} resolution={resolutions[index]}
          onResolution={v=>setResolution(index,v)}
          selected={index===focus} onFocus={()=>{setFocus(index);onSelected(key);}}
          structureSettings={structure} technicalEnabled={tech}
@@ -377,9 +377,7 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
          })}
          onStructure={result=>setObservations(old=>({...old,[index+"|"+key+"|"+resolutions[index]]:result}))}
          compact={layout>1} active={active}/>
-         </XMIChartErrorBoundary>:
-         <div className={styles.feedMissing}><h3>{item.label}</h3><p>Stock/ETF feed pending; no synthetic candles.</p>
-          <button type="button" onClick={()=>{setFocus(index);onSelected(key);}}>Focus research</button></div>}
+         </XMIChartErrorBoundary>}
        </div>;
       })}
      </div>
