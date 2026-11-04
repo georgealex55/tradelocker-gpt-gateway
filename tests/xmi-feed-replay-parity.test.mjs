@@ -8,7 +8,7 @@ const candles=(step,count,startAt)=>Array.from({length:count},(_,i)=>{
  const p=1.09+i*.00001+Math.sin(i/7)*.00004;
  return {time:startAt+i*step,open:p-.00002,high:p+.00008,low:p-.00008,close:p,volume:15+i%10};
 });
-const five=candles(300,110,start),fifteen=candles(900,110,start-55*900);
+const five=candles(300,110,start),fifteen=candles(900,110,start-73*900);
 const source=JSON.stringify({symbol:"EURUSD",resolution:"5m",bars:five});
 const confirmationSource=JSON.stringify({symbol:"EURUSD",resolution:"15m",bars:fifteen});
 const now=(five.at(-1).time+301)*1000;
