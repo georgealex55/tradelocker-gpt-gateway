@@ -17,7 +17,7 @@ const COLOR={ema20:"#59c9d8",ema50:"#d1ad5b",ema200:"#a690fa",vwap:"#ef9ed9",
  rsi:"#60ccf5",macd:"#7c95ed",macdSignal:"#f1a45d"};
 const TIMEFRAMES=Object.keys(FX_RESOLUTIONS);
 const NO_STRUCTURE=defaultStructureSettings();
-export default function XMILiveChart({symbol,resolution,onResolution,selected,onFocus,compact=false,active=true,
+export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsset="forex",instrumentLabel=symbol,resolution,onResolution,selected,onFocus,compact=false,active=true,
  structureSettings=NO_STRUCTURE,onStructure,technicalEnabled=DEFAULT_TECH,
  indicatorSettings=DEFAULT_INDICATOR_SETTINGS,strategyId="day",strategyEdit={},
  chartSettings=DEFAULT_CHART_SETTINGS,drawTool=null,savedDrawings=[],onDrawing,onDrawingMove,
@@ -52,7 +52,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
  if(scalpActive&&!extraRes.includes("15m"))extraRes.push("15m");
  const extraKey=extraRes.sort().join("|");
  const indicatorSettingsRef=useRef(indicatorSettings);indicatorSettingsRef.current=indicatorSettings;
- const [feed,setFeed]=useState({phase:"loading",message:"Waiting for read-only forex data",
+ const [feed,setFeed]=useState({provider:null,phase:"loading",message:"Waiting for read-only market data",
   last:null,stats:null,asOf:null,quality:"UNAVAILABLE",failures:0,
   lastCheckedAt:null,lastSuccessAt:null,lastClosedAt:null,nextRefreshMs:null,
   sourceSymbol:symbol,sourceResolution:resolution});
@@ -238,7 +238,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
      data={ok:true,bars:local.bars,asOf:new Date().toISOString(),
       delivery:"manual historical import",volumeBasis:"provider",readOnly:true};
     }else{
-     const u="/api/xmi/live?"+new URLSearchParams({symbol,resolution});
+     const u="/api/xmi/live?"+new URLSearchParams({symbol:instrumentKey,resolution});
      const res=await fetch(u,{cache:"no-store",signal:abort.signal});
      data=await res.json();
      if(!res.ok||!data.ok){
@@ -252,7 +252,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
     if(!running)return;
     const observedQuality=local?"HISTORICAL":quoteState(stats.lastClosed,observedNow,resolution);
     if(observedQuality==="INVALID_TIME")
-     throw Error("Broker candle timestamps are invalid; no current research may be inferred");
+     throw Error("Provider candle timestamps are invalid; no current research may be inferred");
     const dataHealth=inspectCandleQuality({bars:stats.bars,overlays:stats.overlays,
      resolution,asOf:reportedAt,now:observedNow,sourceQuality:observedQuality});
     stats.dataHealth=dataHealth;
@@ -283,7 +283,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
     failures=0;
     lastSuccessAt=Date.now();
     lastClosedAt=stats.lastClosed?.time?stats.lastClosed.time*1000:null;
-    setFeed({phase:local?"historical":quality==="STALE"?"stale":quality==="CURRENT"?"ready":"empty",
+    setFeed({provider:data.provider||null,phase:local?"historical":quality==="STALE"?"stale":quality==="CURRENT"?"ready":"empty",
      message:local?"Imported historical OHLC · device only · no broker connection":
       mapped.length?(quality==="CURRENT"?"Read-only candles · "+data.delivery:
        "Closed-bar/source verification unavailable; indicators not current"):"No candles returned",
@@ -310,7 +310,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   }
   setFeed(prev=>{
    const same=prev.sourceSymbol===symbol&&prev.sourceResolution===resolution;
-   return {phase:"loading",message:"Loading verified broker candles…",
+   return {provider:prev.provider||null,phase:"loading",message:"Loading verified market candles…",
     last:same?prev.last:null,stats:null,asOf:same?prev.asOf:null,
     quality:"UNAVAILABLE",failures:0,lastCheckedAt:null,
     lastSuccessAt:same?prev.lastSuccessAt:null,
@@ -325,7 +325,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   refresh();
   return ()=>{running=false;document.removeEventListener("visibilitychange",onVisible);
    abort?.abort();if(timer)clearTimeout(timer);};
- },[symbol,resolution,libReady,active,chartSettings.chartType,chartSettings.refreshProfile,offline,refreshNonce]);
+ },[symbol,instrumentKey,resolution,libReady,active,chartSettings.chartType,chartSettings.refreshProfile,offline,refreshNonce]);
  // Additional timeframes use the same protected, read-only candle API.
  // Recompute retained validated candles locally when study periods change.
  // This does not authorize a fresh broker request or reset visible pan/zoom.
@@ -365,7 +365,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
     const controller=new AbortController();controllers.push(controller);
     const key=symbol+"|"+tf;
     try{
-     const res=await fetch("/api/xmi/live?"+new URLSearchParams({symbol,resolution:tf}),
+     const res=await fetch("/api/xmi/live?"+new URLSearchParams({symbol:instrumentKey,resolution:tf}),
       {cache:"no-store",signal:controller.signal});
      const data=await res.json();
      if(!res.ok||!data.ok)throw Error(data.error||"No verified market candles");
@@ -620,10 +620,10 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
  const health=feedHealth({...feed,now:clock||Date.now()});
  const untilClose=Math.ceil((FX_RESOLUTIONS[resolution]*1000-clock%(FX_RESOLUTIONS[resolution]*1000))/1000);
  const countdown=clock===0?"--:--":String(Math.floor(untilClose/60)).padStart(2,"0")+":"+String(untilClose%60).padStart(2,"0");
- return <article className={styles.engineCard+(selected?" "+styles.chartActive:"")} aria-label={symbol+" live forex chart"}>
+ return <article className={styles.engineCard+(selected?" "+styles.chartActive:"")} aria-label={symbol+" live "+instrumentAsset+" chart"}>
   <div className={styles.engineTop}>
-   <div><strong className={styles.engineSymbol}>{symbol.slice(0,3)}/{symbol.slice(3)}</strong>
-    <small>TradeLocker · read-only {compact?"":"· forming candles shown when supplied"}</small>
+   <div><strong className={styles.engineSymbol}>{instrumentLabel}</strong>
+    <small>{feed.provider||"Market data source pending"} · read-only {compact?"":"· forming candles shown when supplied"}</small>
     <span className={styles.provenanceTag} data-state={health.state} data-current={health.isLive}
      role="status" aria-label={symbol+" data status"}
      title="Source status for this chart. An unlocked feed session alone does not verify candle freshness.">{health.label}</span></div>
@@ -761,7 +761,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
    <span role="status">{feed.message}</span>
    {(feed.phase==="disabled"||feed.phase==="locked")?
     <a href="/xmi2/chart-studio.html">Open offline Historical Chart Studio</a>:null}
-   <span>{feed.last?(ready?"Latest broker bar":"Last previously verified bar")+" · "+
+   <span>{feed.last?(ready?"Latest verified source bar":"Last previously verified bar")+" · "+
     new Date(feed.last.time*1000).toLocaleString():"No verified price"}</span>
    <span className={styles.feedDiagnostics}>
     Checked {health.checkedAt?new Date(health.checkedAt).toLocaleTimeString():"not yet"}
