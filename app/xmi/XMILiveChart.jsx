@@ -205,7 +205,8 @@ export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsse
  },[technicalEnabled,libReady,chartSettings.algorithmMode,indicatorSettings.volumeAverage]);
  useEffect(()=>{
   if(!libReady||!series.current||!active)return;
-  let running=true,abort=null,timer=null,failures=0,inFlight=false,providerName=null;
+  let running=true,abort=null,timer=null,failures=0,inFlight=false;
+  let providerName=null;
   let lastSuccessAt=null,lastClosedAt=null;
   const all=series.current;
   let fitted=false;
