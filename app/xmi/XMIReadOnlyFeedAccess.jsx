@@ -44,7 +44,7 @@ export default function XMIReadOnlyFeedAccess(){
    {authenticated?"Feed unlocked":"Unlock read-only feed"}
   </button>
   {open?<section className={styles.feedAccessPanel} aria-label="Read-only market data access">
-   <div className={styles.popoverHeading}><strong>TradeLocker candles · read only</strong>
+   <div className={styles.popoverHeading}><strong>Market-data candles · read only</strong>
     <button type="button" aria-label="Close feed access" onClick={()=>setOpen(false)}>×</button></div>
    <p role="status">{status}</p>
    {authenticated?
