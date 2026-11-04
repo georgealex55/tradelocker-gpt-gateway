@@ -51,6 +51,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
  const extraRes=requiredStructureTimeframes(structureSettings,resolution);
  if(scalpActive&&!extraRes.includes("15m"))extraRes.push("15m");
  const extraKey=extraRes.sort().join("|");
+ const indicatorSettingsRef=useRef(indicatorSettings);indicatorSettingsRef.current=indicatorSettings;
  const [feed,setFeed]=useState({phase:"loading",message:"Waiting for read-only forex data",
   last:null,stats:null,asOf:null,quality:"UNAVAILABLE",failures:0,
   lastCheckedAt:null,lastSuccessAt:null,lastClosedAt:null,nextRefreshMs:null,
@@ -247,7 +248,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
     const reportedAt=Date.parse(data.asOf),observedNow=Date.now();
     if(!Number.isFinite(reportedAt))
      throw Error("Candle source observation time is invalid; no current data inferred");
-    const stats=computeFive(data.bars,resolution,reportedAt,data.volumeBasis,indicatorSettings);
+    const stats=computeFive(data.bars,resolution,reportedAt,data.volumeBasis,indicatorSettingsRef.current);
     if(!running)return;
     const observedQuality=local?"HISTORICAL":quoteState(stats.lastClosed,observedNow,resolution);
     if(observedQuality==="INVALID_TIME")
@@ -324,8 +325,33 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   refresh();
   return ()=>{running=false;document.removeEventListener("visibilitychange",onVisible);
    abort?.abort();if(timer)clearTimeout(timer);};
- },[symbol,resolution,libReady,active,chartSettings.chartType,chartSettings.refreshProfile,offline,refreshNonce,indicatorSettings]);
+ },[symbol,resolution,libReady,active,chartSettings.chartType,chartSettings.refreshProfile,offline,refreshNonce]);
  // Additional timeframes use the same protected, read-only candle API.
+ // Recompute retained validated candles locally when study periods change.
+ // This does not authorize a fresh broker request or reset visible pan/zoom.
+ useEffect(()=>{
+  const current=feed;
+  if(!libReady||!current.stats||!current.asOf||current.sourceSymbol!==symbol||
+    current.sourceResolution!==resolution)return;
+  const at=Date.parse(current.asOf);
+  if(!Number.isFinite(at))return;
+  try{
+   const stats=computeFive(current.stats.bars,resolution,at,
+    current.stats.volumeBasis||"broker-tick",indicatorSettings);
+   stats.dataHealth=inspectCandleQuality({bars:stats.bars,overlays:stats.overlays,
+    resolution,asOf:at,now:Date.now(),sourceQuality:current.quality});
+   const all=series.current;
+   if(all){
+    for(const key of ["ema20","ema50","ema200","vwap","rsi","macd","macdSignal",
+     "atr","adx","plusDI","minusDI","stochK","stochD","bbUpper","bbBasis","bbLower",
+     "donchianUpper","donchianLower","volumeMA"])all[key]?.setData(stats.overlays[key]||[]);
+    all.histogram?.setData(stats.overlays.macdHistogram.map(p=>({
+     ...p,color:p.value>=0?"#339a9a":"#b66c84"})));
+   }
+   setFeed(prev=>prev.stats===current.stats?{...prev,stats}:prev);
+  }catch{ /* Preserve previously verified bars when parameter validation fails. */ }
+ // eslint-disable-next-line react-hooks/exhaustive-deps
+ },[indicatorSettings,libReady,symbol,resolution]);
  // Each distinct selected timeframe is fetched once; settings are shared by all charts.
  useEffect(()=>{
   if(!active||!libReady||!extraKey||
