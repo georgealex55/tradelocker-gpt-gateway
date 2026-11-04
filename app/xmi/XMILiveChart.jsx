@@ -371,7 +371,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
      if(!res.ok||!data.ok)throw Error(data.error||"No verified market candles");
      const reported=Date.parse(data.asOf);
      if(!Number.isFinite(reported))throw Error("Invalid auxiliary source observation time");
-     const structured=computeFive(data.bars,tf,reported,data.volumeBasis,indicatorSettings);
+     const structured=computeFive(data.bars,tf,reported,data.volumeBasis,indicatorSettingsRef.current);
      const quality=quoteState(structured.lastClosed,Date.now(),tf);
      const health=inspectCandleQuality({bars:structured.bars,overlays:structured.overlays,
       resolution:tf,asOf:reported,now:Date.now(),sourceQuality:quality});
@@ -388,7 +388,7 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   }
   load();
   return ()=>{running=false;if(timer)clearTimeout(timer);controllers.forEach(c=>c.abort());};
- },[symbol,resolution,active,libReady,extraKey,offline,refreshNonce,indicatorSettings]);
+ },[symbol,resolution,active,libReady,extraKey,offline,refreshNonce]);
  useEffect(()=>{
   const overlay=drawings.current;
   if(!libReady||!overlay)return;
@@ -464,6 +464,21 @@ export default function XMILiveChart({symbol,resolution,onResolution,selected,on
   chartSettings.markerDonchian,chartSettings.markerStochastic,expandedMarkerId,
   scalpActive,feed.quality,strategyEdit.adxMin,strategyEdit.stopAtr,
   strategyEdit.rewardRisk,strategyEdit.maxHoldBars]);
+ // Preserve higher-timeframe confirmation parity without making a new broker request.
+ useEffect(()=>{
+  setAuxData(previous=>{
+   let changed=false;const next={...previous};
+   for(const [key,item] of Object.entries(previous)){
+    if(!item?.scalpStats||!key.startsWith(symbol+"|"))continue;
+    try{
+     const refreshed=computeFive(item.scalpStats.bars,"15m",item.loadedAt,
+      item.scalpStats.volumeBasis||"broker-tick",indicatorSettings);
+     next[key]={...item,scalpStats:refreshed};changed=true;
+    }catch{ /* Keep the previous observation; freshness rules still apply. */ }
+   }
+   return changed?next:previous;
+  });
+ },[indicatorSettings,symbol]);
  // Causal algorithmic overlays consume only confirmed closed price history.
  useEffect(()=>{
   const all=series.current;if(!all||!libReady)return;
