@@ -205,14 +205,14 @@ export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsse
  },[technicalEnabled,libReady,chartSettings.algorithmMode,indicatorSettings.volumeAverage]);
  useEffect(()=>{
   if(!libReady||!series.current||!active)return;
-  let running=true,abort=null,timer=null,failures=0,inFlight=false;
+  let running=true,abort=null,timer=null,failures=0,inFlight=false,providerName=null;
   let lastSuccessAt=null,lastClosedAt=null;
   const all=series.current;
   let fitted=false;
   function schedule(){
    if(!running)return;
    const delay=nextFeedDelay({resolution,now:Date.now(),failures,
-    profile:chartSettings.refreshProfile,
+    profile:chartSettings.refreshProfile,provider:providerName,
     hidden:document.visibilityState==="hidden"});
    setFeed(prev=>({...prev,nextRefreshMs:delay}));
    timer=setTimeout(refresh,delay);
@@ -281,6 +281,7 @@ export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsse
      }
     }
     failures=0;
+    providerName=data.provider||null;
     lastSuccessAt=Date.now();
     lastClosedAt=stats.lastClosed?.time?stats.lastClosed.time*1000:null;
     setFeed({provider:data.provider||null,phase:local?"historical":quality==="STALE"?"stale":quality==="CURRENT"?"ready":"empty",
