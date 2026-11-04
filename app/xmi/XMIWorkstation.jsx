@@ -13,6 +13,7 @@ import {EDITS_KEY,normalizeStrategyEdit,sanitizeStrategyEdits,strategyExplanatio
 import XMICoachPanel from "./XMICoachPanel";
 import XMIHistoricalReplay from "./XMIHistoricalReplay";
 import {parseInstrument} from "../../lib/xmiLiveMath.mjs";
+import {DEFAULT_INDICATOR_SETTINGS} from "../../lib/xmiIndicatorSettings.mjs";
 const TABS=[
  {id:"live",title:"Live Chart",sub:"Candles & indicators"},
  {id:"research",title:"News & Research",sub:"Timestamped evidence"},
@@ -35,6 +36,7 @@ export default function XMIWorkstation(){
  const [strategyId,setStrategyId]=useState("day"),[workspaceDraft,setWorkspaceDraft]=useState("");
  const [restoreWorkspace,setRestoreWorkspace]=useState(null),[remotePatterns,setRemotePatterns]=useState(null),[remoteChartUI,setRemoteChartUI]=useState(null),[engineView,setEngineView]=useState(null);
  const [strategyEdits,setStrategyEdits]=useState({}),[editsLoaded,setEditsLoaded]=useState(false);
+ const [indicatorSettings,setIndicatorSettings]=useState({...DEFAULT_INDICATOR_SETTINGS});
  const onRestore=useCallback(prefs=>{
   if(typeof prefs.workspace==="string")setRestoreWorkspace(prefs.workspace);
   if(prefs.chartUI&&typeof prefs.chartUI==="object")setRemoteChartUI(prefs.chartUI);
@@ -199,7 +201,8 @@ export default function XMIWorkstation(){
     focusMode={focusMode} onFocusMode={()=>setFocusMode(v=>!v)}
     strategyId={strategyId} onStrategyChange={setStrategyId}
     onResearchModel={setEngineView} onWorkspaceChange={setWorkspaceDraft}
-    remoteWorkspace={restoreWorkspace} remotePatterns={remotePatterns} remoteChartUI={remoteChartUI} strategyEdits={strategyEdits}/></div></div>
+    remoteWorkspace={restoreWorkspace} remotePatterns={remotePatterns} remoteChartUI={remoteChartUI} strategyEdits={strategyEdits}
+     onIndicatorSettingsChange={setIndicatorSettings}/></div></div>
   <div hidden={tab!=="research"} className={styles.nonChartWorkspace+" "+styles.workspaceShell+(maximized.research?" "+styles.workspaceMaximized:"")}>
    {workspaceControls("research")}
    <div hidden={collapsed.research}>
@@ -290,7 +293,7 @@ export default function XMIWorkstation(){
     </section>
    </div>
    <XMIHistoricalReplay symbol={item.symbol} resolution={selectedEdit.timeframe}
-    strategyId={strategyId} edit={selectedEdit}/>
+    strategyId={strategyId} edit={selectedEdit} indicatorSettings={indicatorSettings}/>
    </div>
   </div>
   <div hidden={tab!=="journal"} className={styles.nonChartWorkspace+" "+styles.workspaceShell+(maximized.journal?" "+styles.workspaceMaximized:"")}>
