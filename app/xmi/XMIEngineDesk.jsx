@@ -308,7 +308,7 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
        {visibleWatchlist.map(item=><div key={item.key} role="listitem" className={styles.watchRow+
         (item.key===current.key?" "+styles.watchActive:"")}>
         <button type="button" className={styles.watchSelect} aria-pressed={item.key===current.key} onClick={()=>choose(item.key)}>
-         <strong>{item.label}</strong><small>{item.asset==="forex"?"FX · read-only":"Equity feed pending"}</small></button>
+         <strong>{item.label}</strong><small>{item.asset==="forex"?"FX · read-only":item.asset==="crypto"?"Crypto · Alpaca route":"Equity · Alpaca route"}</small></button>
         <button type="button" className={styles.watchRemove} aria-label={"Remove "+item.label}
          onClick={()=>remove(item.key)}>×</button>
        </div>)}
@@ -318,7 +318,7 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
       <form onSubmit={add} className={styles.watchAdd}>
        <label htmlFor="studio-add-symbol">Add instrument</label>
        <input id="studio-add-symbol" value={watchInput} onChange={e=>setWatchInput(e.target.value)}
-        maxLength={20} placeholder="EURJPY or NASDAQ:AAPL"/>
+        maxLength={20} placeholder="EURJPY, NASDAQ:AAPL or CRYPTO:BTCUSD"/>
        <button type="submit" disabled={watchlist.length>=10}>Add symbol</button>
       </form></>:null}
     </>:leftView==="snapshot"?
