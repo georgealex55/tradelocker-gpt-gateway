@@ -2,7 +2,7 @@ import {NextResponse} from "next/server.js";
 import {getLiveSnapshot,previewEnabled,validatedRequest} from "../../../../lib/xmiLiveProvider.mjs";
 import {parseInstrument,validateResolution} from "../../../../lib/xmiLiveMath.mjs";
 import {XMI_MULTI_PROVIDER_MODE,getMultiProviderSnapshot} from "../../../../lib/xmiMultiProvider.mjs";
-import {COOKIE,productionFeedConfigured,verifySession,sameOrigin} from "../../../../lib/xmiProductionFeedAuth.mjs";
+import {COOKIE,productionFeedConfigured,verifySession,sameOrigin,passphraselessStagingFeed} from "../../../../lib/xmiProductionFeedAuth.mjs";
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
 const headers={"Cache-Control":"private, no-store, max-age=0","X-Content-Type-Options":"nosniff"};
@@ -12,12 +12,13 @@ export async function GET(req){
  // explicit feed enable switch AND a separately verified, signed cookie.
  const preview=previewEnabled(process.env);
  const production=productionFeedConfigured(process.env);
+ const automatic=passphraselessStagingFeed(process.env);
  // Explicit switch only; legacy production remains untouched until a reviewed cutover.
  const multi=process.env.XMI_DATA_PROVIDER_MODE===XMI_MULTI_PROVIDER_MODE;
- if(!preview&&!production)return json({ok:false,readOnly:true,code:"FEED_DISABLED",
+ if(!preview&&!production&&!automatic)return json({ok:false,readOnly:true,code:"FEED_DISABLED",
   error:"Read-only market data is not configured for this environment"},503);
  if(!sameOrigin(req))return json({ok:false,code:"ORIGIN_DENIED",error:"Same-origin XMI access only"},403);
- if(production&&!verifySession(req.cookies.get(COOKIE)?.value,process.env))
+ if(production&&!automatic&&!verifySession(req.cookies.get(COOKIE)?.value,process.env))
   return json({ok:false,readOnly:true,code:"FEED_LOCKED",
    error:"Unlock the read-only candle feed to view current quotes"},401);
  let params;
