@@ -80,7 +80,7 @@ try{
  assert.equal(await page.getByRole('complementary',{name:'Market sidebar'}).getByRole('listitem').count(),1);
  await page.getByRole('searchbox',{name:'Filter this watchlist'}).fill('no-match');
  await page.getByRole('button',{name:'Clear symbol filter'}).click();
- assert.equal(await page.getByRole('complementary',{name:'Market sidebar'}).getByRole('listitem').count(),7);
+ assert.equal(await page.getByRole('complementary',{name:'Market sidebar'}).getByRole('listitem').count(),9);
  assert.equal(await page.evaluate(()=>localStorage.getItem('xmi-chart-ui-v1')),chartBefore,'Filtering and density do not rewrite chart settings');
  console.log('PASS density persistence, optional shortcuts, typing isolation, Escape restoration and non-destructive watchlist search');
 

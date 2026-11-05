@@ -54,3 +54,12 @@ test("Chart invalidates old analysis on failures and displays last verified time
  assert.match(code,/new DOMException\("Read-only candle request exceeded 15 seconds","TimeoutError"\)/);
  assert.doesNotMatch(code,/placeOrder|submitOrder|executeOrder/);
 });
+
+test("Twelve Data FX requests are delayed to five-minute boundaries regardless of responsive mode",()=>{
+ const now=Date.parse("2026-11-04T12:03:55.000Z");
+ assert.equal(nextFeedDelay({resolution:"5m",now,provider:"Twelve Data"}),70000);
+ assert.equal(nextFeedDelay({resolution:"1m",now,provider:"Twelve Data",profile:"responsive"}),70000);
+ assert.equal(nextFeedDelay({resolution:"5m",now,provider:"Alpaca",profile:"responsive"}),8500);
+ assert.equal(nextFeedDelay({resolution:"15m",now,provider:"Twelve Data"}),670000);
+ assert.equal(nextFeedDelay({resolution:"5m",now,provider:"Twelve Data",failures:1}),50000);
+});

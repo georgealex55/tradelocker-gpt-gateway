@@ -1,5 +1,5 @@
 import {NextResponse} from "next/server.js";
-import {COOKIE,productionFeedConfigured,verifyPassword,issueSession,verifySession,sameOrigin} from "../../../../lib/xmiProductionFeedAuth.mjs";
+import {COOKIE,productionFeedConfigured,verifyPassword,issueSession,verifySession,sameOrigin,passphraselessStagingFeed,passphraselessProductionFeed} from "../../../../lib/xmiProductionFeedAuth.mjs";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 const security={"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff"};
@@ -27,12 +27,17 @@ function hasSession(req){
 }
 export async function GET(request){
  if(!sameOrigin(request))return json({ok:false,error:"Same-origin XMI access only"},403);
- return json({ok:true,configured:configured(),authenticated:hasSession(request),scope:"candles-only"});
+ const automatic=passphraselessStagingFeed(process.env)||passphraselessProductionFeed(process.env);
+ return json({ok:true,configured:automatic||configured(),
+  authenticated:automatic||hasSession(request),requiresPassphrase:!automatic,
+  automatic,scope:"candles-only"});
 }
 export async function POST(request){
+ if(passphraselessStagingFeed(process.env)||passphraselessProductionFeed(process.env))
+  return json({ok:false,code:"NO_FEED_LOGIN_REQUIRED",error:"Read-only candles load automatically"},405);
  if(!sameOrigin(request)||request.headers.get("origin")!==new URL(request.url).origin)
   return json({ok:false,error:"Same-origin login required"},403);
- if(!configured())return json({ok:false,code:"FEED_DISABLED",error:"Production read-only market feed not configured"},503);
+ if(!configured())return json({ok:false,code:"FEED_DISABLED",error:"Read-only market feed not configured for this environment"},503);
  if(Number(request.headers.get("content-length")||0)>512)
   return json({ok:false,error:"Request too large"},413);
  const key=clientKey(request),now=Date.now();
@@ -45,16 +50,18 @@ export async function POST(request){
  failures.delete(key);
  const response=json({ok:true,authenticated:true,scope:"candles-only"});
  response.cookies.set(COOKIE,issueSession(process.env,now),{
-  path:"/api/xmi",secure:process.env.VERCEL_ENV==="production",
+  path:"/api/xmi",secure:["production","preview"].includes(process.env.VERCEL_ENV),
   httpOnly:true,sameSite:"strict",maxAge:8*3600
  });
  return response;
 }
 export async function DELETE(request){
+ if(passphraselessStagingFeed(process.env)||passphraselessProductionFeed(process.env))
+  return json({ok:false,code:"NO_FEED_LOGIN_REQUIRED",error:"Automatic read-only feed has no session to close"},405);
  if(!sameOrigin(request)||request.headers.get("origin")!==new URL(request.url).origin)
   return json({ok:false,error:"Same-origin logout required"},403);
  const response=json({ok:true,authenticated:false});
  response.cookies.set(COOKIE,"",{path:"/api/xmi",httpOnly:true,
-  secure:process.env.VERCEL_ENV==="production",sameSite:"strict",maxAge:0});
+  secure:["production","preview"].includes(process.env.VERCEL_ENV),sameSite:"strict",maxAge:0});
  return response;
 }
