@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {parseInstrument,computeFive} from "../lib/xmiLiveMath.mjs";
 import {getMultiProviderSnapshot,parseProviderBars,providerForInstrument,
  XMI_MULTI_PROVIDER_MODE,providerConfigured} from "../lib/xmiMultiProvider.mjs";
-import {productionFeedConfigured,issueSession,verifySession,passphraselessStagingFeed} from "../lib/xmiProductionFeedAuth.mjs";
+import {productionFeedConfigured,issueSession,verifySession,passphraselessStagingFeed,passphraselessProductionFeed} from "../lib/xmiProductionFeedAuth.mjs";
 import {NextRequest} from "next/server.js";
 import {GET as stagingFeedStatus,POST as stagingUnlock} from "../app/api/xmi/feed-session/route.js";
 import {GET as stagingCandleRoute} from "../app/api/xmi/live/route.js";
@@ -191,5 +191,47 @@ test("Exact-branch staging loads read-only candles without a feed password or si
   assert.equal(passphraselessStagingFeed({...process.env,XMI_READONLY_MARKET_DATA_ENABLED:"false"}),false);
  }finally{
   for(const k of keys){if(original[k]===undefined)delete process.env[k];else process.env[k]=original[k];}
+ }
+});
+
+test("Production read-only candles are accessible without a passphrase only with exact production flags",async()=>{
+ const values={
+  VERCEL_ENV:"production",XMI_PRODUCTION_NO_PASSPHRASE:"true",
+  XMI_DATA_PROVIDER_MODE:"alpaca-twelvedata",
+  XMI_READONLY_MARKET_DATA_ENABLED:"true",
+  XMI_STAGING_NO_PASSPHRASE:"false",XMI_STAGING_FEED_ENABLED:"false"
+ };
+ const keys=[...Object.keys(values),"XMI_FEED_PASSWORD_SHA256","XMI_FEED_SESSION_SECRET"];
+ const before=Object.fromEntries(keys.map(key=>[key,process.env[key]]));
+ try{
+  Object.assign(process.env,values);
+  delete process.env.XMI_FEED_PASSWORD_SHA256;
+  delete process.env.XMI_FEED_SESSION_SECRET;
+  assert.equal(passphraselessProductionFeed(process.env),true);
+  assert.equal(passphraselessStagingFeed(process.env),false);
+  assert.equal(productionFeedConfigured(process.env),false);
+  const origin="https://xmi.example.test";
+  const status=await stagingFeedStatus(new NextRequest(origin+"/api/xmi/feed-session"));
+  assert.equal(status.status,200);
+  const details=await status.json();
+  assert.deepEqual({automatic:details.automatic,requiresPassphrase:details.requiresPassphrase,
+   authenticated:details.authenticated,scope:details.scope},
+   {automatic:true,requiresPassphrase:false,authenticated:true,scope:"candles-only"});
+  const allowed=await stagingCandleRoute(new NextRequest(origin+"/api/xmi/live?symbol=NOT_A_SYMBOL"));
+  assert.equal(allowed.status,400,"Valid environment reaches input validation without a cookie");
+  const external=await stagingCandleRoute(new NextRequest(origin+"/api/xmi/live?symbol=EURUSD",{
+   headers:{origin:"https://untrusted.example", "sec-fetch-site":"cross-site"}
+  }));
+  assert.equal(external.status,403,"Reject browser cross-origin candle requests");
+  assert.equal((await stagingUnlock(new NextRequest(origin+"/api/xmi/feed-session",{method:"POST"}))).status,405);
+  assert.equal(passphraselessProductionFeed({...process.env,VERCEL_ENV:"preview"}),false);
+  assert.equal(passphraselessProductionFeed({...process.env,XMI_DATA_PROVIDER_MODE:"tradelocker"}),false);
+  assert.equal(passphraselessProductionFeed({...process.env,XMI_PRODUCTION_NO_PASSPHRASE:"false"}),false);
+  assert.equal(passphraselessProductionFeed({...process.env,XMI_READONLY_MARKET_DATA_ENABLED:"false"}),false);
+ }finally{
+  for(const key of keys){
+   if(before[key]===undefined)delete process.env[key];
+   else process.env[key]=before[key];
+  }
  }
 });
