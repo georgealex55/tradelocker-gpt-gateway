@@ -172,6 +172,7 @@ export default function XMIWorkstation(){
    {!showTabs?<select aria-label="Switch XMI workspace" value={tab} onChange={e=>setTab(e.target.value)}>
     {TABS.map(t=><option key={t.id} value={t.id}>{t.title}</option>)}
    </select>:null}
+   <a href="/xmi/simulation" className={styles.historyStudioLink}>Strategy Research & Demo</a>
    <XMIReadOnlyFeedAccess/>
    <XMIAccountSettings workspace={workspaceDraft} strategyId={strategyId} strategyEdits={strategyEdits} workspaceUI={uiBackup} layout={{showBanner,showTabs}} onRestore={onRestore}/>
   </div>

@@ -16,12 +16,12 @@ import {DEFAULT_CHART_SETTINGS,DEFAULT_TECH,chartSeriesData,autoFibonacci,detect
 const COLOR={ema20:"#59c9d8",ema50:"#d1ad5b",ema200:"#a690fa",vwap:"#ef9ed9",
  rsi:"#60ccf5",macd:"#7c95ed",macdSignal:"#f1a45d"};
 const TIMEFRAMES=Object.keys(FX_RESOLUTIONS);
-const NO_STRUCTURE=defaultStructureSettings();
+const NO_STRUCTURE=defaultStructureSettings(false);
 export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsset="forex",instrumentLabel=symbol,resolution,onResolution,selected,onFocus,compact=false,active=true,
  structureSettings=NO_STRUCTURE,onStructure,technicalEnabled=DEFAULT_TECH,
  indicatorSettings=DEFAULT_INDICATOR_SETTINGS,strategyId="day",strategyEdit={},
  chartSettings=DEFAULT_CHART_SETTINGS,drawTool=null,savedDrawings=[],onDrawing,onDrawingMove,
- autoPatterns=true,autoFib=false,onPatterns,patternEnabled={},onAnalysis,strategyName="No preset",
+ autoPatterns=false,autoFib=false,onPatterns,patternEnabled={},onAnalysis,strategyName="No preset",
  onTechnicalChange,onStructureChange,onPatternChange,onPatternsEnabled,onChartSettingChange}){
  const el=useRef(null),chart=useRef(null),series=useRef(null),drawings=useRef(null);
  const importInput=useRef(null);
@@ -453,7 +453,7 @@ export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsse
    markerItems.current=stacked;
    overlay.marker.setMarkers(markerSeriesPayload(stacked));
    overlay.primitive.setAnnotations(
-    chartSettings.markerStructure&&chartSettings.markerStyle!=="compact"?result.annotations:[],
+    chartSettings.markerStructure&&chartSettings.markerStyle==="full"?result.annotations:[],
     display.at(-1)?.time??null);
    setOverlayMessage(stacked.length+" stacked markers · "+result.unavailable.length+" unavailable structure timeframes");
   }catch{

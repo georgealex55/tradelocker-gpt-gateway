@@ -145,7 +145,7 @@ export default function XMIToolbox({
    <div className={styles.toolboxScroll}>
     {active==="Strategy"?<section className={styles.toolboxGroup}>
       <strong>Choose an educational strategy preset</strong>
-      <p className={styles.toolboxNote}>Switching presets applies matching indicators and a suggested timeframe to the focused chart; it cannot place trades.</p>
+      <p className={styles.toolboxNote}>Switching presets changes the research calculation and suggested timeframe. Enable chart indicators independently below.</p>
       <div className={styles.toolboxRows}>
        {STRATEGIES.map(preset=><button key={preset.id} type="button"
         aria-pressed={strategyId===preset.id} onClick={()=>onStrategyChange?.(preset.id)}>

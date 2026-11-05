@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "test:structure-a2": "node scripts/test-structure-a2-core.mjs",
-    "test:soft-regime": "node scripts/test-soft-h1-regime.mjs"
+    "test:soft-regime": "node scripts/test-soft-h1-regime.mjs",
+    "test:xmi": "node --test tests/*.test.mjs",
+    "test:xmi-simulation": "node --test tests/xmi-simulation.test.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.0",
