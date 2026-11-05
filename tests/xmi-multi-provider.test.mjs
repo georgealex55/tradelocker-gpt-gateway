@@ -3,7 +3,10 @@ import assert from "node:assert/strict";
 import {parseInstrument,computeFive} from "../lib/xmiLiveMath.mjs";
 import {getMultiProviderSnapshot,parseProviderBars,providerForInstrument,
  XMI_MULTI_PROVIDER_MODE,providerConfigured} from "../lib/xmiMultiProvider.mjs";
-import {productionFeedConfigured,issueSession,verifySession} from "../lib/xmiProductionFeedAuth.mjs";
+import {productionFeedConfigured,issueSession,verifySession,passphraselessStagingFeed} from "../lib/xmiProductionFeedAuth.mjs";
+import {NextRequest} from "next/server.js";
+import {GET as stagingFeedStatus,POST as stagingUnlock} from "../app/api/xmi/feed-session/route.js";
+import {GET as stagingCandleRoute} from "../app/api/xmi/live/route.js";
 import {createHash} from "node:crypto";
 const since=Date.parse("2026-11-03T10:00:00Z");
 const base=Math.floor(since/300000)*300000;
@@ -153,4 +156,40 @@ test("A protected staging preview cannot bypass the signed feed session",()=>{
  const token=issueSession(auth,now);
  assert.equal(verifySession(token,auth,now+500),true);
  assert.equal(verifySession(token,{...auth,VERCEL_GIT_COMMIT_REF:"other"},now+500),false);
+});
+
+test("Exact-branch staging loads read-only candles without a feed password or signed cookie",async()=>{
+ const values={
+  VERCEL_ENV:"preview",VERCEL_GIT_COMMIT_REF:"feature/xmi-alpaca-twelvedata-staging-20261104",
+  XMI_STAGING_FEED_ENABLED:"true",XMI_STAGING_NO_PASSPHRASE:"true",
+  XMI_DATA_PROVIDER_MODE:"alpaca-twelvedata",
+  XMI_READONLY_MARKET_DATA_ENABLED:"true"
+ };
+ const keys=[...Object.keys(values),"XMI_FEED_PASSWORD_SHA256","XMI_FEED_SESSION_SECRET"];
+ const original=Object.fromEntries(keys.map(k=>[k,process.env[k]]));
+ try{
+  Object.assign(process.env,values);
+  delete process.env.XMI_FEED_PASSWORD_SHA256;
+  delete process.env.XMI_FEED_SESSION_SECRET;
+  assert.equal(passphraselessStagingFeed(process.env),true);
+  assert.equal(productionFeedConfigured(process.env),false);
+  const origin="https://staging-xmi.example.test";
+  const status=await stagingFeedStatus(new NextRequest(origin+"/api/xmi/feed-session"));
+  assert.equal(status.status,200);
+  const details=await status.json();
+  assert.equal(details.automatic,true);
+  assert.equal(details.configured,true);
+  assert.equal(details.authenticated,true);
+  assert.equal(details.requiresPassphrase,false);
+  const candle=await stagingCandleRoute(new NextRequest(origin+"/api/xmi/live?symbol=INVALID&resolution=5m"));
+  assert.equal(candle.status,400,"Invalid symbol must be rejected after staging access control");
+  const locked=await stagingUnlock(new NextRequest(origin+"/api/xmi/feed-session",{method:"POST"}));
+  assert.equal(locked.status,405,"Staging must not require or accept a feed passphrase");
+  assert.equal(passphraselessStagingFeed({...process.env,VERCEL_GIT_COMMIT_REF:"main"}),false);
+  assert.equal(passphraselessStagingFeed({...process.env,VERCEL_ENV:"production"}),false);
+  assert.equal(passphraselessStagingFeed({...process.env,XMI_STAGING_NO_PASSPHRASE:"false"}),false);
+  assert.equal(passphraselessStagingFeed({...process.env,XMI_READONLY_MARKET_DATA_ENABLED:"false"}),false);
+ }finally{
+  for(const k of keys){if(original[k]===undefined)delete process.env[k];else process.env[k]=original[k];}
+ }
 });
