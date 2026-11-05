@@ -4,12 +4,15 @@ import styles from "./xmi.module.css";
 export default function XMIReadOnlyFeedAccess(){
  const [configured,setConfigured]=useState(false),[authenticated,setAuthenticated]=useState(false);
  const [open,setOpen]=useState(false),[passphrase,setPassphrase]=useState("");
+ const [automatic,setAutomatic]=useState(false);
  const [busy,setBusy]=useState(false),[status,setStatus]=useState("Checking market-data access…");
  useEffect(()=>{let active=true;
   fetch("/api/xmi/feed-session",{cache:"no-store",credentials:"same-origin"})
    .then(r=>r.json()).then(d=>{if(!active)return;
     setConfigured(d.configured===true);setAuthenticated(d.authenticated===true);
-    setStatus(d.configured?"Unlock read-only candles with your feed passphrase.":
+    setAutomatic(d.automatic===true);
+    setStatus(d.automatic?"Read-only staging candles load automatically.":
+     d.configured?"Unlock read-only candles with your feed passphrase.":
       "Live candles are not enabled on this environment. Historical imports remain available.");
    }).catch(()=>{if(active)setStatus("Unable to check feed access; use historical imports.");});
   return ()=>{active=false;};
@@ -37,6 +40,9 @@ export default function XMIReadOnlyFeedAccess(){
   }catch(error){setStatus(String(error.message).slice(0,180));}
   finally{setBusy(false);}
  }
+ if(automatic)return <div className={styles.feedAccess} aria-label="Read-only market data access">
+  <span role="status"><span aria-hidden="true" className={styles.statusGood}/> Feed enabled · read only</span>
+ </div>;
  return <div className={styles.feedAccess}>
   <button type="button" disabled={busy} onClick={()=>setOpen(x=>!x)} aria-expanded={open}
    title={authenticated?"Read-only feed session authorized. Candle freshness is shown on each chart.":status}>
