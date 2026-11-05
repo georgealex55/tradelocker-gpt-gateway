@@ -23,8 +23,8 @@ function publicFeedRateLimited(req){
  return false;
 }
 export async function GET(req){
- // The original protected preview remains unchanged. Production requires an
- // explicit feed enable switch AND a separately verified, signed cookie.
+ // Production must have an explicit provider switch and read-only feed enablement.
+ // Without its independent no-passphrase flag, the signed cookie remains required.
  const preview=previewEnabled(process.env);
  const production=productionFeedConfigured(process.env);
  const automatic=passphraselessStagingFeed(process.env)||passphraselessProductionFeed(process.env);
