@@ -15,6 +15,8 @@ This checkpoint covers the clean-chart milestone and an initial historical resea
 | Browser intentional selection | EMA enabled explicitly, preserved after reload |
 | Browser chart controls | Reset Chart, zoom, fit and logarithmic scale exercised |
 | Browser management and persistence | Separate sign-in, history acquisition, job queue, four saved training steps, pause/resume, frozen validation, equity and event journal exercised |
+| API boundary checks | Anonymous/private ledger denied; feed cookie denied; cross-origin login denied; management login passed; CSV/JSON quarantine flags verified over HTTP |
+| Mobile layout | 390px viewport; no document horizontal overflow; four registry cards accessible |
 | Source quality | Failed; dataset quarantined and research paused |
 | Unattended scheduler | Not installed or enabled |
 | Forward demo fills | Not installed; OHLC replay cannot create forward fills |
@@ -27,3 +29,5 @@ The original dataset and run remain immutable records. An independent persisted 
 The existing 4H chart source returned invalid candles and remains unresolved; the 5m chart displayed vendor-supplied candles. No source bars were interpolated, shifted, or replaced to hide a failure.
 
 See [architecture, assumptions, costs and release gates](XMI_SIMULATION_STAGING.md). Draft PR: https://github.com/georgealex55/tradelocker-gpt-gateway/pull/32.
+
+Final app preview: https://tradelocker-gpt-gateway-mapkqzt8k-georgealex1925-2750s-projects.vercel.app/xmi/simulation. Verified app source commit: `a2f9fb3ccf3ee2bbda277efba9646cbead98c066`. Production alias still points to baseline commit `192efd2dda301177be624a069adafda9c9cc9d9f`.
