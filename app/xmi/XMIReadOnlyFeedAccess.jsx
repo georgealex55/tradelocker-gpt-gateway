@@ -11,7 +11,7 @@ export default function XMIReadOnlyFeedAccess(){
    .then(r=>r.json()).then(d=>{if(!active)return;
     setConfigured(d.configured===true);setAuthenticated(d.authenticated===true);
     setAutomatic(d.automatic===true);
-    setStatus(d.automatic?"Read-only staging candles load automatically.":
+    setStatus(d.automatic?"Read-only market candles load automatically.":
      d.configured?"Unlock read-only candles with your feed passphrase.":
       "Live candles are not enabled on this environment. Historical imports remain available.");
    }).catch(()=>{if(active)setStatus("Unable to check feed access; use historical imports.");});
