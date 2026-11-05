@@ -1,5 +1,5 @@
 import {NextResponse} from "next/server.js";
-import {COOKIE,productionFeedConfigured,verifyPassword,issueSession,verifySession,sameOrigin} from "../../../../lib/xmiProductionFeedAuth.mjs";
+import {COOKIE,productionFeedConfigured,verifyPassword,issueSession,verifySession,sameOrigin,passphraselessStagingFeed} from "../../../../lib/xmiProductionFeedAuth.mjs";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 const security={"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff"};
@@ -27,9 +27,14 @@ function hasSession(req){
 }
 export async function GET(request){
  if(!sameOrigin(request))return json({ok:false,error:"Same-origin XMI access only"},403);
- return json({ok:true,configured:configured(),authenticated:hasSession(request),scope:"candles-only"});
+ const automatic=passphraselessStagingFeed(process.env);
+ return json({ok:true,configured:automatic||configured(),
+  authenticated:automatic||hasSession(request),requiresPassphrase:!automatic,
+  automatic,scope:"candles-only"});
 }
 export async function POST(request){
+ if(passphraselessStagingFeed(process.env))
+  return json({ok:false,code:"NO_FEED_LOGIN_REQUIRED",error:"Staging read-only candles load automatically"},405);
  if(!sameOrigin(request)||request.headers.get("origin")!==new URL(request.url).origin)
   return json({ok:false,error:"Same-origin login required"},403);
  if(!configured())return json({ok:false,code:"FEED_DISABLED",error:"Read-only market feed not configured for this environment"},503);
@@ -51,6 +56,8 @@ export async function POST(request){
  return response;
 }
 export async function DELETE(request){
+ if(passphraselessStagingFeed(process.env))
+  return json({ok:false,code:"NO_FEED_LOGIN_REQUIRED",error:"Automatic staging feed has no session to close"},405);
  if(!sameOrigin(request)||request.headers.get("origin")!==new URL(request.url).origin)
   return json({ok:false,error:"Same-origin logout required"},403);
  const response=json({ok:true,authenticated:false});
