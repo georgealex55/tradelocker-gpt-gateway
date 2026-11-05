@@ -9,7 +9,7 @@ if(process.env.XMI_SIM_INTEGRATION_TEST!=='true')throw Error('Explicit isolated 
 const real=await openStore(),baseline=JSON.stringify((await readState(real)).state),scope='verification-'+randomUUID(),store={...real,environment:scope};
 await store.sql.query('INSERT INTO xmi_sim_state(environment_id,payload) VALUES($1,$2::jsonb)',[scope,JSON.stringify(newState())]);
 const first=Date.parse('2025-01-06T00:00:00Z')/1000;
-const bars=Array.from({length:600},(_,i)=>{const close=1.1+Math.sin(i/10)*0.006;return {time:first+i*900,open:close-0.0001,high:close+0.0003,low:close-0.0003,close,closed:true};});
+const bars=[];let time=first;while(bars.length<600){const d=new Date(time*1000),day=d.getUTCDay(),h=d.getUTCHours();if(!(day===6||day===0&&h<22||day===5&&h>=22)){const close=1.1+Math.sin(bars.length/10)*0.006;bars.push({time,open:close-0.0001,high:close+0.0003,low:close-0.0003,close,closed:true});}time+=900;}
 const dataset=verifyDataset(bars,{synthetic:true});dataset.id=scope;
 await store.sql.query('INSERT INTO xmi_sim_datasets(id,environment_id,payload) VALUES($1,$2,$3::jsonb)',[dataset.id,scope,JSON.stringify(dataset)]);
 await Promise.all([mutate(store,s=>{s.testCounter=(s.testCounter||0)+1;}),mutate(store,s=>{s.testCounter=(s.testCounter||0)+1;})]);

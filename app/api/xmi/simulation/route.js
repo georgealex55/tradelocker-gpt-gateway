@@ -24,12 +24,12 @@ export async function GET(req){
    const params=new URL(req.url).searchParams,run=state.runs.find(r=>r.id===params.get('id'));
    if(!run)return json({ok:false,error:'Run not found'},404);
    if(params.get('format')==='csv'){
-    const columns=['id','accountId','strategyId','configurationHash','symbol','direction','entryTime','exitTime','units','entry','exit','gross','costs','net','reason','mode'];
+    const columns=['dataQuality','id','accountId','strategyId','configurationHash','symbol','direction','entryTime','exitTime','units','entry','exit','gross','costs','net','reason','mode'];
     const escape=v=>'"'+(typeof v==='string'?v.replace(/^[=+@-]/,"'"):String(v??'')).replaceAll('"','""')+'"';
-    const csv=[columns.join(','),...run.account.trades.map(t=>columns.map(c=>escape(t[c])).join(','))].join('\n');
+    const csv=[columns.join(','),...run.account.trades.map(t=>columns.map(c=>escape(c==='dataQuality'?(state.dataIncidents||[]).some(i=>i.datasetId===run.datasetId)?'QUARANTINED':'UNRESOLVED_CALENDAR_CHECK':t[c])).join(','))].join('\n');
     return new NextResponse(csv,{headers:{...headers,'Content-Type':'text/csv','Content-Disposition':'attachment; filename=xmi-simulated-trades.csv'}});
    }
-   return new NextResponse(JSON.stringify(run,null,2),{headers:{...headers,'Content-Type':'application/json','Content-Disposition':'attachment; filename=xmi-research-run.json'}});
+   return new NextResponse(JSON.stringify({...run,qualityReview:(state.dataIncidents||[]).filter(i=>i.datasetId===run.datasetId),performanceEvidenceValid:run.qualification.passed&&!(state.dataIncidents||[]).some(i=>i.datasetId===run.datasetId)},null,2),{headers:{...headers,'Content-Type':'application/json','Content-Disposition':'attachment; filename=xmi-research-run.json'}});
   }
   return json({ok:true,revision,state,datasets:await listDatasets(store),report:dailyReport(state)});
  }catch(e){return failure(e);}

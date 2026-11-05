@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync,readdirSync} from 'node:fs';
 import {REGISTRY,makeVersion,confirm,compileSignals,closedHigherBars,digest,SECONDS} from '../lib/xmi-sim/registry.mjs';
-import {verifyDataset,fetchForexHistory} from '../lib/xmi-sim/data.mjs';
+import {verifyDataset,fetchForexHistory,annotateDataQuality} from '../lib/xmi-sim/data.mjs';
 import {createAccount,acceptSignal,processBar,finishReplay,backtest,conversion,pipSize,sizePosition,reconcile,metrics} from '../lib/xmi-sim/execution.mjs';
 import {qualification,forwardQualification,generateConfigurations,partition,trainingTrial,finishResearch,degradation} from '../lib/xmi-sim/research.mjs';
 import {newState,simulationConfig,mutate,readState,saveDataset} from '../lib/xmi-sim/store.mjs';
@@ -11,7 +11,7 @@ import {managementAuthorized,managementKeyMatches,issueManagementSession,mutatio
 import {DEFAULT_TECH,DEFAULT_CHART_SETTINGS,serializeWorkspace,deserializeWorkspace} from '../lib/xmiChartTools.mjs';
 import {defaultStructureSettings} from '../lib/xmiStructure.mjs';
 const first=Date.parse('2025-01-06T00:00:00Z')/1000;
-function fixture(length=900){return Array.from({length},(_,i)=>{const close=1.1+Math.sin(i/10)*0.006;return {time:first+i*900,open:close-0.0001,high:close+0.0003,low:close-0.0003,close,closed:true};});}
+function fixture(length=900){const out=[];let time=first;while(out.length<length){const d=new Date(time*1000),day=d.getUTCDay(),h=d.getUTCHours();if(!(day===6||day===0&&h<22||day===5&&h>=22)){const close=1.1+Math.sin(out.length/10)*0.006;out.push({time,open:close-0.0001,high:close+0.0003,low:close-0.0003,close,closed:true});}time+=900;}return out;}
 const dataset=()=>verifyDataset(fixture(),{synthetic:true,acquiredAt:Date.now()});
 const version=()=>makeVersion({strategyId:'ema-trend'});
 function memoryStore(){let revision=0,state=newState(),datasets=new Map();return {environment:'test',datasets,sql:{query:async(text,args)=>{
@@ -127,7 +127,7 @@ test('Management sessions are scoped, tamper-resistant, expire, and do not accep
  const req=origin=>new Request('https://staging.example/api/xmi/simulation',{headers:origin?{origin}:{}});assert.equal(mutationOriginAllowed(req('https://evil.example')),false);assert.equal(mutationOriginAllowed(req(null)),false);assert.ok(mutationOriginAllowed(req('https://staging.example')));
 });
 test('Simulation storage refuses production, gateway database reuse and synthetic evidence persistence',async()=>{
- const e={VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'feature/xmi-forex-simulation-staging',XMI_SIM_ENABLED:'true',XMI_SIM_ENVIRONMENT_ID:'xmi-forex-staging-v1',XMI_SIM_DATABASE_URL:'postgresql://test:test@ep-isolated.neon.tech/xmi_simulation'};
+ const e={VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'feature/xmi-forex-simulation-staging',XMI_SIM_ENABLED:'true',XMI_SIM_ENVIRONMENT_ID:'xmi-forex-staging-v2',XMI_SIM_DATABASE_URL:'postgresql://test:test@ep-isolated.neon.tech/xmi_simulation'};
  assert.ok(simulationConfig(e));assert.throws(()=>simulationConfig({...e,VERCEL_ENV:'production',XMI_SIM_ALLOW_LOCAL:'true'}),/DISABLED/);assert.throws(()=>simulationConfig({...e,DATABASE_URL:e.XMI_SIM_DATABASE_URL}),/GUARD/);assert.throws(()=>simulationConfig({...e,XMI_SIM_DATABASE_URL:'postgresql://a@host/neondb'}),/GUARD/);
  await assert.rejects(saveDataset(memoryStore(),dataset()),/Synthetic/);
  for(const file of readdirSync(new URL('../lib/xmi-sim',import.meta.url))){const source=readFileSync(new URL('../lib/xmi-sim/'+file,import.meta.url),'utf8');assert.doesNotMatch(source,/from ['"].*(?:tradelocker|tradeGuard|tradeState|alpaca)/i);assert.doesNotMatch(source,/process\.env\.(?:TRADELOCKER|ALPACA)/);}
@@ -163,4 +163,14 @@ test('Wednesday modeled financing is triple and remains part of net ledger recon
 test('Concurrent workers claim one job lease and advance one deterministic trial',async()=>{
  const store=memoryStore(),d=dataset();store.datasets.set(d.id,d);const j=await queueResearch(store,{...version(),datasetId:d.id,limit:1});
  const results=await Promise.all([tickResearch(store,j.id),tickResearch(store,j.id)]);assert.equal(results.filter(r=>r.advanced).length,1);assert.equal((await readState(store)).state.jobs[0].cursor,1);
+});
+
+test('Weekend source candles are quarantined and block new research even with valid OHLC',async()=>{
+ const bars=Array.from({length:500},(_,i)=>({time:Date.parse('2025-01-11T00:00:00Z')/1000+i*900,open:1.1,high:1.101,low:1.099,close:1.1,closed:true}));
+ const d=verifyDataset(bars,{provider:'Twelve Data'});assert.equal(d.qualityStatus,'QUARANTINED');assert.equal(d.saturdayBars,96);assert.ok(d.unresolvedDataFailures>0);
+ const store=memoryStore();store.datasets.set(d.id,d);await assert.rejects(queueResearch(store,{...version(),datasetId:d.id,limit:1}),/QUARANTINED/);
+ assert.equal((await readState(store)).state.jobs.length,0);assert.equal((await readState(store)).state.dataIncidents.length,1);
+});
+test('Cached legacy datasets receive the new calendar audit without changing their OHLC or identity',()=>{
+ const original={id:'source-v1',timeframe:'15m',unresolvedGaps:0,bars:[{time:Date.parse('2025-01-11T01:00:00Z')/1000,high:1.2,low:1.1}]};const audited=annotateDataQuality(original);assert.equal(audited.id,original.id);assert.equal(audited.bars,original.bars);assert.equal(audited.qualityStatus,'QUARANTINED');assert.equal(original.qualityStatus,undefined);
 });
