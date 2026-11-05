@@ -18,7 +18,7 @@ import {normalizeWatchlistCollections,createWatchlistCollection,renameWatchlistC
  from "../../lib/xmiWatchlistCollections.mjs";
 import {setStructureOption,defaultStructureSettings,STRUCTURE_CONCEPTS} from "../../lib/xmiStructure.mjs";
 import {DEFAULT_CHART_SETTINGS,DEFAULT_TECH,resolveChartSettings,
- validateDrawings,serializeWorkspace,deserializeWorkspace,drawingsForSymbol,samePatternEvents} from "../../lib/xmiChartTools.mjs";
+ validateDrawings,serializeWorkspace,deserializeWorkspace,drawingsForSymbol,samePatternEvents,drawingPoint} from "../../lib/xmiChartTools.mjs";
 const START=["EURUSD","GBPUSD","USDJPY","USDCHF","AUDUSD","NASDAQ:AAPL","AMEX:SPY","CRYPTO:BTCUSD","CRYPTO:ETHUSD"];
 const DEFAULT=START.map(parseInstrument),KEY="xmi-chart-workbench-v1";
 export default function XMIEngineDesk({selected,onSelected,onResearch,active=true,focusMode=false,onFocusMode,strategyId="day",onStrategyChange,onResearchModel,onWorkspaceChange,remoteWorkspace,remotePatterns,remoteChartUI,strategyEdits={},onIndicatorSettingsChange}){
