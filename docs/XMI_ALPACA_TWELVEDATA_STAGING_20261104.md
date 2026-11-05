@@ -32,6 +32,18 @@ For stocks, the default Alpaca data feed is **IEX**, not consolidated SIP. Set `
 
 Alpaca daily equity bars are session-date anchored to New York midnight (04:00 or 05:00 UTC seasonally). The adapter maps only the date to a UTC calendar-day bucket to satisfy the chart's daily alignment; this is **not a synthetic price or a guaranteed market close time**. Intraday bars retain their vendor timestamps, and unaligned or malformed observations fail closed.
 
+## Approved production cutover (November 4, 2026)
+
+The user approved removing the XMI passphrase in **production**, not just staging. The reviewed code requires these explicit production-scoped Vercel variables before removing the XMI feed unlock:
+
+```text
+XMI_DATA_PROVIDER_MODE=alpaca-twelvedata
+XMI_PRODUCTION_NO_PASSPHRASE=true
+XMI_READONLY_MARKET_DATA_ENABLED=true
+```
+
+Alpaca and Twelve Data API credentials must remain server-side in production. No passphrase is sent by the browser or needed to read candles. The public read-only candle endpoint accepts GET only and keeps same-origin browser restrictions, validated instrument names, bounded history, and serverless-instance request limits (75 requests/minute/IP and 240 requests/minute/instance). These **are not distributed rate limits** and do not replace a production WAF or centralized quota enforcement. Expect that a public endpoint can consume provider credits if abused. No order placement or brokerage account access is enabled. When the production flag is absent, the old signed feed-cookie protection still applies. Vercel Preview deployment protection is unrelated to the public production URL.
+
 ## Verification gates
 
 1. Run all `tests/xmi-*.test.mjs` and Chromium chart/UX smoke workflows on the PR head. The new `tests/xmi-multi-provider.test.mjs` injects deterministic vendor responses (no credentials) and checks routing, timestamps, error categorization, confidentiality, bounded history, cache singleflight, and signed staging access.
