@@ -278,6 +278,62 @@ def channel(frame, lookback):
     return cross(frame.c, upper), cross(-frame.c, -lower)
 
 
+def confirmed_structure_signals(frame, rule, radius):
+    """Model closed-bar swing breaks and neckline breaks after confirmation."""
+    signals = np.zeros(len(frame.t), dtype=np.int8)
+    if len(signals) <= 2 * radius:
+        return signals
+
+    # Strict extrema, visible only when the right-hand candles have closed.
+    highs = np.lib.stride_tricks.sliding_window_view(frame.h, 2 * radius + 1)
+    lows = np.lib.stride_tricks.sliding_window_view(frame.low, 2 * radius + 1)
+    pivot_high = (highs[:, radius, None] > highs[:, :radius]).all(axis=1)
+    pivot_high &= (highs[:, radius, None] > highs[:, radius + 1:]).all(axis=1)
+    pivot_low = (lows[:, radius, None] < lows[:, :radius]).all(axis=1)
+    pivot_low &= (lows[:, radius, None] < lows[:, radius + 1:]).all(axis=1)
+    atr = frame.core()["atr"]
+    bos = rule == "structure-bos"
+    last_pivots = [None, None]
+    levels = [None, None]
+    segment_start = 0
+    for i in range(1, len(signals)):
+        if frame.t[i] - frame.t[i - 1] != frame.minutes:
+            segment_start = i
+            last_pivots = [None, None]
+            levels = [None, None]
+        if i - segment_start < 2 * radius:
+            continue
+        p = i - radius
+        for k, found in enumerate((pivot_high[i - 2 * radius], pivot_low[i - 2 * radius])):
+            if not found:
+                continue
+            prices = frame.h if k == 0 else frame.low
+            prior = last_pivots[k]
+            last_pivots[k] = p
+            if bos:
+                levels[k] = (prices[p], i)
+            elif prior is not None and 2 * radius <= p - prior <= 24:
+                between = frame.low[prior + 1:p] if k == 0 else frame.h[prior + 1:p]
+                neckline = between.min() if k == 0 else between.max()
+                depth = min(prices[p], prices[prior]) - neckline if k == 0 else neckline - max(prices[p], prices[prior])
+                if abs(prices[p] - prices[prior]) <= 0.35 * atr[i] and depth >= atr[i]:
+                    levels[k] = (neckline, i)
+        direction = 0
+        for k, level in enumerate(levels):
+            if level is None:
+                continue
+            price, confirmed = level
+            if i - confirmed > 24:
+                levels[k] = None
+                continue
+            side = 1 if (k == 0) == bos else -1
+            if i > confirmed and side * (frame.c[i - 1] - price) <= 0 < side * (frame.c[i] - price):
+                direction += side
+                levels[k] = None
+        signals[i] = direction
+    return signals
+
+
 def standard_signals(rule, frame, frames, parameter):
     c = frame.c
     fast, slow = frame.ema(20), frame.ema(50)
@@ -526,6 +582,13 @@ def strategies(symbol, windows, profile):
             ):
                 yield Variant(rule, minutes, window, risk, stop, reward, 90, lookback, min_stop_to_cost=2.0)
             continue
+        if profile == "structure-context":
+            for rule, radius, minutes, stop, reward, risk in product(
+                ("structure-bos", "structure-double"), (2, 3), (5, 15, 30),
+                (1.5, 2.25), (1.4, 2.0), (0.0025, 0.005),
+            ):
+                yield Variant(rule, minutes, window, risk, stop, reward, 90, radius, min_stop_to_cost=2.0)
+            continue
         if profile == "intraday-context":
             rules = [(rule, threshold) for rule, threshold in product(
                 ("intraday-pullback", "intraday-pullback-hourly", "intraday-mean", "intraday-mean-hourly"),
@@ -685,6 +748,8 @@ class Study:
                     self.frames[anchored_key] = Frame(self.t, self.prices, minutes, anchor)
                 frame = self.frames[anchored_key]
             signal, structure = opening_context_signals(rule, frame, session, self.t, self.prices, parameter)
+        elif rule.startswith("structure-"):
+            signal, structure = confirmed_structure_signals(frame, rule, parameter), None
         elif rule in LEGACY:
             legacy = self.load_legacy()
             entries = np.asarray(legacy[rule], dtype=float).reshape(-1, 3)
@@ -792,6 +857,7 @@ def screen_symbol(cache, symbol, executable, profile):
         "opening-context": OPEN_CONTEXT_WINDOWS,
         "closing-context": CLOSE_CONTEXT_WINDOWS,
         "intraday-context": INTRADAY_CONTEXT_WINDOWS,
+        "structure-context": ("london-open", "ny-open", "london-close", "ny-close", *INTRADAY_CONTEXT_WINDOWS),
     }.get(profile, PILOT_WINDOWS)
     windows = [w for w in names if w not in GOLD_WINDOWS or symbol == "XAUUSD"]
     study = Study(cache, symbol, DEVELOPMENT, executable, windows)
@@ -799,7 +865,7 @@ def screen_symbol(cache, symbol, executable, profile):
     for variant in strategies(symbol, windows, profile):
         folds = [study.run(variant, fold) for fold in FOLDS]
         row = {"symbol": symbol, "variant": asdict(variant), "folds": folds, "screen_pass": eligible(folds)}
-        if profile in ("opening-context", "closing-context", "intraday-context"):
+        if profile in ("opening-context", "closing-context", "intraday-context", "structure-context"):
             stress = [study.run(variant, fold, stress=1.5) for fold in FOLDS]
             stress_pass = all(f["net_usd"] > 0 and f["max_drawdown"] < 0.1 and not f["halted"] for f in stress)
             row.update({"base_screen_pass": row["screen_pass"], "stress_pass": stress_pass, "stress_folds": stress,
@@ -879,7 +945,7 @@ def main():
     parser.add_argument("--input", type=Path, nargs="+", help="Screen JSONs for freeze, a single freeze JSON for holdout")
     parser.add_argument("--symbols", nargs="+", choices=SYMBOLS, default=SYMBOLS)
     parser.add_argument("--profile", choices=("pilot", "expanded", "targeted", "legacy", "opening-context",
-                                              "closing-context", "intraday-context"), default="pilot")
+                                              "closing-context", "intraday-context", "structure-context"), default="pilot")
     parser.add_argument("--workers", type=int, choices=range(1, 9), default=4)
     args = parser.parse_args()
     identity = source_identity()

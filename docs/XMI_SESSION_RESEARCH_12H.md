@@ -244,3 +244,26 @@ OPENBLAS_NUM_THREADS=1 python scripts/xmi-session-gold-sizing.py \
 ```
 
 Next, test causal break-of-structure and double-top/bottom definitions using only confirmed swings. Exact VWAP is blocked by the zero-volume minute archives.
+
+## Checkpoint 8 · 2026-11-06
+
+Screened 4,608 break-of-structure and double-top/bottom configurations on all seven FX majors and XAU/USD, using the verified 2022–2024 HistData minute bid archives. This was 576 configurations per instrument, each with four separate USD 1,000 accounts at base costs and another four under 1.5× spread and slippage. The 2025 holdout was outside the replay. Exact VWAP remains blocked because the archive reports zero minute volume. No volume proxy was used.
+
+These are modeled, symmetric closed-bar rules on 5-, 15- and 30-minute candles. A pivot is a strict high or low against two or three candles on either side. It becomes available at the close of the last required right-side candle. Break of structure uses the first later close crossing the latest confirmed swing high or low. The double pattern compares consecutive same-side pivots 2 radii to 24 bars apart, with prices within 0.35 ATR and a neckline at least one ATR deep. The first later close through the neckline signals the reversal. Levels expire after 24 bars from confirmation, with all pattern state cleared on missing candle intervals. Simultaneous opposite breaks cancel. Synthetic fixtures verified both reversal directions, a swing break, gap resets and prefix invariance.
+
+DST-aware opening windows were 08:00–10:00 in each city. Closing windows were London 15:00–17:00 and New York 15:00–16:45. Intraday was 10:00–15:00 in each city. The replay filled at the next minute open after a fully closed signal, strictly before cutoff, and flattened by the cutoff or the 90-minute holding cap. Risk was 0.25% or 0.5% of equity with 1.5 or 2.25 ATR stops, a stop at least twice modeled costs and 1.4R or 2R targets. FX used 1,000-unit minimums and steps, 30:1 leverage, 2 pips spread, 0.3 pips slippage per side and USD 3.50 per standard lot per side. Gold used 1-ounce minimums and steps, 20:1 leverage, USD 0.45/oz spread, USD 0.07/oz slippage per side and USD 0.035/oz commission per side. Commission stayed fixed in stress. The archive hashes and complete-session counts are in the manifest.
+
+| Best 2024 result with 150 or more trades and drawdown below 10% | Trades | Gross before costs USD | Net USD | Profit factor | Max drawdown | Stress net USD |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| USD/JPY 15m New York opening structure break | 155 | +25.69 | −21.40 | 0.797 | 2.70% | −35.37 |
+| USD/JPY 15m London closing structure break | 152 | −1.09 | −50.17 | 0.570 | 4.22% | −53.94 |
+| USD/JPY 30m London intraday structure break | 186 | +49.36 | −8.18 | 0.925 | 3.18% | −22.09 |
+
+Zero advanced, including before cost stress. Of 535 setups meeting the trade count and drawdown comparison floor, the leading double pattern lost USD 45.35 on GBP/USD intraday. The best opening double pattern lost USD 124.16 on gold. No closing double pattern reached the comparison floor. The targeted baseline remained ahead in each lane by 2024 net at USD 13.75, USD 73.31 and USD 186.97 for open, close and intraday respectively, while its leaders failed the development screen. The expanded baseline intraday leader earned USD 105.95 and the legacy baseline had no leader meeting the comparison floor. Verified entry and cutoff timing on 2,255 completed leader trades. [Results and reproducibility manifest](xmi-session-structure-checkpoint-08.json)
+
+```bash
+OPENBLAS_NUM_THREADS=1 python scripts/xmi-session-research.py screen --profile structure-context \
+  --workers 8 --cache "$research_dir/histdata" --output "$research_dir/increment-08-structure.json"
+```
+
+Next, review parameter neighborhoods, year-by-year consistency, clustered weekly results and cost sensitivity. Keep the separate seven-major opening-context follow-up visible in the ledger.
