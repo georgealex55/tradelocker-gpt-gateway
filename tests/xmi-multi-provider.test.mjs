@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {parseInstrument,computeFive} from "../lib/xmiLiveMath.mjs";
+import {parseInstrument,computeFive,quoteState,SYDNEY_FOREX_4H} from "../lib/xmiLiveMath.mjs";
 import {getMultiProviderSnapshot,parseProviderBars,providerForInstrument,
  XMI_MULTI_PROVIDER_MODE,providerConfigured} from "../lib/xmiMultiProvider.mjs";
 import {productionFeedConfigured,issueSession,verifySession,passphraselessStagingFeed,passphraselessProductionFeed} from "../lib/xmiProductionFeedAuth.mjs";
@@ -8,6 +8,9 @@ import {NextRequest} from "next/server.js";
 import {GET as stagingFeedStatus,POST as stagingUnlock} from "../app/api/xmi/feed-session/route.js";
 import {GET as stagingCandleRoute} from "../app/api/xmi/live/route.js";
 import {createHash} from "node:crypto";
+import {inspectCandleQuality} from "../lib/xmiDataQuality.mjs";
+import {detectStructure,mapStructureToChart} from "../lib/xmiStructure.mjs";
+import {nextFeedDelay} from "../lib/xmiFeedRecovery.mjs";
 const since=Date.parse("2026-11-03T10:00:00Z");
 const base=Math.floor(since/300000)*300000;
 const rows=Array.from({length:270},(_,i)=>{
@@ -58,6 +61,50 @@ test("Twelve Data forex 5m candles preserve UTC timestamps, no fictitious volume
  assert.equal(result.volumeBasis,"none");
  assert.equal(computeFive(result.bars,"5m",now,"none").readiness.vwap,false);
  assert.doesNotMatch(JSON.stringify(result),/staging-td-example/);
+});
+const forexHours=(...dates)=>({status:"ok",meta:{timezone:"UTC"},values:dates.map(datetime=>({
+ datetime,open:"1.1000",high:"1.1010",low:"1.0990",close:"1.1005"
+}))});
+test("Forex 4H candles retain native timestamps and close correctly across Sydney clock changes",()=>{
+ const spring=forexHours("2026-10-03 09:00:00","2026-10-03 13:00:00","2026-10-03 16:00:00");
+ const at=Date.parse("2026-10-03T16:30:00Z");
+ const {bars,volumeBasis,candleSchedule}=parseProviderBars(spring,"forex","EURUSD","4H",at);
+ assert.equal(candleSchedule,SYDNEY_FOREX_4H);
+ const times=[9,13,16].map(hour=>Date.UTC(2026,9,3,hour)/1000);
+ assert.deepEqual(bars.map(bar=>bar.time),times);
+ assert.deepEqual(bars.map(bar=>bar.closed),[true,true,false]);
+ assert.equal(bars[1].closeTime,times[2]);
+ assert.equal(bars[1].close,1.1005);
+ const stats=computeFive(bars,"4H",at,volumeBasis,{},candleSchedule);
+ assert.equal(quoteState(stats.lastClosed,at,"4H"),"CURRENT");
+ assert.equal(inspectCandleQuality({bars:stats.bars,resolution:"4H",asOf:at,now:at,sourceQuality:"CURRENT"}).lastClosedTime,times[1]);
+ assert.equal(detectStructure(stats.bars,"4H",at,candleSchedule).completedBars,2);
+ assert.equal(mapStructureToChart({time:times[1],confirmedAt:times[2]},stats.bars,"4H").chartTime,times[1]);
+
+ const autumn=forexHours("2026-04-04 12:00:00","2026-04-04 17:00:00");
+ const beforeClose=Date.parse("2026-04-04T16:30:00Z");
+ assert.equal(parseProviderBars(autumn,"forex","EURUSD","4H",beforeClose).bars[0].closed,false);
+ const later=Date.parse("2026-04-04T22:00:00Z");
+ const autumnBars=parseProviderBars(autumn,"forex","EURUSD","4H",later).bars;
+ assert.equal(autumnBars[0].closeTime-autumnBars[0].time,5*3600);
+ assert.equal(inspectCandleQuality({bars:autumnBars,resolution:"4H",asOf:later,now:later,sourceQuality:"CURRENT"}).recentGaps,0);
+ assert.throws(()=>parseProviderBars(forexHours("2026-10-02 16:00:00"),"forex","EURUSD","4H",at),{code:"INVALID_PROVIDER_CANDLES"});
+});
+test("Forex 4H refresh and cache expire at the native candle boundary",async()=>{
+ const before=Date.parse("2026-09-29T12:59:00Z"),after=before+65000;
+ const request={symbol:"NZDUSD",resolution:"4H"};
+ let calls=0;
+ const fetchImpl=async(url)=>{
+  calls++;
+  assert.equal(new URL(url).searchParams.get("interval"),"4h");
+  return json(forexHours("2026-09-29 09:00:00"));
+ };
+ await getMultiProviderSnapshot(request,{env,now:before,fetchImpl});
+ await getMultiProviderSnapshot(request,{env,now:before+30000,fetchImpl});
+ assert.equal(calls,1);
+ assert.equal(nextFeedDelay({resolution:"4H",now:before,provider:"Twelve Data",candleSchedule:SYDNEY_FOREX_4H}),65000);
+ await getMultiProviderSnapshot(request,{env,now:after,fetchImpl});
+ assert.equal(calls,2);
 });
 test("Alpaca stock IEX 5m and crypto BTC/USD canonical OHLC are independently parsed",async()=>{
  const stock=await getMultiProviderSnapshot({symbol:"NASDAQ:AAPL",resolution:"5m"},{

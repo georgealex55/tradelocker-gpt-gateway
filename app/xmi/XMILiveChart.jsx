@@ -1,6 +1,6 @@
 "use client";
 import {useEffect,useRef,useState} from "react";
-import {computeFive,FX_RESOLUTIONS,quoteState} from "../../lib/xmiLiveMath.mjs";
+import {computeFive,FX_RESOLUTIONS,quoteState,nextCandleClose} from "../../lib/xmiLiveMath.mjs";
 import {parseHistoricalFile} from "../../lib/xmiHistoricalFile.mjs";
 import {nextFeedDelay,feedHealth,retryableFeedError} from "../../lib/xmiFeedRecovery.mjs";
 import {inspectCandleQuality} from "../../lib/xmiDataQuality.mjs";
@@ -206,14 +206,14 @@ export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsse
  useEffect(()=>{
   if(!libReady||!series.current||!active)return;
   let running=true,abort=null,timer=null,failures=0,inFlight=false;
-  let providerName=null;
+  let providerName=null,candleSchedule;
   let lastSuccessAt=null,lastClosedAt=null;
   const all=series.current;
   let fitted=false;
   function schedule(){
    if(!running)return;
    const delay=nextFeedDelay({resolution,now:Date.now(),failures,
-    profile:chartSettings.refreshProfile,provider:providerName,
+    profile:chartSettings.refreshProfile,provider:providerName,candleSchedule,
     hidden:document.visibilityState==="hidden"});
    setFeed(prev=>({...prev,nextRefreshMs:delay}));
    timer=setTimeout(refresh,delay);
@@ -249,7 +249,7 @@ export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsse
     const reportedAt=Date.parse(data.asOf),observedNow=Date.now();
     if(!Number.isFinite(reportedAt))
      throw Error("Candle source observation time is invalid; no current data inferred");
-    const stats=computeFive(data.bars,resolution,reportedAt,data.volumeBasis,indicatorSettingsRef.current);
+    const stats=computeFive(data.bars,resolution,reportedAt,data.volumeBasis,indicatorSettingsRef.current,data.candleSchedule);
     if(!running)return;
     const observedQuality=local?"HISTORICAL":quoteState(stats.lastClosed,observedNow,resolution);
     if(observedQuality==="INVALID_TIME")
@@ -283,6 +283,7 @@ export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsse
     }
     failures=0;
     providerName=data.provider||null;
+    candleSchedule=data.candleSchedule;
     lastSuccessAt=Date.now();
     lastClosedAt=stats.lastClosed?.time?stats.lastClosed.time*1000:null;
     setFeed({provider:data.provider||null,phase:local?"historical":quality==="STALE"?"stale":quality==="CURRENT"?"ready":"empty",
@@ -339,7 +340,7 @@ export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsse
   if(!Number.isFinite(at))return;
   try{
    const stats=computeFive(current.stats.bars,resolution,at,
-    current.stats.volumeBasis||"broker-tick",indicatorSettings);
+    current.stats.volumeBasis||"broker-tick",indicatorSettings,current.stats.candleSchedule);
    stats.dataHealth=inspectCandleQuality({bars:stats.bars,overlays:stats.overlays,
     resolution,asOf:at,now:Date.now(),sourceQuality:current.quality});
    const all=series.current;
@@ -373,12 +374,12 @@ export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsse
      if(!res.ok||!data.ok)throw Error(data.error||"No verified market candles");
      const reported=Date.parse(data.asOf);
      if(!Number.isFinite(reported))throw Error("Invalid auxiliary source observation time");
-     const structured=computeFive(data.bars,tf,reported,data.volumeBasis,indicatorSettingsRef.current);
+     const structured=computeFive(data.bars,tf,reported,data.volumeBasis,indicatorSettingsRef.current,data.candleSchedule);
      const quality=quoteState(structured.lastClosed,Date.now(),tf);
      const health=inspectCandleQuality({bars:structured.bars,overlays:structured.overlays,
       resolution:tf,asOf:reported,now:Date.now(),sourceQuality:quality});
      if(!health.researchReady||quality!=="CURRENT")throw Error("Unverified or stale "+tf+" candles");
-     const structure=detectStructure(structured.bars,tf,reported);
+     const structure=detectStructure(structured.bars,tf,reported,structured.candleSchedule);
      if(running)setAuxData(old=>({...old,[key]:{structure,loadedAt:reported,
       scalpStats:tf==="15m"?structured:null}}));
     }catch(err){
@@ -406,7 +407,7 @@ export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsse
   try{
    const at=Date.parse(feed.asOf);
    if(!Number.isFinite(at))throw Error("Invalid source observation timestamp");
-   localStructure=detectStructure(feed.stats.bars,resolution,at);
+   localStructure=detectStructure(feed.stats.bars,resolution,at,feed.stats.candleSchedule);
   }catch{
    overlay.marker.setMarkers([]);
    markerItems.current=[];
@@ -620,7 +621,7 @@ export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsse
  }
  const stats=feed.stats;const ready=feed.phase==="ready";
  const health=feedHealth({...feed,now:clock||Date.now()});
- const untilClose=Math.ceil((FX_RESOLUTIONS[resolution]*1000-clock%(FX_RESOLUTIONS[resolution]*1000))/1000);
+ const untilClose=clock?Math.ceil(nextCandleClose(clock/1000,resolution,stats?.candleSchedule)-clock/1000):0;
  const countdown=clock===0?"--:--":String(Math.floor(untilClose/60)).padStart(2,"0")+":"+String(untilClose%60).padStart(2,"0");
  return <article className={styles.engineCard+(selected?" "+styles.chartActive:"")} aria-label={symbol+" live "+instrumentAsset+" chart"}>
   <div className={styles.engineTop}>
