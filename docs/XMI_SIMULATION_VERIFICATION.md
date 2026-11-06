@@ -30,4 +30,19 @@ The existing 4H chart source returned invalid candles and remains unresolved; th
 
 See [architecture, assumptions, costs and release gates](XMI_SIMULATION_STAGING.md). Draft PR: https://github.com/georgealex55/tradelocker-gpt-gateway/pull/32.
 
-Final app preview: https://tradelocker-gpt-gateway-mapkqzt8k-georgealex1925-2750s-projects.vercel.app/xmi/simulation. Verified app source commit: `a2f9fb3ccf3ee2bbda277efba9646cbead98c066`. Production alias still points to baseline commit `192efd2dda301177be624a069adafda9c9cc9d9f`.
+The November 5 app verification covered source commit `a2f9fb3ccf3ee2bbda277efba9646cbead98c066`. Its storage guard was superseded in the archive milestone below.
+
+## November 6 — Independent archive replay
+
+The [verified staging preview](https://tradelocker-gpt-gateway-h99tvf2tz-georgealex1925-2750s-projects.vercel.app/xmi/simulation) runs app commit `cf02ed48ba827582bbe36eea7387750cb14f75da`. The isolated database guard is `xmi-forex-staging-v3`. The production alias points to `192efd2dda301177be624a069adafda9c9cc9d9f`.
+
+The optimized build and all 213 automated tests passed. Neither staging credential appeared in 66 scanned client artifacts. The built API was exercised against the guarded staging database. It rejected unauthenticated and cross-origin management calls, refused to resume with the quarantined dataset, cached the three FXCM datasets during the pause, and resumed with the selected clean archive. The repeated cache action reused the snapshot.
+
+| Pair | Strategy family | Configurations | Simulated holdout trades | Holdout previously evaluated |
+| --- | --- | ---: | ---: | --- |
+| EUR/USD | EMA trend | 8 | 5 | No |
+| GBP/USD | RSI recovery | 8 | 1 | No |
+| USD/JPY | Donchian breakout | 8 | 4 | No |
+| EUR/USD | EMA and RSI momentum | 8 | 7 | Yes |
+
+All four ledgers reconciled. CSV and JSON exports identify the runs as archive replay and the JSON marks their performance evidence invalid for qualification. The old dataset and incident remain inspectable. The desk is available for manual archive replay. The staged archive supports 1H intraday, and two sampled minute files returned incomplete quarter-hour buckets. Unattended execution and forward-paper fills remain pending.
