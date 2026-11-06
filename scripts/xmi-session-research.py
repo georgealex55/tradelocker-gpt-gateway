@@ -45,6 +45,7 @@ DUAL_WINDOWS = {
 PILOT_WINDOWS = tuple(WINDOWS)[:7]
 GOLD_WINDOWS = {"gold-us-midday-close", "gold-us-open"}
 OPEN_CONTEXT_WINDOWS = ("london-open", "ny-open", "gold-us-open", "dual-open")
+CLOSE_CONTEXT_WINDOWS = ("london-close", "london-late", "ny-close", "gold-us-midday-close", "dual-close")
 PREOPEN_MINUTES = 60
 BASELINES = ("ema-trend", "rsi-recovery", "donchian-breakout", "trend-momentum")
 LEGACY = ("legacy-v1", "legacy-soft", "legacy-a2")
@@ -514,6 +515,13 @@ def strategies(symbol, windows, profile):
         if profile == "opening-context":
             yield from opening_context_strategies(window)
             continue
+        if profile == "closing-context":
+            for rule, minutes, lookback, stop, reward, risk in product(
+                ("close-continuation", "close-reversal", "close-break-trend"), (5, 15, 30),
+                (60, 120), (1.5, 2.25, 3.0), (1.4, 2.0), risks,
+            ):
+                yield Variant(rule, minutes, window, risk, stop, reward, 90, lookback, min_stop_to_cost=2.0)
+            continue
         if profile == "legacy":
             for risk in risks:
                 yield Variant("legacy-v1", 15, window, risk, 0, 1.8, 240, max_trades=2, cooldown=60)
@@ -767,6 +775,7 @@ def screen_symbol(cache, symbol, executable, profile):
     names = {
         "targeted": (*WINDOWS, *DUAL_WINDOWS),
         "opening-context": OPEN_CONTEXT_WINDOWS,
+        "closing-context": CLOSE_CONTEXT_WINDOWS,
     }.get(profile, PILOT_WINDOWS)
     windows = [w for w in names if w not in GOLD_WINDOWS or symbol == "XAUUSD"]
     study = Study(cache, symbol, DEVELOPMENT, executable, windows)
@@ -774,7 +783,7 @@ def screen_symbol(cache, symbol, executable, profile):
     for variant in strategies(symbol, windows, profile):
         folds = [study.run(variant, fold) for fold in FOLDS]
         row = {"symbol": symbol, "variant": asdict(variant), "folds": folds, "screen_pass": eligible(folds)}
-        if profile == "opening-context":
+        if profile in ("opening-context", "closing-context"):
             stress = [study.run(variant, fold, stress=1.5) for fold in FOLDS]
             stress_pass = all(f["net_usd"] > 0 and f["max_drawdown"] < 0.1 and not f["halted"] for f in stress)
             row.update({"base_screen_pass": row["screen_pass"], "stress_pass": stress_pass, "stress_folds": stress,
@@ -853,7 +862,8 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--input", type=Path, nargs="+", help="Screen JSONs for freeze, a single freeze JSON for holdout")
     parser.add_argument("--symbols", nargs="+", choices=SYMBOLS, default=SYMBOLS)
-    parser.add_argument("--profile", choices=("pilot", "expanded", "targeted", "legacy", "opening-context"), default="pilot")
+    parser.add_argument("--profile", choices=("pilot", "expanded", "targeted", "legacy", "opening-context",
+                                              "closing-context"), default="pilot")
     parser.add_argument("--workers", type=int, choices=range(1, 9), default=4)
     args = parser.parse_args()
     identity = source_identity()
