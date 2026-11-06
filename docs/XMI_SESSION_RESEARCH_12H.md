@@ -92,3 +92,37 @@ Completed 88,857 configurations across four development periods with 8,472,885 o
 Among configurations with 200 or more validation trades and below 10% validation drawdown, the highest 2024 P&L was a gold New York intraday momentum variant. It returned USD 186.97 across the two validation accounts from 222 trades with a profit factor of 1.33 and maximum drawdown of 6.51%. Both training accounts lost money, totaling USD 124.62 in losses.
 
 The next hourly increment should quantify why 2023 has reduced session coverage. For example, the EUR/USD New York open had 156 complete weekdays of 260 in 2023 versus 259 of 262 in 2024. The Jan 9, 2024 Dukascopy sample matched HistData closing quotes exactly across 1,438 EUR/USD and 1,380 XAU/USD minutes. This confirms timestamp and price decoding on that sample. Treat it as one apparent underlying feed when assessing independent confirmation. Broader paired bid/ask collection hit rate limits. Every 2022–2024 HistData minute volume field was zero.
+
+## Checkpoint 1 · 2026-11-06
+
+The New York coverage shortfall was concentrated from February 20 through July 28, 2023. The table counts complete weekday windows. Weekday denominators include holidays.
+
+| Instrument and local window | 2023 full year | 2024 full year | Feb 20–Jul 28, 2023 |
+| --- | ---: | ---: | ---: |
+| EUR/USD London open, 08:00–10:00 | 258/260 | 259/262 | |
+| EUR/USD New York open, 08:00–10:00 | 156/260 | 259/262 | 13/115 |
+| EUR/USD New York intraday, 10:00–15:00 | 134/260 | 242/262 | 1/115 |
+| XAU/USD New York open, 08:00–10:00 | 156/260 | 259/262 | 15/115 |
+| XAU/USD New York intraday, 10:00–15:00 | 131/260 | 252/262 | 0/115 |
+
+EUR/USD lost exactly the first or second hour of 85 New York opening windows in that interval. The bundled HistData status reports list recurring hour-length gaps in the fixed-EST source timestamps for both EUR/USD and XAU/USD, including March 20 and July 28. Over the 13,800 New York opening minute slots in the affected interval, at least one of the eight instruments was absent in every slot. All eight were absent together for 133 minutes. Treat the missing intervals as archive gaps with symbol-specific timing. FXCM's public weekly EUR/USD and USD/JPY archives returned HTTP 403 for all 12 sampled files, so the cause and actual missing quotes could not be confirmed against an independent feed. [HistData format](https://www.histdata.com/f-a-q/data-files-detailed-specification/) · [FXCM archive](https://github.com/fxcm/MarketData/blob/master/CandleData/README.md)
+
+Replayed 4,084 fixed configurations from Checkpoint 0 with the same four USD 1,000 development accounts per configuration. The comparison used all complete windows and a matched subset with the same local ISO week and weekday present in 2022, 2023, and 2024, plus 120 consecutive pre-window minutes in each year. Existing indicator history remains in place. The match uses timestamp availability and is a sensitivity check. Each arm ran at base costs and at 1.5× spread and slippage with unchanged commissions. All 4,084 base rows matched the earlier screen's metrics exactly. There were zero development passes under the original filter in each of the four cases. No 2025 price data was used.
+
+| XAU/USD 15m New York intraday momentum | 2024 trades | 2024 net across both halves | Profit factor | Max drawdown |
+| --- | ---: | ---: | ---: | ---: |
+| All complete windows, base costs | 222 | +USD 186.97 | 1.33 | 6.51% |
+| All complete windows, 1.5× costs | 219 | +USD 93.63 | 1.16 | 6.65% |
+| Matched windows, base costs | 98 | +USD 33.15 | 1.12 | 6.07% |
+| Matched windows, 1.5× costs | 96 | +USD 30.56 | 1.12 | 5.56% |
+
+The matched gold account lost USD 92.02 in 2023 and hit the drawdown pause. The positive 2024 result is sensitive to the available dates and costs. [Coverage and replay manifest](xmi-session-coverage-checkpoint-01.json)
+
+```bash
+OPENBLAS_NUM_THREADS=1 python scripts/xmi-session-coverage.py \
+  --cache "$research_dir/histdata" --include-legacy --workers 8 \
+  --normalized-cache "$research_dir/normalized-development" \
+  --output "$research_dir/increment-01-coverage-replay-final.json"
+```
+
+Run after installing the legacy replay dependencies. The optional normalized cache contains UTC epoch minutes and a 4-by-N bid OHLC array in open, high, low, close order, with source hashes in each file. Keep the price cache outside Git. The next comparison should use verified paired quotes on complete development windows where available, and retain the modeled cost scenarios wherever paired quotes remain unavailable.
