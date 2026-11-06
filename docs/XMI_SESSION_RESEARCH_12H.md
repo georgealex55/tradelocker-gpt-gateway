@@ -267,3 +267,24 @@ OPENBLAS_NUM_THREADS=1 python scripts/xmi-session-research.py screen --profile s
 ```
 
 Next, review parameter neighborhoods, year-by-year consistency, clustered weekly results and cost sensitivity. Keep the separate seven-major opening-context follow-up visible in the ledger.
+
+## Checkpoint 9 · 2026-11-06
+
+Audited robustness across eight development screens with 122,445 distinct strategy and sizing configurations after deduplication. The source screens covered all seven FX majors and XAU/USD. Chose at most one configuration per instrument and lane using 2022 and 2023 alone. Both training years had to earn positive net P&L on at least 25 trades without a drawdown halt. Ranked eligible choices by the weaker training year's expectancy in R, then combined training net. Six additional leaders selected by 2024 results serve as descriptive comparisons only.
+
+Replayed the 22 seeds and 81 distinct immediate neighbors, changing one setting at a time among risk, ATR stop and reward while keeping symbol, session, timeframe, rule and other settings fixed. All 103 reproduced their original base results exactly. There were 1,236 account replays across the four 2022–2024 folds and three cost scenarios, each starting with USD 1,000. Base fees and sizing follow the original engine, including the separate 0.1-ounce minimum and increment where specified. The 1.5× and 2× scenarios multiplied spread and adverse slippage only. Commission stayed fixed. Weekly uncertainty used 10,000 seeded block resamples of active weeks of completed validation trades.
+
+| Configuration | 2022 net USD | 2023 net USD | 2024 trades | 2024 net USD | 2024 PF | Max drawdown | Net at 1.5× / 2× USD |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| USD/CAD 60m late London close Donchian, selected on training | +2.19 | +1.56 | 28 | +20.63 | 1.815 | 0.79% | +5.11 / −7.49 |
+| XAU/USD 15m New York intraday momentum, selected on validation | −32.63 | −91.98 | 222 | +186.97 | 1.330 | 6.51% | +93.63 / +19.60 |
+
+USD/CAD was the only one of 16 training-selected seeds with positive combined validation. Its three adjacent settings also had positive base validation, but the weekly expectancy interval crossed zero (−USD 0.32 to +USD 1.78 per trade) and the validation sample failed the 150-trade development gate. Its session was London 15:30–16:30 local. Gold used New York 10:00–15:00 local, failed in both training years and had a weekly interval of −USD 0.02 to +USD 1.74 per trade. These windows used DST and next-minute entry within the window with flattening by cutoff. Neither configuration advanced. Across all 103 configurations, 17 earned positive combined validation net, zero passed the base development gate, and zero earned positive net in all four folds under 1.5× costs with drawdown below 10% and no halt.
+
+The shared-account portfolio remains untested. There were no eligible constituents and pooling fills from independent accounts would reuse their standalone sizing. The Forex opening-context comparison in Checkpoint 4 still has no completed result. The 2025 holdout remains sealed. Next, reconcile the development screen inventory and record the freeze decision before any holdout replay. [Configuration IDs, archive hashes and robustness results](xmi-session-robustness-checkpoint-09.json)
+
+```bash
+OPENBLAS_NUM_THREADS=1 python scripts/xmi-session-robustness.py \
+  --cache "$research_dir/histdata" --output "$research_dir/increment-09-robustness.json" \
+  --input "$research_dir"/{latest-expanded-screen,latest-targeted-screen,legacy-screen,increment-03-opening-context-xauusd,increment-05-closing,increment-06-intraday-fx,increment-07-gold-sizing,increment-08-structure}.json
+```
