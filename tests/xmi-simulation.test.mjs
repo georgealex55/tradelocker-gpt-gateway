@@ -1,12 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync,readdirSync} from 'node:fs';
+import {gzipSync} from 'node:zlib';
 import {REGISTRY,makeVersion,confirm,compileSignals,closedHigherBars,digest,SECONDS} from '../lib/xmi-sim/registry.mjs';
 import {verifyDataset,fetchForexHistory,annotateDataQuality} from '../lib/xmi-sim/data.mjs';
-import {createAccount,acceptSignal,processBar,finishReplay,backtest,conversion,pipSize,sizePosition,reconcile,metrics} from '../lib/xmi-sim/execution.mjs';
+import {fetchFxcmArchive} from '../lib/xmi-sim/fxcm-history.mjs';
+import {createAccount,acceptSignal,processBar,finishReplay,backtest,conversion,pipSize,sizePosition,reconcile,metrics,historicalExecutionModel} from '../lib/xmi-sim/execution.mjs';
 import {qualification,forwardQualification,generateConfigurations,partition,trainingTrial,finishResearch,degradation} from '../lib/xmi-sim/research.mjs';
-import {newState,simulationConfig,mutate,readState,saveDataset} from '../lib/xmi-sim/store.mjs';
-import {reserveProviderCredit,queueResearch,tickResearch,setJobStatus,dailyReport} from '../lib/xmi-sim/jobs.mjs';
+import {ENVIRONMENT_ID,newState,simulationConfig,mutate,readState,saveDataset} from '../lib/xmi-sim/store.mjs';
+import {reserveProviderCredit,queueResearch,resumeResearch,tickResearch,setJobStatus,dailyReport} from '../lib/xmi-sim/jobs.mjs';
 import {managementAuthorized,managementKeyMatches,issueManagementSession,mutationOriginAllowed} from '../lib/xmi-sim/auth.mjs';
 import {DEFAULT_TECH,DEFAULT_CHART_SETTINGS,serializeWorkspace,deserializeWorkspace} from '../lib/xmiChartTools.mjs';
 import {defaultStructureSettings} from '../lib/xmiStructure.mjs';
@@ -127,8 +129,9 @@ test('Management sessions are scoped, tamper-resistant, expire, and do not accep
  const req=origin=>new Request('https://staging.example/api/xmi/simulation',{headers:origin?{origin}:{}});assert.equal(mutationOriginAllowed(req('https://evil.example')),false);assert.equal(mutationOriginAllowed(req(null)),false);assert.ok(mutationOriginAllowed(req('https://staging.example')));
 });
 test('Simulation storage refuses production, gateway database reuse and synthetic evidence persistence',async()=>{
- const e={VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'feature/xmi-forex-simulation-staging',XMI_SIM_ENABLED:'true',XMI_SIM_ENVIRONMENT_ID:'xmi-forex-staging-v2',XMI_SIM_DATABASE_URL:'postgresql://test:test@ep-isolated.neon.tech/xmi_simulation'};
+ const e={VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'feature/xmi-forex-simulation-staging',XMI_SIM_ENABLED:'true',XMI_SIM_ENVIRONMENT_ID:ENVIRONMENT_ID,XMI_SIM_DATABASE_URL:'postgresql://test:test@ep-isolated.neon.tech/xmi_simulation'};
  assert.ok(simulationConfig(e));assert.throws(()=>simulationConfig({...e,VERCEL_ENV:'production',XMI_SIM_ALLOW_LOCAL:'true'}),/DISABLED/);assert.throws(()=>simulationConfig({...e,DATABASE_URL:e.XMI_SIM_DATABASE_URL}),/GUARD/);assert.throws(()=>simulationConfig({...e,XMI_SIM_DATABASE_URL:'postgresql://a@host/neondb'}),/GUARD/);
+ assert.throws(()=>simulationConfig({...e,XMI_SIM_ENVIRONMENT_ID:'xmi-forex-staging-v2'}),/DISABLED/);
  await assert.rejects(saveDataset(memoryStore(),dataset()),/Synthetic/);
  for(const file of readdirSync(new URL('../lib/xmi-sim',import.meta.url))){const source=readFileSync(new URL('../lib/xmi-sim/'+file,import.meta.url),'utf8');assert.doesNotMatch(source,/from ['"].*(?:tradelocker|tradeGuard|tradeState|alpaca)/i);assert.doesNotMatch(source,/process\.env\.(?:TRADELOCKER|ALPACA)/);}
 });
@@ -173,4 +176,71 @@ test('Weekend source candles are quarantined and block new research even with va
 });
 test('Cached legacy datasets receive the new calendar audit without changing their OHLC or identity',()=>{
  const original={id:'source-v1',timeframe:'15m',unresolvedGaps:0,bars:[{time:Date.parse('2025-01-11T01:00:00Z')/1000,high:1.2,low:1.1}]};const audited=annotateDataQuality(original);assert.equal(audited.id,original.id);assert.equal(audited.bars,original.bars);assert.equal(audited.qualityStatus,'QUARANTINED');assert.equal(original.qualityStatus,undefined);
+});
+
+test('FXCM archive checks a bounded UTC window and can resume replay without clearing the quarantine',async()=>{
+ const urls=[];
+ const d=await fetchFxcmArchive('EURUSD',{now:Date.UTC(2026,10,6),fetchImpl:async(url,options)=>{
+  assert.equal(url.origin,'https://candledata.fxcorporate.com');
+  assert.equal(options.method,'GET');
+  assert.equal(options.redirect,'error');
+  urls.push(url.href);
+  const week=Number(url.pathname.match(/\/2026\/(\d+)\.csv\.gz$/)?.[1]);
+  const rows=['DateTime,BidOpen,BidHigh,BidLow,BidClose,AskOpen,AskHigh,AskLow,AskClose'];
+  for(let hour=0;hour<120;hour++){
+   const iso=new Date(Date.UTC(2026,8,6+7*(week-36),21+hour)).toISOString();
+   const date=`${iso.slice(5,7)}/${iso.slice(8,10)}/${iso.slice(0,4)} ${iso.slice(11,23)}`;
+   rows.push(date+',1.10,1.12,1.09,1.10,1.0999,1.121,1.091,1.101');
+  }
+  return new Response(gzipSync(rows.join('\n')));
+ }});
+ assert.equal(new Set(urls).size,8);
+ assert.equal(d.first,Date.UTC(2026,8,6,21)/1000);
+ assert.equal(d.depth,960);
+ assert.equal(d.bars[0].open,1.10);
+ assert.equal(d.bars[0].ask,undefined);
+ assert.equal(d.source.crossedRows,960);
+ assert.ok(d.source.files.every(file=>/^[a-f0-9]{64}$/.test(file.sha256)));
+ assert.equal(d.gaps.length,7);
+ assert.equal(d.unresolvedGaps,0);
+ assert.equal(d.sourceAuthenticated,true);
+ assert.equal(d.evidenceScope,'ARCHIVE_REPLAY');
+ const store=memoryStore();
+ const unverified=verifyDataset(d.bars,{symbol:d.symbol,timeframe:d.timeframe,provider:'Twelve Data',acquiredAt:d.acquiredAt});
+ assert.equal(unverified.sourceAuthenticated,false);
+ store.datasets.set(d.id,d);
+ store.datasets.set(unverified.id,{...unverified,sourceAuthenticated:true});
+ const v=makeVersion({strategyId:'ema-trend',timeframe:'1H'});
+ await mutate(store,s=>{s.paused=true;s.dataIncidents=[{datasetId:'legacy',status:'QUARANTINED'}];});
+ await assert.rejects(queueResearch(store,{...v,datasetId:unverified.id,limit:1}),/DATASET_SOURCE_UNVERIFIED/);
+ await assert.rejects(queueResearch(store,{...v,datasetId:d.id,limit:1}),/RESEARCH_PAUSED/);
+ await assert.rejects(resumeResearch(store,unverified.id),/VERIFIED_REPLAY_DATASET_REQUIRED/);
+ await resumeResearch(store,d.id);
+ const job=await queueResearch(store,{...v,datasetId:d.id,limit:1});
+ await tickResearch(store,job.id);
+ await tickResearch(store,job.id);
+ const {state}=await readState(store);
+ assert.equal(state.dataIncidents.length,1);
+ assert.equal(state.runs[0].qualification.status,'ARCHIVE REPLAY ONLY');
+ assert.equal(state.runs[0].qualification.checks.promotionEligible,false);
+ assert.equal(state.runs[0].executionModel.name,'CONSERVATIVE_BID_OHLC_V1');
+});
+
+test('Bid-basis replay charges the modeled spread on buys and reconciles both sides',()=>{
+ const model=historicalExecutionModel({priceBasis:'BID_OHLC'},{spreadPips:2,slippagePips:0,commissionPerLotSide:0});
+ const signal=sampleSignal();
+ for(const direction of ['LONG','SHORT']){
+  const account=createAccount({id:direction,model});
+  const bar={time:signal.timestamp,open:1.1,high:1.1,low:1.1,close:1.1,closed:true};
+  assert.ok(acceptSignal(account,{...signal,direction}));
+  processBar(account,bar);
+  assert.equal(account.position.entryBid,bar.open);
+  assert.equal(account.position.entryMid,undefined);
+  finishReplay(account,bar);
+  const [trade]=account.trades;
+  assert.ok(Math.abs(trade.entry-(direction==='LONG'?1.1002:1.1))<1e-10);
+  assert.ok(Math.abs(trade.exit-(direction==='SHORT'?1.1002:1.1))<1e-10);
+  assert.ok(trade.net<0);
+  assert.ok(reconcile(account).ok);
+ }
 });
