@@ -288,3 +288,21 @@ OPENBLAS_NUM_THREADS=1 python scripts/xmi-session-robustness.py \
   --cache "$research_dir/histdata" --output "$research_dir/increment-09-robustness.json" \
   --input "$research_dir"/{latest-expanded-screen,latest-targeted-screen,legacy-screen,increment-03-opening-context-xauusd,increment-05-closing,increment-06-intraday-fx,increment-07-gold-sizing,increment-08-structure}.json
 ```
+
+## Checkpoint 10 · 2026-11-06
+
+Completed the pending Checkpoint 4 seven-major FX opening comparison. The batch screened 34,776 configurations on verified 2022–2024 HistData minute bid archives, with 4,968 per instrument and independent USD 1,000 accounts per fold and cost case. The unchanged opening-context grid used 15-, 30- and 60-minute opening ranges, 5-, 15- and 30-minute decision candles, and breakout, failed breakout and retest entries. The same 60-minute pre-open drift filters as the gold study applied. A complete window and preceding hour were required. New York complete windows with the prefix fell to 136–143 across the seven pairs in 2023 versus 237–259 in 2024.
+
+London and New York each used 08:00–10:00 local time with DST. Separate and combined-window accounts entered at the next minute open after a full post-range decision candle, or after the second such candle for retests, and flattened by cutoff. The model used 1,000-unit minimums and increments, 30:1 leverage, 0.25%, 0.5% or 1% risk, 2 pips spread, 0.3 pips slippage per side and USD 3.50 per standard lot per side. Stress multiplied spread and slippage by 1.5 and held commission fixed.
+
+| Leading 2024 FX opening setup in each window with 150 or more trades and drawdown below 10% | Trades | Gross before costs USD | Net USD | Profit factor | Max drawdown | Stress net USD |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| USD/JPY London | 228 | +71.35 | −33.40 | 0.844 | 4.27% | −40.93 |
+| USD/JPY New York | 150 | +47.88 | −15.07 | 0.879 | 3.00% | −29.73 |
+| USD/JPY combined London and New York | 200 | +56.70 | −10.15 | 0.921 | 2.92% | −34.74 |
+
+Zero passed the base or stressed development screen. The earlier targeted USD/JPY opening benchmark at +USD 13.75 was higher in 2024 and also failed development. The best combined new setup was a 5-minute failed breakout aligned with pre-open drift on a 15-minute opening range.
+
+Reran 117,837 previously screened configurations on the current engine, including expanded, targeted, legacy, gold opening, closing, FX intraday and gold sizing. Their archives, coverage and every result row matched the earlier outputs exactly. The legacy rerun used the lockfile-verified trading-signals 8.3.0 dependency. With the new FX openings and the current-engine structure screen, the inventory contains 157,221 distinct strategy-and-sizing configurations. The standard freeze consumed 154,629 configurations. A separate identical rerun checked the 2,592 gold sizing sensitivity cases against the same base and stress gates. There were zero eligible candidates in either set.
+
+The [immutable freeze](xmi-session-frozen-checkpoint-10.json) records an empty shortlist and no holdout archive hashes. Its canonical hash is `bdeb88ffa4306410b9bdf55b804408c03b49817f5254a0149e0dd56c51d90f96`. The [screen audit](xmi-session-screen-audit-checkpoint-10.json) records the input hashes, coverage, configuration IDs and descriptive leaders by instrument and lane. The 2025 holdout was untouched. The next checkpoint can verify the frozen decision and record that no holdout trades were eligible for replay. Keep any timing and coverage audit on development data.
