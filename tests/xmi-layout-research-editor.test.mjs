@@ -37,12 +37,13 @@ test("Headline flags are explicitly context-only, not claims of future price mov
  assert.equal(up.type,"positive");assert.equal(down.type,"negative");assert.equal(unknown.type,"unclear");
  assert.match(up.notice,/unverified/);assert.match(unknown.scope,/Broad market/);
 });
-test("Workspace has dedicated left market utilities and right-first strategy engine",()=>{
+test("Workspace puts market utilities in the right sidebar after the chart",()=>{
  const live=readFileSync(new URL("../app/xmi/XMIEngineDesk.jsx",import.meta.url),"utf8");
  const main=readFileSync(new URL("../app/xmi/XMIWorkstation.jsx",import.meta.url),"utf8");
  const css=readFileSync(new URL("../app/xmi/xmi.module.css",import.meta.url),"utf8");
- assert.match(live,/Left market sidebar/);
+ assert.match(live,/Market watchlist views/);
  assert.match(live,/Market watchlist/);
+ assert.ok(live.indexOf('aria-label="Chart panels"')<live.indexOf('aria-label="Market sidebar"'));
  assert.match(live,/XMIScreenSnapshot/);assert.match(live,/XMITickerNews/);
  assert.doesNotMatch(live,/<span>Signal status<\/span>/);
  assert.doesNotMatch(live,/<span>Strategy<\/span>/);

@@ -6,6 +6,7 @@ import styles from "./xmi.module.css";
 import XMIEngineDesk from "./XMIEngineDesk";
 import XMITickerNews from "./XMITickerNews";
 import XMIStrategyEngine from "./XMIStrategyEngine";
+import XMIStrategyGlossary from "./XMIStrategyGlossary";
 import XMIAccountSettings from "./XMIAccountSettings";
 import XMIReadOnlyFeedAccess from "./XMIReadOnlyFeedAccess";
 import {STRATEGIES} from "../../lib/xmiStrategyPresets.mjs";
@@ -31,6 +32,7 @@ export default function XMIWorkstation(){
  const [density,setDensity]=useState(DEFAULT_SHELL_UI.density),[shortcuts,setShortcuts]=useState(false);
  const [notice,setNotice]=useState("");
  const viewMenu=useRef(null);
+ const glossaryHeading=useRef(null);
  const [collapsed,setCollapsed]=useState({...DEFAULT_SHELL_UI.collapsed});
  const [maximized,setMaximized]=useState({...DEFAULT_SHELL_UI.maximized});
  const [strategyId,setStrategyId]=useState("day"),[workspaceDraft,setWorkspaceDraft]=useState("");
@@ -114,6 +116,11 @@ export default function XMIWorkstation(){
  const item=parseInstrument(selected);
  const selectedEdit=normalizeStrategyEdit(strategyId,strategyEdits[strategyId]);
  const detail=strategyExplanation(strategyId,selectedEdit);
+ function openGlossary(){
+  setCollapsed(old=>old.strategy?{...old,strategy:false}:old);
+  setTab("strategy");
+  requestAnimationFrame(()=>glossaryHeading.current?.focus());
+ }
  function editField(name,value){setStrategyEdits(old=>({...old,[strategyId]:normalizeStrategyEdit(strategyId,{...old[strategyId],[name]:value})}));}
  function toggleCollapsed(id){setCollapsed(old=>({...old,[id]:!old[id]}));}
  function toggleMaximized(id){
@@ -173,6 +180,7 @@ export default function XMIWorkstation(){
     {TABS.map(t=><option key={t.id} value={t.id}>{t.title}</option>)}
    </select>:null}
    <a href="/xmi/simulation" className={styles.historyStudioLink}>Strategy Research & Demo</a>
+   <button type="button" onClick={openGlossary}>Strategy Glossary</button>
    <XMIReadOnlyFeedAccess/>
    <XMIAccountSettings workspace={workspaceDraft} strategyId={strategyId} strategyEdits={strategyEdits} workspaceUI={uiBackup} layout={{showBanner,showTabs}} onRestore={onRestore}/>
   </div>
@@ -295,6 +303,7 @@ export default function XMIWorkstation(){
    </div>
    <XMIHistoricalReplay symbol={item.symbol} resolution={selectedEdit.timeframe}
     strategyId={strategyId} edit={selectedEdit} indicatorSettings={indicatorSettings}/>
+   <XMIStrategyGlossary headingRef={glossaryHeading}/>
    </div>
   </div>
   <div hidden={tab!=="journal"} className={styles.nonChartWorkspace+" "+styles.workspaceShell+(maximized.journal?" "+styles.workspaceMaximized:"")}>
