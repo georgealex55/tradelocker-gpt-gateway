@@ -2,14 +2,15 @@
 """Cache public HistData Generic ASCII bid archives for offline XMI research."""
 
 import argparse
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from html.parser import HTMLParser
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from time import sleep
 from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import HTTPCookieProcessor, Request, build_opener
-from zipfile import ZipFile
+from zipfile import BadZipFile, ZipFile
 
 
 ORIGIN = "https://www.histdata.com"
@@ -51,7 +52,8 @@ def download(cache, symbol, year):
     page_url = f"{ORIGIN}/download-free-forex-data/?/ascii/1-minute-bar-quotes/{symbol.lower()}/{year}"
     opener = build_opener(HTTPCookieProcessor())
     opener.addheaders = [("User-Agent", "Mozilla/5.0")]
-    temp = target.with_suffix(".part")
+    with NamedTemporaryFile(dir=cache, prefix=f"{symbol.lower()}-{year}-", suffix=".part", delete=False) as file:
+        temp = Path(file.name)
     try:
         for attempt in range(3):
             try:
@@ -92,13 +94,11 @@ def main():
     failed = []
     with ThreadPoolExecutor(args.workers) as pool:
         futures = {pool.submit(download, args.cache, s, y): (s, y) for s, y in jobs}
-        from concurrent.futures import as_completed
-
         for future in as_completed(futures):
             symbol, year = futures[future]
             try:
                 print(f"{symbol} {year} {future.result().stat().st_size:,} bytes", flush=True)
-            except (OSError, ValueError, RuntimeError) as exc:
+            except (BadZipFile, OSError, ValueError, RuntimeError) as exc:
                 print(f"{symbol} {year} download failed ({type(exc).__name__}: {exc})", flush=True)
                 failed.append((symbol, year))
     if failed:
