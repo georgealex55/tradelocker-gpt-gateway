@@ -29,6 +29,15 @@ try{
  assert.equal(await page.getByText('<i>●</i> Feed unlocked',{exact:true}).count(),0);
  console.log('PASS chart engine and explicit non-live source status');
 
+ await page.getByRole('button',{name:'Strategy Glossary',exact:true}).click();
+ const glossary=page.getByRole('region',{name:'Strategy glossary',exact:true});
+ await glossary.getByRole('heading',{name:'Strategy glossary',exact:true}).waitFor();
+ await page.waitForFunction(()=>document.activeElement?.id==='xmi-strategy-glossary');
+ assert.ok(await glossary.getByRole('heading',{name:/EMA · Exponential moving average/}).isVisible());
+ assert.ok(await glossary.getByRole('heading',{name:/BOS · Break of structure/}).isVisible());
+ assert.ok(await glossary.getByRole('heading',{name:'Double top and double bottom',exact:true}).isVisible());
+ console.log('PASS Strategy Glossary opens and focuses the reference cards');
+
  // Independent collapse, maximize and restore for every mounted workspace, at every requested width.
  for(const [width,height] of [[1920,1080],[1366,768],[1024,768],[390,844]]){
   await page.setViewportSize({width,height});
@@ -40,6 +49,13 @@ try{
    const toolbar=page.getByRole('toolbar',{name:title+' workspace controls'});
    const controls=await toolbar.boundingBox();
    assert.ok(controls.x>=0&&controls.x+controls.width<=clientWidth+1,`${width}: ${title} controls are not clipped`);
+   if(title==='Live Chart'){
+    const chart=await page.getByRole('region',{name:'Chart panels'}).boundingBox();
+    const watch=await page.getByRole('complementary',{name:'Market sidebar'}).boundingBox();
+    assert.ok(chart&&watch,`${width}: chart and watchlist are visible`);
+    assert.ok(width>750?watch.x>=chart.x+chart.width-1:watch.y>=chart.y+chart.height-1,
+     `${width}: watchlist sits to the right of the chart or below it on mobile`);
+   }
    await page.getByRole('button',{name:'Collapse '+title+' workspace',exact:true}).click();
    assert.equal(await page.getByRole('button',{name:'Expand '+title+' workspace',exact:true}).getAttribute('aria-expanded'),'false');
    // Maximizing a collapsed workspace must reveal its content.

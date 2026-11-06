@@ -349,11 +349,10 @@
 .studioCommandLeft span{font-size:9px;color:#8fcab7;margin-right:7px}
 .studioCommand button{font-size:10px!important;padding:5px 8px!important}
 .studioCommand button[aria-pressed="true"]{background:#184a66!important;border-color:#4eacd2!important}
-.studioBody{display:grid;grid-template-columns:192px minmax(0,1fr) 222px;gap:6px;align-items:start;min-width:0}
-.studioNoLeft .studioBody{grid-template-columns:minmax(0,1fr) 222px}
-.studioNoRight .studioBody{grid-template-columns:192px minmax(0,1fr)}
-.studioNoLeft.studioNoRight .studioBody{grid-template-columns:minmax(0,1fr)}
-.studioWatch,.studioIntel{min-width:0;max-height:calc(100dvh - 100px);overflow:auto;padding:10px}
+.studioBody{--studio-sidebar-width:252px;display:grid;grid-template-columns:minmax(0,1fr) var(--studio-sidebar-width);gap:6px;align-items:start;min-width:0}
+.studioNoSidebar .studioBody{grid-template-columns:minmax(0,1fr)}
+.studioSidebar{display:flex;flex-direction:column;gap:6px;min-width:0}
+.studioWatch,.studioIntel{min-width:0;max-height:max(240px,calc(100dvh - 160px));overflow:auto;padding:8px;scrollbar-width:thin;scrollbar-color:#41647d #0c1c2c}
 .studioHide{font-size:10px!important;margin-top:10px;padding:6px!important}
 .studioCenter{display:flex;min-width:0;position:relative;align-items:stretch}
 .studioCenter:has(.toolHorizontal){flex-direction:column}
@@ -424,18 +423,7 @@
 .engineDrawHost{position:relative;min-width:0}
 .engineDrawCapture{position:absolute;inset:0;z-index:3;cursor:crosshair;touch-action:none;background:transparent}
 .engineDrawStatus{font-size:10px;padding:7px 10px;background:#153d52;color:#e0f8ff}
-@media(max-width:1150px){
- .studioBody{grid-template-columns:172px minmax(0,1fr)}
- .studioIntel{grid-column:1/-1;max-height:320px}
- .studioNoLeft .studioBody{grid-template-columns:1fr}
- .studioNoRight .studioBody{grid-template-columns:172px minmax(0,1fr)}
- .studioNoLeft.studioNoRight .studioBody{grid-template-columns:1fr}
-}
 @media(max-width:750px){
- .studioBody,.studioNoLeft .studioBody,.studioNoRight .studioBody{grid-template-columns:1fr}
- .studioWatch{grid-row:2;max-height:350px}
- .studioIntel{grid-row:3}
- .studioCenter{grid-row:1}
  .toolButtons button small{display:none}
  .toolVertical .toolButtons{width:43px}
  .toolButtons button{min-width:32px!important}
@@ -544,12 +532,9 @@
 @media(max-width:700px){.feedAccessPanel{left:0;right:auto}}
 
 /* XMI 2.0 refined three-rail research layout */
-.studioBody{grid-template-columns:240px minmax(0,1fr) 285px}
-.studioNoLeft .studioBody{grid-template-columns:minmax(0,1fr) 285px}
-.studioNoRight .studioBody{grid-template-columns:240px minmax(0,1fr)}
-.leftRailTabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin:10px 0 15px}
-.leftRailTabs button{min-width:0;font-size:10px!important;padding:8px 4px!important;line-height:1.35;white-space:normal}
-.leftRailTabs button[aria-pressed="true"]{background:#225b76!important;border-color:#74c9e8!important;color:#ecfbff!important}
+.marketRailTabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin:8px 0 10px}
+.marketRailTabs button{min-width:0;min-height:36px;font-size:10px!important;padding:8px 4px!important;line-height:1.35;white-space:normal}
+.marketRailTabs button[aria-pressed="true"]{background:#225b76!important;border-color:#74c9e8!important;color:#ecfbff!important}
 .studioIntel>.intelDetails:first-of-type{margin-top:5px}
 .studioIntel .strategyMatrix{width:min(100%,230px)}
 .studioIntel .strategyEngine{padding:8px}
@@ -603,16 +588,25 @@
 .strategyEditFields .strategyEditNotes{grid-column:1/-1}
 .strategyEditActions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .strategyEditActions small{flex:1;min-width:200px;color:#96b5c9;line-height:1.5}
-@media(max-width:1150px){
- .studioBody{grid-template-columns:210px minmax(0,1fr)}
- .studioNoLeft .studioBody{grid-template-columns:minmax(0,1fr)}
- .studioNoRight .studioBody{grid-template-columns:210px minmax(0,1fr)}
- .studioIntel{grid-column:1/-1;max-height:420px}
-}
+.strategyGlossary{margin:18px 0;border:1px solid #2e435d;border-radius:12px;padding:clamp(12px,2vw,24px);background:#0c1b2d}
+.strategyGlossary header h3{margin:3px 0 6px;font-size:clamp(18px,2vw,24px)}
+.strategyGlossary header p:last-child{color:#adcadc;font-size:13px;line-height:1.55;margin:0}
+.strategyGlossary h3,.strategyGlossary h4{scroll-margin-top:74px}
+.strategyGlossary h3:focus-visible{outline:2px solid #72c6df;outline-offset:4px;border-radius:2px}
+.glossaryLinks,.glossarySources{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.glossaryLinks{margin:14px 0 20px}
+.glossaryLinks a{padding:6px 10px;border:1px solid #3c6178;border-radius:6px;color:#b6e8f4;font-size:12px}
+.glossaryGroup + .glossaryGroup{margin-top:20px}
+.glossaryGroup h4{font-size:15px;color:#d8f0fb;margin:0 0 8px}
+.glossaryGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,235px),1fr));gap:9px}
+.glossaryCard{min-width:0;border:1px solid #304b64;border-radius:9px;padding:12px;background:#11263a}
+.glossaryCard h5{margin:0 0 9px;font-size:14px;line-height:1.4;color:#e1f4fc;overflow-wrap:anywhere}
+.glossaryCard dl{margin:0}
+.glossaryCard dt{font-size:11px;font-weight:700;color:#8cdaeb;margin:8px 0 3px}
+.glossaryCard dd{margin:0;color:#bfd6e7;font-size:12px;line-height:1.55}
+.glossarySources{margin-top:16px;padding-top:12px;border-top:1px solid #2e435d;font-size:11px;color:#9eb9cf}
+.glossarySources a{color:#afe6f5;text-decoration:underline;text-underline-offset:2px}
 @media(max-width:750px){
- .studioBody,.studioNoLeft .studioBody,.studioNoRight .studioBody{grid-template-columns:minmax(0,1fr)}
- .studioWatch{grid-row:2;max-height:480px}
- .studioIntel{grid-row:3;max-height:480px}
  .strategyLabLayout{grid-template-columns:1fr}
  .strategyLabEditor{grid-column:1}
  .strategyEditFields{grid-template-columns:1fr}
@@ -823,13 +817,8 @@
 .infoCard,.strategyLabOverview,.strategyLabEditor{padding:var(--section-gap);border-radius:8px}
 .adminGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--section-gap)}
 .adminGrid h3{font-size:14px;margin:0 0 8px}.adminGrid p{font-size:12px;color:#b5cadd;margin:0;line-height:1.7}
-.studioBody{grid-template-columns:224px minmax(0,1fr) 252px;gap:6px}
-.studioNoLeft .studioBody{grid-template-columns:minmax(0,1fr) 252px}
-.studioNoRight .studioBody{grid-template-columns:224px minmax(0,1fr)}
-.studioNoLeft.studioNoRight .studioBody{grid-template-columns:minmax(0,1fr)}
-.studioWatch,.studioIntel{padding:8px;max-height:calc(100dvh - 240px);scrollbar-width:thin;scrollbar-color:#41647d #0c1c2c}
 .studioCommand{padding:3px 5px 6px}.studioCommand button{min-height:30px}
-.studioHide{margin-top:0}.leftRailTabs{margin:8px 0 10px}.leftRailTabs button{min-height:36px}
+.studioHide{margin-top:0}
 .toolVertical .toolButtons{width:48px}.toolButtons button{min-height:42px}.toolButtons button small{font-size:8px;overflow-wrap:normal;word-break:normal}
 .engineTop{padding:8px 10px;gap:8px;flex-wrap:wrap}.engineTop>div:first-child{flex:1;min-width:140px}
 .engineTop small{font-size:10px}.engineSymbol{font-size:14px}.engineActions{gap:5px}
@@ -864,9 +853,7 @@
 .shell[data-density="comfortable"] .watchSelect{padding:12px!important;min-height:54px}
 .shell[data-density="comfortable"] .analyticsTable td,.shell[data-density="comfortable"] .analyticsTable th{padding:12px 14px}
 @media(max-width:1150px){
- .studioBody,.studioNoRight .studioBody{grid-template-columns:200px minmax(0,1fr)}
- .studioNoLeft .studioBody,.studioNoLeft.studioNoRight .studioBody{grid-template-columns:minmax(0,1fr)}
- .studioIntel{grid-column:1/-1;max-height:420px}.adminGrid{grid-template-columns:1fr}
+ .studioBody{--studio-sidebar-width:222px}.adminGrid{grid-template-columns:1fr}
  .mainNavigation button small{display:none}.mainNavigation button,.studioShell .mainNavigation button{min-height:36px}
  .strategyLabLayout{grid-template-columns:minmax(0,1fr) 250px}
 }
@@ -879,8 +866,8 @@
  .mainNavigation button,.studioShell .mainNavigation button{flex:0 0 auto;min-height:40px;padding:7px 10px;white-space:nowrap}.mainNavigation button strong{font-size:11px}
  .workspaceControls{gap:5px;padding:5px}.workspaceControls strong{width:auto;flex:1;font-size:11px}.workspaceControls button{flex:0 0 auto;min-height:40px}
  .workspaceControls select{min-width:100px;flex:1;max-width:190px;font-size:11px!important}.workspaceMaximized .workspaceControls strong{display:none}
- .studioBody,.studioNoLeft .studioBody,.studioNoRight .studioBody,.studioNoLeft.studioNoRight .studioBody{grid-template-columns:minmax(0,1fr)}
- .studioCenter{grid-row:1}.studioWatch{grid-row:2;max-height:480px}.studioIntel{grid-row:3;max-height:480px}
+ .studioBody{grid-template-columns:minmax(0,1fr)}
+ .studioWatch,.studioIntel{max-height:480px}
  .toolVertical .toolButtons{width:38px;padding:2px}.toolButtons button{min-width:30px!important;min-height:40px}.toolButtons button small{display:none}
  .engineCanvas{height:clamp(320px,calc(100dvh - 390px),600px)!important}.engineTop{padding:7px;gap:6px}.engineActions{justify-content:flex-start;width:100%}.engineActions button{min-height:36px}
  .engineTop>div:first-child{min-width:0}.engineDrawingCaption{gap:4px}.engineDrawingCaption [role="timer"]{font-size:8px}

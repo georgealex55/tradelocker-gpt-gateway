@@ -263,16 +263,16 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
  useEffect(()=>{onResearchModel?.({model:strategyResult,symbol:current.symbol,resolution:resolutions[focus],
   patternCount:patternReport.length,structureCount:count});},
   [onResearchModel,strategyResult,current.symbol,resolutions[focus],patternReport.length,count]);
- const showLeft=watchVisible&&!focusMode,showRight=intelVisible&&!focusMode;
+ const showWatchlist=watchVisible&&!focusMode,showIntelligence=intelVisible&&!focusMode;
  const deskClass=[styles.studioDesk,maximized?styles.studioMaximized:"",
-  !showLeft?styles.studioNoLeft:"",!showRight?styles.studioNoRight:"",
+  !showWatchlist&&!showIntelligence?styles.studioNoSidebar:"",
   focusMode?styles.studioFocused:"",browserFullscreen?styles.studioBrowserFullscreen:""].join(" ");
  return <div ref={root} className={deskClass}>
   <header className={styles.studioCommand}>
    <div className={styles.studioCommandLeft}>
     <strong>XMI CHART STUDIO</strong><span>READ ONLY</span>
-    <button type="button" onClick={()=>setWatchVisible(x=>!x)} aria-pressed={showLeft}>{showLeft?"Hide":"Show"} watchlist</button>
-    <button type="button" onClick={()=>setIntelVisible(x=>!x)} aria-pressed={showRight}>{showRight?"Hide":"Show"} intelligence</button>
+    <button type="button" onClick={()=>setWatchVisible(x=>!x)} aria-pressed={showWatchlist}>{showWatchlist?"Hide":"Show"} watchlist</button>
+    <button type="button" onClick={()=>setIntelVisible(x=>!x)} aria-pressed={showIntelligence}>{showIntelligence?"Hide":"Show"} intelligence</button>
    </div>
    <div className={styles.studioCommandRight}>
     <button type="button" onClick={()=>chartStudies(true)}>Apply All</button>
@@ -283,59 +283,7 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
    </div>
   </header>
   <div className={styles.studioBody}>
-   {showLeft?<aside className={styles.liveWatch+" "+styles.studioWatch} aria-label="Market sidebar">
-    <div className={styles.liveSideTitle}><strong>Market watchlist</strong>
-     <button type="button" className={styles.studioHide} onClick={()=>setWatchVisible(false)}>Hide</button>
-    </div>
-    <div className={styles.leftRailTabs} role="group" aria-label="Left market sidebar">
-     {[["watchlist","Watchlist"],["snapshot","Snapshot"],["news","News / Research"]].map(([key,label])=>
-      <button type="button" key={key} aria-pressed={leftView===key} onClick={()=>setLeftView(key)}>{label}</button>)}
-    </div>
-    {leftView==="watchlist"?<>
-     <div className={styles.liveSideTitle}><strong>Watchlist</strong>
-      <div className={styles.sideTitleActions}><span>{watchlist.length}/10 · {collections.lists.length}/6 lists</span>
-       <button type="button" aria-expanded={watchOpen} onClick={()=>setWatchOpen(x=>!x)}>
-        {watchOpen?"Collapse":"Expand"}</button></div>
-     </div>
-     {watchOpen?<><div className={styles.watchCollectionControls} role="group" aria-label="Named watchlists">
-       <select aria-label="Active watchlist" value={collections.activeId} onChange={e=>selectWatchlist(e.target.value)}>
-        {collections.lists.map(list=><option key={list.id} value={list.id}>{list.name}</option>)}
-       </select>
-       <input aria-label="New or renamed watchlist name" placeholder="List name (1–32 chars)"
-        maxLength={32} value={newListName} onChange={e=>setNewListName(e.target.value)}/>
-       <div>
-        <button type="button" onClick={createNewWatchlist} disabled={collections.lists.length>=MAX_WATCHLIST_COLLECTIONS}>New</button>
-        <button type="button" onClick={renameCurrentWatchlist}>Rename</button>
-        <button type="button" onClick={deleteCurrentWatchlist} disabled={collections.lists.length===1}>Delete</button>
-       </div>
-      </div><label className={styles.watchFilter}>Filter this watchlist
-       <input type="search" aria-label="Filter this watchlist" placeholder="Find a symbol…" maxLength={32}
-        value={watchQuery} onChange={e=>setWatchQuery(e.target.value)}/>
-      </label><p className={styles.sideHint}>{watchQuery?visibleWatchlist.length+" / "+watchlist.length+" symbols · ":""}Select a ticker to focus the chart</p>
-      <div className={styles.watchRows} role="list">
-       {visibleWatchlist.map(item=><div key={item.key} role="listitem" className={styles.watchRow+
-        (item.key===current.key?" "+styles.watchActive:"")}>
-        <button type="button" className={styles.watchSelect} aria-pressed={item.key===current.key} onClick={()=>choose(item.key)}>
-         <strong>{item.label}</strong><small>{item.asset==="forex"?"FX · read-only":item.asset==="crypto"?"Crypto · Alpaca route":"Equity · Alpaca route"}</small></button>
-        <button type="button" className={styles.watchRemove} aria-label={"Remove "+item.label}
-         onClick={()=>remove(item.key)}>×</button>
-       </div>)}
-      </div>
-      {!visibleWatchlist.length?<div className={styles.emptyResult}><p>No matching symbols in {activeCollection.name}.</p>
-       <button type="button" onClick={()=>setWatchQuery("")}>Clear symbol filter</button></div>:null}
-      <form onSubmit={add} className={styles.watchAdd}>
-       <label htmlFor="studio-add-symbol">Add instrument</label>
-       <input id="studio-add-symbol" value={watchInput} onChange={e=>setWatchInput(e.target.value)}
-        maxLength={20} placeholder="EURJPY, NASDAQ:AAPL or CRYPTO:BTCUSD"/>
-       <button type="submit" disabled={watchlist.length>=10}>Add symbol</button>
-      </form></>:null}
-    </>:leftView==="snapshot"?
-     <XMIScreenSnapshot strategyId={strategyId} report={strategyResult} symbol={current.symbol}
-      resolution={resolutions[focus]} patternCount={patternReport.length} structureCount={count}/>:
-     <><XMITickerNews ticker={current.key} watchlist={watchlist} active={active&&leftView==="news"} compact/>
-      <button type="button" className={styles.newsJump} onClick={onResearch}>Open full news feed</button></>}
-   </aside>:null}
-   <section className={styles.studioCenter}>
+   <section className={styles.studioCenter} aria-label="Chart panels">
     <XMIToolbox activePanel={activePanel} setActivePanel={setActivePanel}
      orientation={orientation} setOrientation={setOrientation}
      docked={docked} setDocked={setDocked} pinned={pinned} setPinned={setPinned}
@@ -391,43 +339,97 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
      </div>
     </div>
    </section>
-   {showRight?<aside className={styles.liveIntelligence+" "+styles.studioIntel} aria-label="Strategy intelligence">
-    <div className={styles.liveSideTitle}><strong>Intelligence</strong>
-     <div className={styles.sideTitleActions}><span>READ ONLY</span>
-      <button type="button" aria-expanded={intelOpen} onClick={()=>setIntelOpen(v=>!v)}>{intelOpen?"Collapse":"Expand"}</button>
-     </div></div>
-    {intelOpen?<><h3>{current.label}</h3>
-     <details className={styles.intelDetails} open>
-      <summary>Strategy engine · {strategyResult.state}</summary>
-      <XMIStrategyEngine strategyId={strategyId} report={strategyResult} symbol={current.symbol}
-       resolution={resolutions[focus]} showSnapshot={false}/>
-      <label className={styles.strategyPick}>Research preset
-       <select aria-label="Choose live strategy" value={strategyId} onChange={e=>onStrategyChange?.(e.target.value)}>
-        {STRATEGIES.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
-       </select>
-      </label>
-     </details>
-     <details className={styles.intelDetails} open>
-      <summary>Market structure · {count} enabled</summary>
-      <div className={styles.structureResults}>
-       {current.asset!=="forex"?<p className={styles.watchFoot}>Equity candles unavailable.</p>:
-       report?.summaries?.length?report.summaries.slice(0,5).map(({concept,resolution,event})=>
-        <div className={styles.structureFinding} key={concept+"|"+resolution}>
-         <strong>{concept} <span>{resolution}</span></strong><p>{event.summary}</p>
-         <small>Confirmed {new Date(event.confirmedAt*1000).toLocaleString()}</small>
-        </div>):<p className={styles.watchFoot}>No confirmed structure in the available candle set.</p>}
+   {showWatchlist||showIntelligence?<div className={styles.studioSidebar}>
+    {showWatchlist?<aside className={styles.liveWatch+" "+styles.studioWatch} aria-label="Market sidebar">
+     <div className={styles.liveSideTitle}><strong>Market watchlist</strong>
+      <button type="button" className={styles.studioHide} onClick={()=>setWatchVisible(false)}>Hide</button>
+     </div>
+     <div className={styles.marketRailTabs} role="group" aria-label="Market watchlist views">
+      {[["watchlist","Watchlist"],["snapshot","Snapshot"],["news","News / Research"]].map(([key,label])=>
+       <button type="button" key={key} aria-pressed={leftView===key} onClick={()=>setLeftView(key)}>{label}</button>)}
+     </div>
+     {leftView==="watchlist"?<>
+      <div className={styles.liveSideTitle}><strong>Watchlist</strong>
+       <div className={styles.sideTitleActions}><span>{watchlist.length}/10 · {collections.lists.length}/6 lists</span>
+        <button type="button" aria-expanded={watchOpen} onClick={()=>setWatchOpen(x=>!x)}>
+         {watchOpen?"Collapse":"Expand"}</button></div>
       </div>
-     </details>
-     <details className={styles.intelDetails}>
-      <summary>Automatic chart patterns · {autoPatterns?patternReport.length+" observations":"off"}</summary>
-      {autoPatterns?patternReport.slice(0,5).map(p=><div key={p.id} className={styles.structureFinding}>
-       <strong>{p.concept}</strong><p>{p.summary}</p><small>Confirmed after candle close</small>
-      </div>):<p className={styles.watchFoot}>Detection disabled in Indicators.</p>}
-     </details>
-     <p className={styles.watchFoot}>Automatic patterns, Fibonacci levels and manual drawings are analytical only. No execution, actual fills or order placement.</p>
-    </>:null}
-    <button type="button" className={styles.studioHide} onClick={()=>setIntelVisible(false)}>Hide intelligence panel</button>
-   </aside>:null}
+      {watchOpen?<><div className={styles.watchCollectionControls} role="group" aria-label="Named watchlists">
+        <select aria-label="Active watchlist" value={collections.activeId} onChange={e=>selectWatchlist(e.target.value)}>
+         {collections.lists.map(list=><option key={list.id} value={list.id}>{list.name}</option>)}
+        </select>
+        <input aria-label="New or renamed watchlist name" placeholder="List name (1–32 chars)"
+         maxLength={32} value={newListName} onChange={e=>setNewListName(e.target.value)}/>
+        <div>
+         <button type="button" onClick={createNewWatchlist} disabled={collections.lists.length>=MAX_WATCHLIST_COLLECTIONS}>New</button>
+         <button type="button" onClick={renameCurrentWatchlist}>Rename</button>
+         <button type="button" onClick={deleteCurrentWatchlist} disabled={collections.lists.length===1}>Delete</button>
+        </div>
+       </div><label className={styles.watchFilter}>Filter this watchlist
+        <input type="search" aria-label="Filter this watchlist" placeholder="Find a symbol…" maxLength={32}
+         value={watchQuery} onChange={e=>setWatchQuery(e.target.value)}/>
+       </label><p className={styles.sideHint}>{watchQuery?visibleWatchlist.length+" / "+watchlist.length+" symbols · ":""}Select a ticker to focus the chart</p>
+       <div className={styles.watchRows} role="list">
+        {visibleWatchlist.map(item=><div key={item.key} role="listitem" className={styles.watchRow+
+         (item.key===current.key?" "+styles.watchActive:"")}>
+         <button type="button" className={styles.watchSelect} aria-pressed={item.key===current.key} onClick={()=>choose(item.key)}>
+          <strong>{item.label}</strong><small>{item.asset==="forex"?"FX · read-only":item.asset==="crypto"?"Crypto · Alpaca route":"Equity · Alpaca route"}</small></button>
+         <button type="button" className={styles.watchRemove} aria-label={"Remove "+item.label}
+          onClick={()=>remove(item.key)}>×</button>
+        </div>)}
+       </div>
+       {!visibleWatchlist.length?<div className={styles.emptyResult}><p>No matching symbols in {activeCollection.name}.</p>
+        <button type="button" onClick={()=>setWatchQuery("")}>Clear symbol filter</button></div>:null}
+       <form onSubmit={add} className={styles.watchAdd}>
+        <label htmlFor="studio-add-symbol">Add instrument</label>
+        <input id="studio-add-symbol" value={watchInput} onChange={e=>setWatchInput(e.target.value)}
+         maxLength={20} placeholder="EURJPY, NASDAQ:AAPL or CRYPTO:BTCUSD"/>
+        <button type="submit" disabled={watchlist.length>=10}>Add symbol</button>
+       </form></>:null}
+     </>:leftView==="snapshot"?
+      <XMIScreenSnapshot strategyId={strategyId} report={strategyResult} symbol={current.symbol}
+       resolution={resolutions[focus]} patternCount={patternReport.length} structureCount={count}/>:
+      <><XMITickerNews ticker={current.key} watchlist={watchlist} active={active&&leftView==="news"} compact/>
+       <button type="button" className={styles.newsJump} onClick={onResearch}>Open full news feed</button></>}
+    </aside>:null}
+    {showIntelligence?<aside className={styles.liveIntelligence+" "+styles.studioIntel} aria-label="Strategy intelligence">
+     <div className={styles.liveSideTitle}><strong>Intelligence</strong>
+      <div className={styles.sideTitleActions}><span>READ ONLY</span>
+       <button type="button" aria-expanded={intelOpen} onClick={()=>setIntelOpen(v=>!v)}>{intelOpen?"Collapse":"Expand"}</button>
+      </div></div>
+     {intelOpen?<><h3>{current.label}</h3>
+      <details className={styles.intelDetails} open>
+       <summary>Strategy engine · {strategyResult.state}</summary>
+       <XMIStrategyEngine strategyId={strategyId} report={strategyResult} symbol={current.symbol}
+        resolution={resolutions[focus]} showSnapshot={false}/>
+       <label className={styles.strategyPick}>Research preset
+        <select aria-label="Choose live strategy" value={strategyId} onChange={e=>onStrategyChange?.(e.target.value)}>
+         {STRATEGIES.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
+        </select>
+       </label>
+      </details>
+      <details className={styles.intelDetails} open>
+       <summary>Market structure · {count} enabled</summary>
+       <div className={styles.structureResults}>
+        {current.asset!=="forex"?<p className={styles.watchFoot}>Equity candles unavailable.</p>:
+        report?.summaries?.length?report.summaries.slice(0,5).map(({concept,resolution,event})=>
+         <div className={styles.structureFinding} key={concept+"|"+resolution}>
+          <strong>{concept} <span>{resolution}</span></strong><p>{event.summary}</p>
+          <small>Confirmed {new Date(event.confirmedAt*1000).toLocaleString()}</small>
+         </div>):<p className={styles.watchFoot}>No confirmed structure in the available candle set.</p>}
+       </div>
+      </details>
+      <details className={styles.intelDetails}>
+       <summary>Automatic chart patterns · {autoPatterns?patternReport.length+" observations":"off"}</summary>
+       {autoPatterns?patternReport.slice(0,5).map(p=><div key={p.id} className={styles.structureFinding}>
+        <strong>{p.concept}</strong><p>{p.summary}</p><small>Confirmed after candle close</small>
+       </div>):<p className={styles.watchFoot}>Detection disabled in Indicators.</p>}
+      </details>
+      <p className={styles.watchFoot}>Automatic patterns, Fibonacci levels and manual drawings are analytical only. No execution, actual fills or order placement.</p>
+     </>:null}
+     <button type="button" className={styles.studioHide} onClick={()=>setIntelVisible(false)}>Hide intelligence panel</button>
+    </aside>:null}
+   </div>:null}
   </div>
   {error?<p role="alert" className={styles.studioError}>{error}</p>:null}
   <footer className={styles.studioFooter}>XMI 2.0 · Chart drawings are stored locally · no broker execution</footer>
