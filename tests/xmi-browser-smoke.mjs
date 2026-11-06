@@ -351,6 +351,30 @@ try{
  await page.locator('button[title="Focus Mode"]').click();
  assert.equal(await page.getByText("Gateway home").isVisible(),true,"Focus mode restores navigation");
  await page.waitForTimeout(850);
+
+ // Exercise a plotted time/price coordinate after rebuilding the indicator panes.
+ await page.getByRole("button",{name:"1 chart",exact:true}).click();
+ await page.getByRole("button",{name:"Apply All",exact:true}).click();
+ await firstChart.getByText("CANDLES RECEIVING",{exact:true}).waitFor({timeout:15000});
+ await page.getByRole("button",{name:"Hide All",exact:true}).click();
+ await firstChart.getByText("CANDLES RECEIVING",{exact:true}).waitFor({timeout:15000});
+ const linesButton=page.getByRole("button",{name:"Lines",exact:true});
+ const linesPanel=page.getByRole("dialog",{name:"Lines tools"});
+ await linesButton.click();
+ await linesPanel.getByRole("button",{name:"Horizontal Line",exact:true}).click();
+ const drawingSurface=firstChart.getByRole("application",{name:"Drawing tool Horizontal Line"});
+ const bounds=await drawingSurface.boundingBox();
+ assert.ok(bounds,"The plotted price area must accept drawing input");
+ await drawingSurface.click({position:{x:Math.floor(bounds.width*0.75),y:Math.floor(bounds.height*0.45)}});
+ await linesButton.click();
+ await linesPanel.getByText(/1 saved drawing\(s\)/).waitFor({timeout:10000});
+ await page.getByRole("button",{name:"Reset Chart",exact:true}).click();
+ if(!await linesPanel.isVisible())await linesButton.click();
+ await linesPanel.getByText(/1 saved drawing\(s\)/).waitFor({timeout:10000});
+ await linesPanel.getByRole("button",{name:"Undo last",exact:true}).click();
+ await linesPanel.getByText(/0 saved drawing\(s\)/).waitFor({timeout:10000});
+ await linesButton.click();
+
  // Local account replaces Google auth; encrypted vault works without network credentials.
  await page.getByRole("button",{name:"Local login / Settings"}).click();
  await page.getByRole("button",{name:"Create account"}).click();

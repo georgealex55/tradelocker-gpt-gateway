@@ -18,7 +18,7 @@ import {normalizeWatchlistCollections,createWatchlistCollection,renameWatchlistC
  from "../../lib/xmiWatchlistCollections.mjs";
 import {setStructureOption,defaultStructureSettings,STRUCTURE_CONCEPTS} from "../../lib/xmiStructure.mjs";
 import {DEFAULT_CHART_SETTINGS,DEFAULT_TECH,resolveChartSettings,
- validateDrawings,serializeWorkspace,deserializeWorkspace,drawingsForSymbol,samePatternEvents} from "../../lib/xmiChartTools.mjs";
+ validateDrawings,serializeWorkspace,deserializeWorkspace,drawingsForSymbol,samePatternEvents,drawingPoint} from "../../lib/xmiChartTools.mjs";
 const START=["EURUSD","GBPUSD","USDJPY","USDCHF","AUDUSD","NASDAQ:AAPL","AMEX:SPY","CRYPTO:BTCUSD","CRYPTO:ETHUSD"];
 const DEFAULT=START.map(parseInstrument),KEY="xmi-chart-workbench-v1";
 export default function XMIEngineDesk({selected,onSelected,onResearch,active=true,focusMode=false,onFocusMode,strategyId="day",onStrategyChange,onResearchModel,onWorkspaceChange,remoteWorkspace,remotePatterns,remoteChartUI,strategyEdits={},onIndicatorSettingsChange}){
@@ -35,13 +35,13 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
  const [intelOpen,setIntelOpen]=useState(true),[intelVisible,setIntelVisible]=useState(true);
  const [activePanel,setActivePanel]=useState(null),[orientation,setOrientation]=useState("vertical");
  const [docked,setDocked]=useState(false),[pinned,setPinned]=useState(false);
- const [structure,setStructure]=useState(defaultStructureSettings);
+ const [structure,setStructure]=useState(()=>defaultStructureSettings(false));
  const [tech,setTech]=useState({...DEFAULT_TECH});
  const [indicatorSettings,setIndicatorSettings]=useState({...DEFAULT_INDICATOR_SETTINGS});
  const [globalSettings,setGlobalSettings]=useState({...DEFAULT_CHART_SETTINGS});
  const [chartOverride,setChartOverride]=useState({});
  const [drawTool,setDrawTool]=useState(null),[savedDrawings,setSavedDrawings]=useState([]);
- const [loaded,setLoaded]=useState(false),[autoPatterns,setAutoPatterns]=useState(true),[autoFib,setAutoFib]=useState(false);
+ const [loaded,setLoaded]=useState(false),[autoPatterns,setAutoPatterns]=useState(false),[autoFib,setAutoFib]=useState(false);
  const [patternEnabled,setPatternEnabled]=useState(()=>Object.fromEntries(TOOL_CATALOG.Patterns.map(x=>[x,true])));
  const [strategyReports,setStrategyReports]=useState({});
  const edit=normalizeStrategyEdit(strategyId,strategyEdits[strategyId]);
@@ -62,7 +62,7 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
   try{
    const raw=window.localStorage.getItem(KEY);
    if(raw){const data=deserializeWorkspace(raw);setSavedDrawings(data.drawings);
-    setGlobalSettings(data.settings);setChartOverride(data.overrides);setTech(data.technical);}
+    setGlobalSettings(data.settings);setChartOverride(data.overrides);setTech(data.technical);setStructure(data.structure);}
   }catch{ /* Private browsing / older schema: fail closed to default settings. */ }
   try{setIndicatorSettings(normalizeIndicatorSettings(
    JSON.parse(window.localStorage.getItem(INDICATOR_SETTINGS_KEY)||"{}")));}catch{}
@@ -95,17 +95,17 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
     intelOpen,intelVisible,leftView,orientation,autoPatterns,autoFib,maximized]);
  useEffect(()=>{
   if(!loaded)return;
-  try{window.localStorage.setItem(KEY,serializeWorkspace(savedDrawings,globalSettings,tech,chartOverride));}
+  try{window.localStorage.setItem(KEY,serializeWorkspace(savedDrawings,globalSettings,tech,chartOverride,structure));}
   catch{setError("Local drawing storage unavailable. Export JSON to retain this session.");}
- },[loaded,savedDrawings,globalSettings,tech,chartOverride]);
+ },[loaded,savedDrawings,globalSettings,tech,chartOverride,structure]);
  useEffect(()=>{if(!loaded)return;
   try{window.localStorage.setItem(INDICATOR_SETTINGS_KEY,JSON.stringify(indicatorSettings));}catch{}
  },[loaded,indicatorSettings]);
  useEffect(()=>{
   if(loaded)onIndicatorSettingsChange?.(indicatorSettings);
  },[loaded,indicatorSettings,onIndicatorSettingsChange]);
- useEffect(()=>{if(loaded)onWorkspaceChange?.(serializeWorkspace(savedDrawings,globalSettings,tech,chartOverride));},
-  [loaded,savedDrawings,globalSettings,tech,chartOverride,onWorkspaceChange]);
+ useEffect(()=>{if(loaded)onWorkspaceChange?.(serializeWorkspace(savedDrawings,globalSettings,tech,chartOverride,structure));},
+  [loaded,savedDrawings,globalSettings,tech,chartOverride,structure,onWorkspaceChange]);
  useEffect(()=>{
   if(!remoteChartUI||!loaded)return;
   try{
@@ -124,7 +124,7 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
  useEffect(()=>{if(!remoteWorkspace)return;try{
   const record=deserializeWorkspace(remoteWorkspace);
   setSavedDrawings(record.drawings);setGlobalSettings(record.settings);
-  setChartOverride(record.overrides);setTech(record.technical);
+  setChartOverride(record.overrides);setTech(record.technical);setStructure(record.structure);
  }catch{setError("Saved account workspace is invalid; local settings retained.");}},[remoteWorkspace]);
  useEffect(()=>{
   if(!loaded)return;
@@ -132,16 +132,8 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
   const preset=strategyById(strategyId);
   if(!preset||preset.unscored)return;
   setResolutions(old=>old.map((r,i)=>i===focus?edit.timeframe:r));
-  setTech(Object.fromEntries(Object.keys(DEFAULT_TECH).map(k=>[k,preset.indicators.includes(k)])));
-  setGlobalSettings(old=>({...old,chartType:"Candlesticks",indicatorDefaults:true,candleTimer:true}));
-  setChartOverride(old=>{
-   if(!old[focus])return old;
-   const current={...old[focus]};
-   delete current.chartType;
-   delete current.indicatorDefaults;
-   delete current.candleTimer;
-   return {...old,[focus]:current};
-  });
+  // Strategy inputs are computed internally. Choosing a strategy never changes
+  // the user's indicator visibility, marker settings, or chart type.
  },[loaded,strategyId,edit.timeframe]);
  useEffect(()=>{if(loaded)try{window.localStorage.setItem("xmi-pattern-types-v1",JSON.stringify(patternEnabled));}catch{}},[loaded,patternEnabled]);
  useEffect(()=>{
@@ -150,6 +142,19 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
   return ()=>document.removeEventListener("fullscreenchange",change);
  },[]);
  function choose(key){onSelected(key);setChartKeys(old=>old.map((x,i)=>i===focus?key:x));}
+ function chartStudies(enabled,reset=false){
+  setTech(Object.fromEntries(Object.keys(DEFAULT_TECH).map(key=>[key,enabled])));
+  setStructure(defaultStructureSettings(enabled));setAutoPatterns(enabled);setAutoFib(false);
+  setPatternEnabled(Object.fromEntries(TOOL_CATALOG.Patterns.map(name=>[name,enabled])));
+  setDrawTool(null);
+  const visual={markerStyle:enabled?"compact":"off",markerStructure:enabled,
+   markerADX:enabled,markerBollinger:enabled,markerDonchian:enabled,markerStochastic:enabled,
+   algorithmMode:"off",indicatorDefaults:enabled};
+  setGlobalSettings(old=>reset?{...DEFAULT_CHART_SETTINGS}:{...old,...visual});
+  setChartOverride(old=>Object.fromEntries(Object.entries(old).map(([slot,settings])=>
+   [slot,reset?{}:{...settings,...visual}])));
+  if(reset)setIndicatorSettings({...DEFAULT_INDICATOR_SETTINGS});
+ }
  function add(event){
   event.preventDefault();
   try{
@@ -228,7 +233,7 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
   }
  }
  function exportJson(){
-  const body=serializeWorkspace(savedDrawings,globalSettings,tech,chartOverride);
+  const body=serializeWorkspace(savedDrawings,globalSettings,tech,chartOverride,structure);
   const url=URL.createObjectURL(new Blob([body],{type:"application/json"}));
   const link=document.createElement("a");link.href=url;link.download="xmi-chart-drawings.json";
   link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
@@ -239,7 +244,7 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
    const parsed=deserializeWorkspace(await file.text());
    setSavedDrawings(parsed.drawings);setGlobalSettings(parsed.settings);
    setChartOverride(parsed.overrides);
-   setTech(parsed.technical);setError("");setDrawTool(null);
+   setTech(parsed.technical);setStructure(parsed.structure);setError("");setDrawTool(null);
   }catch(e){setError("Drawing import declined: "+e.message);}
  }
  async function toggleFullscreen(){
@@ -270,6 +275,9 @@ export default function XMIEngineDesk({selected,onSelected,onResearch,active=tru
     <button type="button" onClick={()=>setIntelVisible(x=>!x)} aria-pressed={showRight}>{showRight?"Hide":"Show"} intelligence</button>
    </div>
    <div className={styles.studioCommandRight}>
+    <button type="button" onClick={()=>chartStudies(true)}>Apply All</button>
+    <button type="button" onClick={()=>chartStudies(false)}>Hide All</button>
+    <button type="button" onClick={()=>chartStudies(false,true)}>Reset Chart</button>
     {[1,2,4].map(n=><button key={n} type="button" aria-pressed={layout===n} onClick={()=>changeLayout(n)}>{n} chart{n>1?"s":""}</button>)}
     {focusMode?<button type="button" onClick={onFocusMode}>Restore panels</button>:null}
    </div>

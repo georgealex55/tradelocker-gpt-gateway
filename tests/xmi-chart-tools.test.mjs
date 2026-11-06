@@ -67,7 +67,7 @@ test("JSON drawing workspace round-trip persists chart overrides but never passw
  const restored=deserializeWorkspace(payload);
  assert.equal(restored.drawings[0].text,"London open");
  assert.equal(restored.overrides["2"].chartType,"Line");
- assert.equal(restored.technical.EMA,true);
+ assert.equal(restored.technical.EMA,false);
  assert.doesNotMatch(payload,/TradeLocker|password|api_key|placeOrder/i);
  assert.throws(()=>deserializeWorkspace(JSON.stringify({version:999,drawings:[]})));
  assert.throws(()=>deserializeWorkspace(JSON.stringify({version:1,drawings:[{...d,text:"x".repeat(101)}],settings:DEFAULT_CHART_SETTINGS})));

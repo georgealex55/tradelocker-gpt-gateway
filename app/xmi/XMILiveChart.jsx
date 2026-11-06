@@ -1,6 +1,6 @@
 "use client";
 import {useEffect,useRef,useState} from "react";
-import {computeFive,FX_RESOLUTIONS,quoteState} from "../../lib/xmiLiveMath.mjs";
+import {computeFive,FX_RESOLUTIONS,quoteState,nextCandleClose} from "../../lib/xmiLiveMath.mjs";
 import {parseHistoricalFile} from "../../lib/xmiHistoricalFile.mjs";
 import {nextFeedDelay,feedHealth,retryableFeedError} from "../../lib/xmiFeedRecovery.mjs";
 import {inspectCandleQuality} from "../../lib/xmiDataQuality.mjs";
@@ -16,12 +16,12 @@ import {DEFAULT_CHART_SETTINGS,DEFAULT_TECH,chartSeriesData,autoFibonacci,detect
 const COLOR={ema20:"#59c9d8",ema50:"#d1ad5b",ema200:"#a690fa",vwap:"#ef9ed9",
  rsi:"#60ccf5",macd:"#7c95ed",macdSignal:"#f1a45d"};
 const TIMEFRAMES=Object.keys(FX_RESOLUTIONS);
-const NO_STRUCTURE=defaultStructureSettings();
+const NO_STRUCTURE=defaultStructureSettings(false);
 export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsset="forex",instrumentLabel=symbol,resolution,onResolution,selected,onFocus,compact=false,active=true,
  structureSettings=NO_STRUCTURE,onStructure,technicalEnabled=DEFAULT_TECH,
  indicatorSettings=DEFAULT_INDICATOR_SETTINGS,strategyId="day",strategyEdit={},
  chartSettings=DEFAULT_CHART_SETTINGS,drawTool=null,savedDrawings=[],onDrawing,onDrawingMove,
- autoPatterns=true,autoFib=false,onPatterns,patternEnabled={},onAnalysis,strategyName="No preset",
+ autoPatterns=false,autoFib=false,onPatterns,patternEnabled={},onAnalysis,strategyName="No preset",
  onTechnicalChange,onStructureChange,onPatternChange,onPatternsEnabled,onChartSettingChange}){
  const el=useRef(null),chart=useRef(null),series=useRef(null),drawings=useRef(null);
  const importInput=useRef(null);
@@ -70,7 +70,8 @@ export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsse
    quality:feed.quality||"UNAVAILABLE",asOf:feed.asOf});
  },[feed.stats,feed.quality,feed.asOf,selected,scalpActive,symbol,auxData,
   strategyEdit.adxMin,strategyEdit.stopAtr,strategyEdit.rewardRisk,strategyEdit.maxHoldBars]);
- const [libReady,setLibReady]=useState(false);
+ // A recreated chart must rebind its feed and overlays even when the library is cached.
+ const [chartGeneration,setChartGeneration]=useState(0);
  useEffect(()=>{interaction.current={points:[],stroke:[],count:0};moving.current=null;setPendingCount(0);setDrawingError("");},[drawTool,symbol]);
  useEffect(()=>{
   if(!el.current)return;
@@ -153,13 +154,13 @@ export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsse
     if(rect&&live)c.applyOptions({width:Math.max(300,Math.floor(rect.width)),height:Math.max(290,Math.floor(rect.height))});
    });
    resizeObserver.observe(root);resize=resizeObserver;
-   setLibReady(true);
+   setChartGeneration(generation=>generation+1);
   }).catch(()=>setFeed(x=>({...x,phase:"error",message:"Chart engine unavailable"})));
-  return ()=>{live=false;resize?.disconnect();chart.current?.remove();chart.current=null;series.current=null;drawings.current=null;setLibReady(false);};
+  return ()=>{live=false;resize?.disconnect();chart.current?.remove();chart.current=null;series.current=null;drawings.current=null;};
  },[chartSettings.chartType,technicalEnabled.RSI,technicalEnabled.MACD,
   technicalEnabled.ADX,technicalEnabled.Stochastic,technicalEnabled.ATR,technicalEnabled.Volume]);
  useEffect(()=>{
-  if(!libReady||!chart.current||!series.current)return;
+  if(!chartGeneration||!chart.current||!series.current)return;
   const dark=chartSettings.theme==="dark",bg=dark?"#0b1729":"#f7faff",grid=dark?"#1c2e43":"#dce4ee";
   chart.current.applyOptions({
    layout:{background:{type:"solid",color:bg},textColor:dark?"#9cacc7":"#31435a"},
@@ -183,7 +184,7 @@ export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsse
        borderUpColor:chartSettings.bull,borderDownColor:chartSettings.bear,
        wickVisible:chartSettings.wicks,wickUpColor:chartSettings.bull,wickDownColor:chartSettings.bear})
   });
- },[chartSettings,libReady]);
+ },[chartSettings,chartGeneration]);
  useEffect(()=>{
   const all=series.current;if(!all)return;
   const visible={
@@ -202,18 +203,39 @@ export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsse
    atrLower:mode==="atrBands"||mode==="both"
   });
   for(const [key,on] of Object.entries(visible))all[key]?.applyOptions({visible:!!on});
- },[technicalEnabled,libReady,chartSettings.algorithmMode,indicatorSettings.volumeAverage]);
+ },[technicalEnabled,chartGeneration,chartSettings.algorithmMode,indicatorSettings.volumeAverage]);
  useEffect(()=>{
-  if(!libReady||!series.current||!active)return;
+  if(!chartGeneration||!series.current||!active)return;
   let running=true,abort=null,timer=null,failures=0,inFlight=false;
-  let providerName=null;
+  let providerName=null,candleSchedule;
   let lastSuccessAt=null,lastClosedAt=null;
   const all=series.current;
   let fitted=false;
+  function paint(stats){
+   const mapped=stats.bars.map(({time,open,high,low,close})=>({time,open,high,low,close}));
+   if(!mapped.length)return false;
+   const scale=chart.current?.timeScale();
+   const priorVisible=scale?.getVisibleLogicalRange();
+   all.candle.setData(chartSeriesData(mapped,chartSettings.chartType));
+   for(const key of ["ema20","ema50","ema200","vwap","rsi","macd","macdSignal",
+    "atr","adx","plusDI","minusDI","stochK","stochD","bbUpper","bbBasis","bbLower",
+    "donchianUpper","donchianLower"])all[key]?.setData(stats.overlays[key]||[]);
+   all.histogram?.setData(stats.overlays.macdHistogram.map(p=>({...p,color:p.value>=0?"#339a9a":"#b66c84"})));
+   all.volume?.setData(stats.overlays.volume);
+   all.volumeMA?.setData(stats.overlays.volumeMA);
+   if(priorVisible&&Number.isFinite(priorVisible.from)&&Number.isFinite(priorVisible.to))
+    scale.setVisibleLogicalRange(priorVisible);
+   else if(!fitted){
+    const last=mapped.length-1;
+    scale?.setVisibleLogicalRange({from:Math.max(0,last-69),to:last+5});
+   }
+   fitted=true;
+   return true;
+  }
   function schedule(){
    if(!running)return;
    const delay=nextFeedDelay({resolution,now:Date.now(),failures,
-    profile:chartSettings.refreshProfile,provider:providerName,
+    profile:chartSettings.refreshProfile,provider:providerName,candleSchedule,
     hidden:document.visibilityState==="hidden"});
    setFeed(prev=>({...prev,nextRefreshMs:delay}));
    timer=setTimeout(refresh,delay);
@@ -249,8 +271,8 @@ export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsse
     const reportedAt=Date.parse(data.asOf),observedNow=Date.now();
     if(!Number.isFinite(reportedAt))
      throw Error("Candle source observation time is invalid; no current data inferred");
-    const stats=computeFive(data.bars,resolution,reportedAt,data.volumeBasis,indicatorSettingsRef.current);
-    if(!running)return;
+    const stats=computeFive(data.bars,resolution,reportedAt,data.volumeBasis,indicatorSettingsRef.current,data.candleSchedule);
+    if(!running||series.current!==all)return;
     const observedQuality=local?"HISTORICAL":quoteState(stats.lastClosed,observedNow,resolution);
     if(observedQuality==="INVALID_TIME")
      throw Error("Provider candle timestamps are invalid; no current research may be inferred");
@@ -261,39 +283,21 @@ export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsse
     const outdated=reasonSet.has("SOURCE_CHECK_TOO_OLD")||
      reasonSet.has("LAST_CLOSED_CANDLE_STALE")||observedQuality==="STALE";
     const quality=dataHealth.researchReady?observedQuality:outdated?"STALE":"UNAVAILABLE";
-    const mapped=stats.bars.map(({time,open,high,low,close})=>({time,open,high,low,close}));
-    if(mapped.length){
-     const priorVisible=fitted?chart.current?.timeScale().getVisibleLogicalRange():null;
-     all.candle.setData(chartSeriesData(mapped,chartSettings.chartType));
-     for(const key of ["ema20","ema50","ema200","vwap","rsi","macd","macdSignal",
-       "atr","adx","plusDI","minusDI","stochK","stochD","bbUpper","bbBasis","bbLower",
-       "donchianUpper","donchianLower"]){
-       if(all[key])all[key].setData(stats.overlays[key]||[]);
-      }
-      all.histogram?.setData(stats.overlays.macdHistogram.map(p=>({...p,color:p.value>=0?"#339a9a":"#b66c84"})));
-      all.volume?.setData(stats.overlays.volume);
-      all.volumeMA?.setData(stats.overlays.volumeMA);
-      if(priorVisible&&Number.isFinite(priorVisible.from)&&Number.isFinite(priorVisible.to))
-       chart.current?.timeScale().setVisibleLogicalRange(priorVisible);
-      if(!fitted){
-      const last=mapped.length-1;
-      chart.current?.timeScale().setVisibleLogicalRange({from:Math.max(0,last-69),to:last+5});
-      fitted=true;
-     }
-    }
+    const plotted=paint(stats);
     failures=0;
     providerName=data.provider||null;
+    candleSchedule=data.candleSchedule;
     lastSuccessAt=Date.now();
     lastClosedAt=stats.lastClosed?.time?stats.lastClosed.time*1000:null;
     setFeed({provider:data.provider||null,phase:local?"historical":quality==="STALE"?"stale":quality==="CURRENT"?"ready":"empty",
      message:local?"Imported historical OHLC · device only · no broker connection":
-      mapped.length?(quality==="CURRENT"?"Read-only candles · "+data.delivery:
+      plotted?(quality==="CURRENT"?"Read-only candles · "+data.delivery:
        "Closed-bar/source verification unavailable; indicators not current"):"No candles returned",
      stats,asOf:data.asOf,last:stats.latest,quality,failures:0,
      lastCheckedAt:Date.now(),lastSuccessAt,lastClosedAt,nextRefreshMs:null,
      sourceSymbol:symbol,sourceResolution:resolution});
    }catch(e){
-    if(!running||e.name==="AbortError")return;
+    if(!running||series.current!==all||e.name==="AbortError")return;
     const disabled=e.code==="FEED_DISABLED",locked=e.code==="FEED_LOCKED";
     const retryable=retryableFeedError(e.code);
     failures=retryable?failures+1:0;
@@ -308,7 +312,7 @@ export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsse
     if(!retryable)running=false;
    }finally{if(requestTimeout)clearTimeout(requestTimeout);
     inFlight=false;
-    if(running&&!local)schedule();}
+    if(running&&series.current===all&&!local)schedule();}
   }
   setFeed(prev=>{
    const same=prev.sourceSymbol===symbol&&prev.sourceResolution===resolution;
@@ -323,23 +327,24 @@ export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsse
   // the last verified plotted bars, prominently flagged as not current, while
   // analytical stats are invalidated until fresh data is verified.
   const retained=feed.sourceSymbol===symbol&&feed.sourceResolution===resolution&&!!feed.last;
-  if(!retained)for(const key of Object.keys(all))all[key]?.setData([]);
+  if(retained&&feed.stats)paint(feed.stats);
+  else if(!retained)for(const key of Object.keys(all))all[key]?.setData([]);
   refresh();
   return ()=>{running=false;document.removeEventListener("visibilitychange",onVisible);
    abort?.abort();if(timer)clearTimeout(timer);};
- },[symbol,instrumentKey,resolution,libReady,active,chartSettings.chartType,chartSettings.refreshProfile,offline,refreshNonce]);
+ },[symbol,instrumentKey,resolution,chartGeneration,active,chartSettings.chartType,chartSettings.refreshProfile,offline,refreshNonce]);
  // Additional timeframes use the same protected, read-only candle API.
  // Recompute retained validated candles locally when study periods change.
  // This does not authorize a fresh broker request or reset visible pan/zoom.
  useEffect(()=>{
   const current=feed;
-  if(!libReady||!current.stats||!current.asOf||current.sourceSymbol!==symbol||
+  if(!chartGeneration||!current.stats||!current.asOf||current.sourceSymbol!==symbol||
     current.sourceResolution!==resolution)return;
   const at=Date.parse(current.asOf);
   if(!Number.isFinite(at))return;
   try{
    const stats=computeFive(current.stats.bars,resolution,at,
-    current.stats.volumeBasis||"broker-tick",indicatorSettings);
+    current.stats.volumeBasis||"broker-tick",indicatorSettings,current.stats.candleSchedule);
    stats.dataHealth=inspectCandleQuality({bars:stats.bars,overlays:stats.overlays,
     resolution,asOf:at,now:Date.now(),sourceQuality:current.quality});
    const all=series.current;
@@ -353,10 +358,10 @@ export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsse
    setFeed(prev=>prev.stats===current.stats?{...prev,stats}:prev);
   }catch{ /* Preserve previously verified bars when parameter validation fails. */ }
  // eslint-disable-next-line react-hooks/exhaustive-deps
- },[indicatorSettings,libReady,symbol,resolution]);
+ },[indicatorSettings,chartGeneration,symbol,resolution]);
  // Each distinct selected timeframe is fetched once; settings are shared by all charts.
  useEffect(()=>{
-  if(!active||!libReady||!extraKey||
+  if(!active||!chartGeneration||!extraKey||
    (offline?.symbol===symbol&&offline?.resolution===resolution))return;
   let running=true,timer=null;
   const controllers=[];
@@ -373,12 +378,12 @@ export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsse
      if(!res.ok||!data.ok)throw Error(data.error||"No verified market candles");
      const reported=Date.parse(data.asOf);
      if(!Number.isFinite(reported))throw Error("Invalid auxiliary source observation time");
-     const structured=computeFive(data.bars,tf,reported,data.volumeBasis,indicatorSettingsRef.current);
+     const structured=computeFive(data.bars,tf,reported,data.volumeBasis,indicatorSettingsRef.current,data.candleSchedule);
      const quality=quoteState(structured.lastClosed,Date.now(),tf);
      const health=inspectCandleQuality({bars:structured.bars,overlays:structured.overlays,
       resolution:tf,asOf:reported,now:Date.now(),sourceQuality:quality});
      if(!health.researchReady||quality!=="CURRENT")throw Error("Unverified or stale "+tf+" candles");
-     const structure=detectStructure(structured.bars,tf,reported);
+     const structure=detectStructure(structured.bars,tf,reported,structured.candleSchedule);
      if(running)setAuxData(old=>({...old,[key]:{structure,loadedAt:reported,
       scalpStats:tf==="15m"?structured:null}}));
     }catch(err){
@@ -390,10 +395,10 @@ export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsse
   }
   load();
   return ()=>{running=false;if(timer)clearTimeout(timer);controllers.forEach(c=>c.abort());};
- },[symbol,resolution,active,libReady,extraKey,offline,refreshNonce]);
+ },[symbol,resolution,active,chartGeneration,extraKey,offline,refreshNonce]);
  useEffect(()=>{
   const overlay=drawings.current;
-  if(!libReady||!overlay)return;
+  if(!chartGeneration||!overlay)return;
   if(!feed.stats){
    overlay.marker.setMarkers([]);
    markerItems.current=[];
@@ -406,7 +411,7 @@ export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsse
   try{
    const at=Date.parse(feed.asOf);
    if(!Number.isFinite(at))throw Error("Invalid source observation timestamp");
-   localStructure=detectStructure(feed.stats.bars,resolution,at);
+   localStructure=detectStructure(feed.stats.bars,resolution,at,feed.stats.candleSchedule);
   }catch{
    overlay.marker.setMarkers([]);
    markerItems.current=[];
@@ -453,14 +458,14 @@ export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsse
    markerItems.current=stacked;
    overlay.marker.setMarkers(markerSeriesPayload(stacked));
    overlay.primitive.setAnnotations(
-    chartSettings.markerStructure&&chartSettings.markerStyle!=="compact"?result.annotations:[],
+    chartSettings.markerStructure&&chartSettings.markerStyle==="full"?result.annotations:[],
     display.at(-1)?.time??null);
    setOverlayMessage(stacked.length+" stacked markers · "+result.unavailable.length+" unavailable structure timeframes");
   }catch{
    setOverlayMessage("Optional chart markers unavailable; candle feed remains read-only");
   }
   if(selected)onStructureRef.current?.(result);
- },[symbol,resolution,feed.stats,feed.asOf,structureSettings,auxData,libReady,selected,active,extraKey,
+ },[symbol,resolution,feed.stats,feed.asOf,structureSettings,auxData,chartGeneration,selected,active,extraKey,
   technicalEnabled,chartSettings.markerStyle,chartSettings.markerPalette,
   chartSettings.markerStructure,chartSettings.markerADX,chartSettings.markerBollinger,
   chartSettings.markerDonchian,chartSettings.markerStochastic,expandedMarkerId,
@@ -483,7 +488,7 @@ export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsse
  },[indicatorSettings,symbol]);
  // Causal algorithmic overlays consume only confirmed closed price history.
  useEffect(()=>{
-  const all=series.current;if(!all||!libReady)return;
+  const all=series.current;if(!all||!chartGeneration)return;
   const keys=["regLine","regUpper","regLower","atrUpper","atrLower"];
   if(!feed.stats){for(const key of keys)all[key]?.setData([]);return;}
   try{
@@ -495,12 +500,12 @@ export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsse
     ["regLower","regLower"],["atrUpper","atrUpper"],["atrLower","atrLower"]])
     all[key]?.setData(out[name]);
   }catch{for(const key of keys)all[key]?.setData([]);}
- },[feed.stats,libReady,chartSettings.algorithmMode,chartSettings.algorithmWindow,
+ },[feed.stats,chartGeneration,chartSettings.algorithmMode,chartSettings.algorithmWindow,
   chartSettings.algorithmMultiplier]);
  // Manual drawings, completed price patterns, and swing-anchored Fibonacci use the
  // existing chart data only. Missing data clears every optional drawing primitive.
  useEffect(()=>{
-  if(!libReady||!drawings.current)return;
+  if(!chartGeneration||!drawings.current)return;
   const primitive=drawings.current.manualPrimitive;
   if(!feed.stats){primitive.setDrawings([]);if(selected)onPatternsRef.current?.([]);return;}
   const bars=feed.stats.bars;
@@ -519,7 +524,7 @@ export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsse
   const fibDrawings=fib?[project({...fib,id:"fib:auto",symbol,auto:true})]:[];
   primitive.setDrawings([...manual,...patterns,...fibDrawings]);
   if(selected)onPatternsRef.current?.(detected.slice(0,8));
- },[feed.stats,libReady,savedDrawings,autoPatterns,autoFib,drawTool,symbol,selected,patternEnabled]);
+ },[feed.stats,chartGeneration,savedDrawings,autoPatterns,autoFib,drawTool,symbol,selected,patternEnabled]);
  async function importHistory(event){
   const file=event.target.files?.[0];
   event.target.value="";
@@ -620,7 +625,7 @@ export default function XMILiveChart({symbol,instrumentKey=symbol,instrumentAsse
  }
  const stats=feed.stats;const ready=feed.phase==="ready";
  const health=feedHealth({...feed,now:clock||Date.now()});
- const untilClose=Math.ceil((FX_RESOLUTIONS[resolution]*1000-clock%(FX_RESOLUTIONS[resolution]*1000))/1000);
+ const untilClose=clock?Math.ceil(nextCandleClose(clock/1000,resolution,stats?.candleSchedule)-clock/1000):0;
  const countdown=clock===0?"--:--":String(Math.floor(untilClose/60)).padStart(2,"0")+":"+String(untilClose%60).padStart(2,"0");
  return <article className={styles.engineCard+(selected?" "+styles.chartActive:"")} aria-label={symbol+" live "+instrumentAsset+" chart"}>
   <div className={styles.engineTop}>
