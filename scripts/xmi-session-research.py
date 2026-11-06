@@ -46,6 +46,7 @@ PILOT_WINDOWS = tuple(WINDOWS)[:7]
 GOLD_WINDOWS = {"gold-us-midday-close", "gold-us-open"}
 OPEN_CONTEXT_WINDOWS = ("london-open", "ny-open", "gold-us-open", "dual-open")
 CLOSE_CONTEXT_WINDOWS = ("london-close", "london-late", "ny-close", "gold-us-midday-close", "dual-close")
+INTRADAY_CONTEXT_WINDOWS = ("london-intraday", "ny-intraday")
 PREOPEN_MINUTES = 60
 BASELINES = ("ema-trend", "rsi-recovery", "donchian-breakout", "trend-momentum")
 LEGACY = ("legacy-v1", "legacy-soft", "legacy-a2")
@@ -309,12 +310,13 @@ def standard_signals(rule, frame, frames, parameter):
         hr = frame.higher(higher, higher.core()["rsi"])
         signal = directional(long_pullback & (htrend > 0) & (hm > 0) & (hr >= 55),
                              short_pullback & (htrend < 0) & (hm < 0) & (hr <= 45))
-    elif rule in ("preset-eur-5m", "intraday-pullback"):
+    elif rule in ("preset-eur-5m", "intraday-pullback", "intraday-pullback-hourly"):
         higher = frames[15 if rule == "preset-eur-5m" else 60]
         htrend = frame.higher(higher, higher.ema(20) - higher.ema(50))
         adx_min = parameter or 25
-        signal = directional(long_pullback & (trend > 0) & (htrend > 0) & (rsi >= 50) & (adx >= adx_min),
-                             short_pullback & (trend < 0) & (htrend < 0) & (rsi <= 50) & (adx >= adx_min))
+        regime_adx = frame.higher(higher, higher.core()["adx"]) if rule.endswith("-hourly") else adx
+        signal = directional(long_pullback & (trend > 0) & (htrend > 0) & (rsi >= 50) & (regime_adx >= adx_min),
+                             short_pullback & (trend < 0) & (htrend < 0) & (rsi <= 50) & (regime_adx >= adx_min))
         if rule == "preset-eur-5m":
             structure = np.where(signal > 0, c - roll(frame.low, 6, "min"), roll(frame.h, 6, "max") - c)
     elif rule == "preset-gbp-break":
@@ -326,10 +328,12 @@ def standard_signals(rule, frame, frames, parameter):
         d = roll(k, 3, "mean")
         signal = directional((trend > 0) & (rsi >= 50) & (adx >= 20) & cross(k, d),
                              (trend < 0) & (rsi <= 50) & (adx >= 20) & cross(-k, -d))
-    elif rule == "intraday-mean":
+    elif rule in ("intraday-mean", "intraday-mean-hourly"):
         center, deviation = roll(c, 24, "mean"), roll(c, 24, "std")
         z = np.divide(c - center, deviation, out=np.full(len(c), np.nan), where=deviation > 0)
-        signal = directional(cross(z, -1.8) & (adx <= parameter), cross(-z, -1.8) & (adx <= parameter))
+        higher = frames[60]
+        regime_adx = frame.higher(higher, higher.core()["adx"]) if rule.endswith("-hourly") else adx
+        signal = directional(cross(z, -1.8) & (regime_adx <= parameter), cross(-z, -1.8) & (regime_adx <= parameter))
     elif rule == "intraday-channel-trend":
         higher = frames[60]
         ht = frame.higher(higher, higher.ema(20) - higher.ema(50))
@@ -521,6 +525,17 @@ def strategies(symbol, windows, profile):
                 (60, 120), (1.5, 2.25, 3.0), (1.4, 2.0), risks,
             ):
                 yield Variant(rule, minutes, window, risk, stop, reward, 90, lookback, min_stop_to_cost=2.0)
+            continue
+        if profile == "intraday-context":
+            rules = [(rule, threshold) for rule, threshold in product(
+                ("intraday-pullback", "intraday-pullback-hourly", "intraday-mean", "intraday-mean-hourly"),
+                (20, 25),
+            )]
+            rules += list(product(("intraday-channel-trend", "intraday-sweep"), (12, 24)))
+            for (rule, parameter), minutes, stop, reward, risk in product(
+                rules, (5, 15, 30), (1.5, 2.25, 3.0), (1.4, 2.0), risks,
+            ):
+                yield Variant(rule, minutes, window, risk, stop, reward, 90, parameter, min_stop_to_cost=2.0)
             continue
         if profile == "legacy":
             for risk in risks:
@@ -776,6 +791,7 @@ def screen_symbol(cache, symbol, executable, profile):
         "targeted": (*WINDOWS, *DUAL_WINDOWS),
         "opening-context": OPEN_CONTEXT_WINDOWS,
         "closing-context": CLOSE_CONTEXT_WINDOWS,
+        "intraday-context": INTRADAY_CONTEXT_WINDOWS,
     }.get(profile, PILOT_WINDOWS)
     windows = [w for w in names if w not in GOLD_WINDOWS or symbol == "XAUUSD"]
     study = Study(cache, symbol, DEVELOPMENT, executable, windows)
@@ -783,7 +799,7 @@ def screen_symbol(cache, symbol, executable, profile):
     for variant in strategies(symbol, windows, profile):
         folds = [study.run(variant, fold) for fold in FOLDS]
         row = {"symbol": symbol, "variant": asdict(variant), "folds": folds, "screen_pass": eligible(folds)}
-        if profile in ("opening-context", "closing-context"):
+        if profile in ("opening-context", "closing-context", "intraday-context"):
             stress = [study.run(variant, fold, stress=1.5) for fold in FOLDS]
             stress_pass = all(f["net_usd"] > 0 and f["max_drawdown"] < 0.1 and not f["halted"] for f in stress)
             row.update({"base_screen_pass": row["screen_pass"], "stress_pass": stress_pass, "stress_folds": stress,
@@ -863,7 +879,7 @@ def main():
     parser.add_argument("--input", type=Path, nargs="+", help="Screen JSONs for freeze, a single freeze JSON for holdout")
     parser.add_argument("--symbols", nargs="+", choices=SYMBOLS, default=SYMBOLS)
     parser.add_argument("--profile", choices=("pilot", "expanded", "targeted", "legacy", "opening-context",
-                                              "closing-context"), default="pilot")
+                                              "closing-context", "intraday-context"), default="pilot")
     parser.add_argument("--workers", type=int, choices=range(1, 9), default=4)
     args = parser.parse_args()
     identity = source_identity()
