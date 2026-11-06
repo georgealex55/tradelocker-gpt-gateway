@@ -612,7 +612,7 @@ class Study:
         self.signal_cache[key] = plan
         return plan
 
-    def run(self, variant, fold, stress=1.0, gold_step=1.0, retain=False):
+    def run(self, variant, fold, stress=1.0, gold_step=1.0, retain=False, *, spread_override=None):
         start, end = np.searchsorted(self.t, [utc_minute(fold[1]), utc_minute(fold[2])])
         first, last, side, atr, structure, limit = self.plan(variant)
         a, b = np.searchsorted(first, [start, end])
@@ -627,6 +627,10 @@ class Study:
             distance = 4 if self.symbol == "XAUUSD" else 0.2 if self.symbol.endswith("JPY") else 0.002
             stop = np.full(len(first), distance)
         model, result = money_model(self.symbol, variant, stress, gold_step), Result()
+        if spread_override is not None:
+            if not np.isfinite(spread_override) or spread_override < 0:
+                raise ValueError("Spread override must be a finite, nonnegative quote-price amount")
+            model.spread = spread_override * stress
         if variant.min_stop_to_cost:
             conversion = self.prices[0, first] if model.usd_base else 1.0
             cost_in_price = model.spread + 2 * model.slippage + 2 * model.commission_per_unit_side * conversion
