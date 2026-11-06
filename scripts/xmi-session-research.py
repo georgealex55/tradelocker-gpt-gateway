@@ -44,6 +44,8 @@ DUAL_WINDOWS = {
 }
 PILOT_WINDOWS = tuple(WINDOWS)[:7]
 GOLD_WINDOWS = {"gold-us-midday-close", "gold-us-open"}
+OPEN_CONTEXT_WINDOWS = ("london-open", "ny-open", "gold-us-open", "dual-open")
+PREOPEN_MINUTES = 60
 BASELINES = ("ema-trend", "rsi-recovery", "donchian-breakout", "trend-momentum")
 LEGACY = ("legacy-v1", "legacy-soft", "legacy-a2")
 SOURCE_FILES = (Path(__file__), Path(__file__).with_name("xmi-session-execution.cpp"),
@@ -182,8 +184,8 @@ def directional(long, short):
 
 
 class Frame:
-    def __init__(self, times, prices, minutes):
-        groups = (times // minutes) * minutes
+    def __init__(self, times, prices, minutes, anchor=0):
+        groups = ((times - anchor) // minutes) * minutes + anchor
         first = np.r_[0, np.flatnonzero(np.diff(groups)) + 1]
         last = np.r_[first[1:] - 1, len(times) - 1]
         complete = last - first + 1 == minutes
@@ -428,6 +430,78 @@ def session_signals(rule, frame, session, times, prices, parameter):
     return directional(active & long, active & short), None
 
 
+def has_preopen_history(times, start, left):
+    return left >= PREOPEN_MINUTES and times[left - PREOPEN_MINUTES] == start - PREOPEN_MINUTES
+
+
+def opening_context_signals(rule, frame, session, times, prices, range_minutes):
+    confirmation, regime = rule.removeprefix("opening-context-").split("-")
+    if range_minutes <= 0 or range_minutes % frame.minutes:
+        raise ValueError("Opening range must contain a whole number of anchored decision bars")
+    upper = np.full(len(times), np.nan)
+    lower = np.full(len(times), np.nan)
+    drift = np.full(len(times), np.nan)
+    for start, left, right in session.complete:
+        if not has_preopen_history(times, start, left) or left + range_minutes >= right:
+            continue
+        pre = left - PREOPEN_MINUTES
+        width = prices[1, pre:left].max() - prices[2, pre:left].min()
+        if width > 0:
+            drift[left] = (prices[3, left - 1] - prices[0, pre]) / width
+            upper[left] = prices[1, left:left + range_minutes].max()
+            lower[left] = prices[2, left:left + range_minutes].min()
+
+    fill = np.minimum(frame.next, len(times) - 1)
+    start = session.begin[fill]
+    safe = np.maximum(start, 0)
+    hi, lo, bias = upper[safe], lower[safe], drift[safe]
+    buffer = 0.1 * frame.core()["atr"]
+    prev = previous(frame.c)
+    elapsed = frame.decision - times[safe]
+    active = ((start >= 0) & (frame.next < len(times)) & (times[fill] == frame.decision)
+              & (elapsed >= range_minutes + frame.minutes) & np.isfinite(bias) & (buffer > 0))
+
+    if confirmation == "break":
+        long = (frame.c > hi + buffer) & (prev <= hi)
+        short = (frame.c < lo - buffer) & (prev >= lo)
+    elif confirmation == "failure":
+        inside = (frame.c > lo) & (frame.c < hi)
+        long = inside & (frame.low < lo - buffer)
+        short = inside & (frame.h > hi + buffer)
+    elif confirmation == "retest":
+        active &= elapsed >= range_minutes + 2 * frame.minutes
+        prior_buffer = previous(buffer)
+        long = (prev > hi + prior_buffer) & (frame.low <= hi + buffer) & (frame.c > hi) & (frame.c > frame.o)
+        short = (prev < lo - prior_buffer) & (frame.h >= lo - buffer) & (frame.c < lo) & (frame.c < frame.o)
+    else:
+        raise ValueError(f"Unknown opening confirmation {confirmation}")
+
+    signal = directional(long, short)
+    if regime == "aligned":
+        active &= signal * bias >= 0.25
+    elif regime == "counter":
+        active &= signal * bias <= -0.25
+    elif regime == "balanced":
+        active &= np.abs(bias) < 0.25
+    elif regime != "plain":
+        raise ValueError(f"Unknown pre-open filter {regime}")
+    return np.where(active, signal, 0), None
+
+
+def opening_context_strategies(window):
+    duration = min(end - start for _, start, end, _ in session_specs(window))
+    for confirmation, regime, minutes, span in product(
+        ("break", "failure", "retest"), ("plain", "aligned", "counter", "balanced"),
+        (5, 15, 30), (15, 30, 60),
+    ):
+        decision_bars = 2 if confirmation == "retest" else 1
+        if span % minutes or span + decision_bars * minutes >= duration:
+            continue
+        for stop, reward, risk in product((1.5, 2.25, 3.0), (1.4, 2.0), (0.0025, 0.005, 0.01)):
+            yield Variant(f"opening-context-{confirmation}-{regime}", minutes, window, risk,
+                          stop, reward, 90, span, min_stop_to_cost=2.0)
+
+
 def strategies(symbol, windows, profile):
     risks = (0.0025, 0.005, 0.01)
     search = (
@@ -437,6 +511,9 @@ def strategies(symbol, windows, profile):
     grid = tuple(search)
     for window in windows:
         lane = lane_for(window)
+        if profile == "opening-context":
+            yield from opening_context_strategies(window)
+            continue
         if profile == "legacy":
             for risk in risks:
                 yield Variant("legacy-v1", 15, window, risk, 0, 1.8, 240, max_trades=2, cooldown=60)
@@ -574,7 +651,18 @@ class Study:
         key = (rule, minutes, window, parameter)
         if key in self.signal_cache:
             return self.signal_cache[key]
-        if rule in LEGACY:
+        if rule.startswith("opening-context-"):
+            anchors = {start % minutes for _, start, _, _ in session_specs(window)}
+            if len(anchors) != 1:
+                raise ValueError("Opening windows use different decision-bar anchors")
+            anchor = anchors.pop()
+            if anchor:
+                anchored_key = (minutes, anchor)
+                if anchored_key not in self.frames:
+                    self.frames[anchored_key] = Frame(self.t, self.prices, minutes, anchor)
+                frame = self.frames[anchored_key]
+            signal, structure = opening_context_signals(rule, frame, session, self.t, self.prices, parameter)
+        elif rule in LEGACY:
             legacy = self.load_legacy()
             entries = np.asarray(legacy[rule], dtype=float).reshape(-1, 3)
             decision, direction, stops = entries.T
@@ -676,19 +764,37 @@ def rank(row):
 
 
 def screen_symbol(cache, symbol, executable, profile):
-    names = (*WINDOWS, *DUAL_WINDOWS) if profile == "targeted" else PILOT_WINDOWS
+    names = {
+        "targeted": (*WINDOWS, *DUAL_WINDOWS),
+        "opening-context": OPEN_CONTEXT_WINDOWS,
+    }.get(profile, PILOT_WINDOWS)
     windows = [w for w in names if w not in GOLD_WINDOWS or symbol == "XAUUSD"]
     study = Study(cache, symbol, DEVELOPMENT, executable, windows)
     rows = []
     for variant in strategies(symbol, windows, profile):
         folds = [study.run(variant, fold) for fold in FOLDS]
-        rows.append({"symbol": symbol, "variant": asdict(variant), "folds": folds, "screen_pass": eligible(folds)})
+        row = {"symbol": symbol, "variant": asdict(variant), "folds": folds, "screen_pass": eligible(folds)}
+        if profile == "opening-context":
+            stress = [study.run(variant, fold, stress=1.5) for fold in FOLDS]
+            stress_pass = all(f["net_usd"] > 0 and f["max_drawdown"] < 0.1 and not f["halted"] for f in stress)
+            row.update({"base_screen_pass": row["screen_pass"], "stress_pass": stress_pass, "stress_folds": stress,
+                        "screen_pass": row["screen_pass"] and stress_pass})
+        rows.append(row)
     rows.sort(key=rank, reverse=True)
     print(f"{symbol} | {len(rows):,} configurations | {sum(x['screen_pass'] for x in rows)} screen passes", flush=True)
-    return {
+    result = {
         "symbol": symbol, "archives": study.manifest,
         "coverage": {name: session.coverage for name, session in study.sessions.items()}, "rows": rows,
     }
+    if profile == "opening-context":
+        result["preopen_coverage"] = {}
+        for name, session in study.sessions.items():
+            years = dict.fromkeys(session.coverage, 0)
+            for start, left, _ in session.complete:
+                if has_preopen_history(study.t, start, left):
+                    years[str(pd.Timestamp(start, unit="m", tz="UTC").year)] += 1
+            result["preopen_coverage"][name] = years
+    return result
 
 
 def write_json(path, value):
@@ -747,7 +853,7 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--input", type=Path, nargs="+", help="Screen JSONs for freeze, a single freeze JSON for holdout")
     parser.add_argument("--symbols", nargs="+", choices=SYMBOLS, default=SYMBOLS)
-    parser.add_argument("--profile", choices=("pilot", "expanded", "targeted", "legacy"), default="pilot")
+    parser.add_argument("--profile", choices=("pilot", "expanded", "targeted", "legacy", "opening-context"), default="pilot")
     parser.add_argument("--workers", type=int, choices=range(1, 9), default=4)
     args = parser.parse_args()
     identity = source_identity()
