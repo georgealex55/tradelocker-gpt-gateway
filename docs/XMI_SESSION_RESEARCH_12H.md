@@ -420,3 +420,49 @@ The archive had recurring 2023 session gaps. EUR/USD New York open had 156 of 26
 A practical paper next step is to log fresh paired quotes and simulated fills with zero orders, using fixed rules and separate USD 1,000 accounts. Use gold intraday momentum only as an execution benchmark. Compare actual observed spreads, minimum sizes and timing to the model, and require a new preregistered candidate to pass development before using sealed holdout data or starting a qualifying forward-paper run.
 
 [Frozen shortlist](xmi-session-frozen-checkpoint-10.json) · [Screen counts, configuration IDs and coverage](xmi-session-screen-audit-checkpoint-10.json) · [Fold and cost replays](xmi-session-leader-audit-checkpoint-11.json)
+
+## Follow-up · January 2024 paired-quote execution replay
+
+Replayed the 24 existing instrument-and-session leaders from the completed development study. The entry rules, timeframes, position risk, stops and targets came from their recorded configurations. The test used an independent USD 1,000 account for each strategy and each of three execution cases, for 72 replays. The replay period was January 1–31, 2024 UTC, inside the original validation period. Indicators used the verified 2022–2024 minute bid archives. The 2025 shortlist is empty and the holdout is sealed.
+
+The eight HistData archives contain 17,144,922 paired tick records. All 253,749 overlapping minutes matched the minute archive on bid open, high, low and close. Each evaluated session had a quote in every minute and full bid candle parity. The 24 setups covered 610 eligible windows counted across configurations. Source timestamps are fixed EST. The replay converts them to UTC and applies the London and New York clocks with daylight saving rules. Both archives come from the same provider. This measures execution sensitivity within an already-studied month. [HistData archive specification](https://www.histdata.com/f-a-q/data-files-detailed-specification/)
+
+### Test specs
+
+| Component | Setting |
+| --- | --- |
+| Instruments | EUR/USD, GBP/USD, USD/JPY, USD/CHF, AUD/USD, USD/CAD, NZD/USD and spot XAU/USD |
+| Decision candles | 5, 15 and 30 minutes, with entries after the signal candle closes |
+| Opening windows | London 08:00–10:00 and New York 08:00–10:00 local, separately or in a dual-window account |
+| Closing windows | London 15:00–17:00 and New York 15:00–16:45 local, separately or in a dual-window account |
+| Intraday windows | London or New York 10:00–15:00 local |
+| Rules replayed | Opening-range failures, RSI recovery, regime-filtered mean reversion, close reversals, channel breakouts, range sweeps, break of structure and EMA/RSI momentum |
+| Risk and margin | 0.25%, 0.5% or 1% of current equity by configuration, one open position per account, 90% entry-margin cap and a 10% marked-drawdown halt |
+| FX units and costs | 1,000-unit minimum and step, 30:1 modeled leverage, 2-pip fixed spread, 0.3-pip slippage per side and USD 3.50 commission per 100,000 units per side |
+| Gold units and costs | 1-ounce minimum and step, 20:1 modeled leverage, USD 0.45/oz fixed spread, USD 0.07/oz slippage per side and USD 0.035/oz commission per side |
+| Spread comparison | Fixed modeled spread on the historical bid path, observed bid/ask, and 1.5× the greater of observed or modeled spread with 1.5× slippage. Commission stayed fixed. |
+
+Long entries used ask and long exits used bid. Shorts reversed the sides. USD-base FX gains converted at the exit ask and losses at the exit bid. Stops filled on the first observed triggering quote, including adverse gaps. Targets capped favorable gaps at the target. Adverse events took precedence when quotes shared a timestamp. Time exits used the first quote of the final permitted minute, inside the session. The earlier minute replay priced opposite-signal exits at the just-closed minute close. This replay waits for the first quote after confirmation. These timing changes make comparisons across engines descriptive.
+
+### January results
+
+| Setup | Observed trades | Observed net USD | Observed PF | Observed max DD | Fixed net USD | Stress net USD |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| USD/JPY 5m London failed breakout | 24 | +46.20 | 2.589 | 0.98% | +36.99 | +15.68 |
+| XAU/USD 15m New York intraday momentum | 16 | +7.80 | 1.174 | 3.57% | +5.11 | +0.95 |
+| NZD/USD 5m London close reversal | 14 | +2.14 | 1.533 | 0.39% | +1.23 | −0.99 |
+
+The USD/JPY rule waits for the London 08:00–08:15 opening range, then fades a closed 5-minute candle that pushes beyond the range by 0.1 ATR and closes inside. It uses a 1.7 ATR stop, 2.2R target and 0.5% risk. Its stress case completed 10 trades. The gold rule buys an RSI14 cross above 55 with EMA10 above EMA30 and sells a cross below 45 with EMA10 below EMA30. It uses a 1.7 ATR stop, 2.2R target and 1% risk.
+
+Observed bid/ask raised net P&L for 20 of 24 configurations relative to fixed spread. Ten earned positive net at observed costs and eight did under stress. Each observed-cost account had at most 24 completed trades. The USD/JPY setup lost money in both training years. The qualification standard still requires at least 200 distinct holdout trades, positive net expectancy, profit factor strictly above 1.50, drawdown strictly below 10% and passing cost, timing and stability checks. The replay qualifies zero strategies.
+
+All 72 cases reproduced on the normalized cache, including trade-ledger digests. Synthetic cases checked gap handling, target caps, short-side ask stops, same-timestamp ordering, the drawdown halt, USD-base conversion and opposite-signal exit timing. The manifest stores exact configurations, archive hashes, window counts and results, plus hashes of simulated trade logs. The next batch can extend the fixed USD/JPY and XAU/USD benchmarks to additional verified development months under the same execution policy.
+
+[Replay manifest](xmi-session-quote-replay-202401.json)
+
+```bash
+OPENBLAS_NUM_THREADS=1 python scripts/xmi-session-quote-replay.py \
+  --cache "$research_dir/histdata" --ticks "$research_dir/paired-histdata" \
+  --normalized "$research_dir/normalized-ticks-202401" \
+  --output "$research_dir/paired-quote-replay-202401.json"
+```
