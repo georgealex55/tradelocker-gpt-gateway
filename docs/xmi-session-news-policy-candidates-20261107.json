@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "status": "research_only_preregistered_candidates",
+  "hypothesis_origin": "Prior 2024 attribution; 2024 is reused development evidence, not an untouched test.",
+  "benchmark_source": "docs/xmi-session-calendar-rerun-2022-2024.json",
+  "benchmark_scope": "The fixed 24 previously documented instrument/lane leaders; no strategy, risk or sizing search.",
+  "training": [2022, 2023],
+  "reused_validation": ["2024-H1", "2024-H2"],
+  "sealed_holdout": 2025,
+  "cost_multipliers": [1.0, 1.5, 2.0],
+  "selection": {
+    "scope": "Per fixed benchmark, using training folds only",
+    "requirements_every_training_year_and_cost": {
+      "minimum_completed_trades": 25,
+      "net_pnl_strictly_above_usd": 0,
+      "profit_factor_strictly_above": 1.05,
+      "max_equity_drawdown_strictly_below": 0.1,
+      "halted": false
+    },
+    "rank": "Maximum worst training account net P/L across both years and all three cost cases; prefer the more conservative earlier-listed policy on a tie",
+    "fallback": "strict_60_30",
+    "chronological_diagnostic": "Also choose using 2022 alone and report its already-used 2023 development result",
+    "promotion": "Disabled; fresh evidence, calendar timing and observed execution-cost proof remain required"
+  },
+  "unchanged_guards": {
+    "central_bank_pre_minutes": 90,
+    "central_bank_post_minutes": 60,
+    "holiday": "Full provider calendar day with original 60/30 buffers",
+    "uncertain_currency_or_high_impact_global_event": "Full provider calendar day with original 60/30 or 90/60 buffers",
+    "rollover_timezone": "America/New_York",
+    "rollover_no_entry": "16:45-17:15, Friday through Sunday reopening",
+    "entry": "Next minute after a fully closed signal; preserve session trade caps",
+    "exit": "Preceding safe minute close before a blackout; always flat by lane cutoff"
+  },
+  "policies": [
+    {"id": "strict_60_30", "global_medium": "blackout", "timed_macro_pre_minutes": 60, "timed_macro_post_minutes": 30},
+    {"id": "scoped_60_30", "global_medium": "observe", "timed_macro_pre_minutes": 60, "timed_macro_post_minutes": 30},
+    {"id": "scoped_45_30", "global_medium": "observe", "timed_macro_pre_minutes": 45, "timed_macro_post_minutes": 30},
+    {"id": "scoped_30_30", "global_medium": "observe", "timed_macro_pre_minutes": 30, "timed_macro_post_minutes": 30}
+  ],
+  "global_medium_definition": "source_currency == All AND impact == medium, excluding any central-bank event or holiday; classification applies uniformly to all names and dates",
+  "calendar_data_policy": "Never invent a precise timestamp for a tentative event; do not mutate the original calendar",
+  "unverified_spread_guard": "Full-period bid/ask spreads are unavailable; liquidity re-entry cannot be claimed verified and no paper/live promotion is enabled",
+  "no_date_specific_exceptions": true,
+  "no_production_changes": true
+}

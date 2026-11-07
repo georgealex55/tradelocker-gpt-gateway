@@ -671,3 +671,53 @@ OPENBLAS_NUM_THREADS=1 python scripts/xmi-session-news-attribution.py \
   --calendar "$research_dir/XMI_Economic_Calendar_2022_2024.json" \
   --output "$research_dir/gold-news-attribution-new.json"
 ```
+
+## Follow-up · Preregistered news-policy refinement · 2026-11-07
+
+Implemented four research-only event-aware policy candidates and compared them on the same 24 fixed instrument/lane leaders across all eight instruments. The original strategy parameters, risk budgets, sizing, costs, session clocks, entry timing and risk halts remain unchanged. This bounded comparison tested 96 policy/benchmark configurations and 1,152 independent USD 1,000 account cases: four policies × 24 benchmarks × four periods × three cost cases. Production and staging controls remain unchanged.
+
+| Policy | Medium-impact global meetings | Timed macro block before/after | Policy decisions, press conferences and minutes |
+| --- | --- | --- | --- |
+| strict_60_30 | Full existing blackout | 60/30 minutes | 90/60 minutes |
+| scoped_60_30 | Observe-only research overlay | 60/30 minutes | 90/60 minutes |
+| scoped_45_30 | Observe-only research overlay | 45/30 minutes | 90/60 minutes |
+| scoped_30_30 | Observe-only research overlay | 30/30 minutes | 90/60 minutes |
+
+The meeting-scope rule applies uniformly when provider source_currency is All and impact is medium, excluding holidays and central-bank policy events. It contains no name/date exceptions chosen from profitable 2024 windows. High-impact global events and uncertain currency-specific events retain their full provider-day blocks and original buffers. Holidays retain their full-day blocks. The 16:45–17:15 America/New_York rollover backstop and Friday-to-Sunday restriction remain intact. Tentative events never acquire invented precise times. General speeches classified as macro events follow the timed macro buffer; the wider 90/60 policy buffer applies to the existing FOMC/central-bank event kinds.
+
+The [candidate catalog](xmi-session-news-policy-candidates-20261107.json) and input hashes were fixed before computing this batch's results. The training-only selector requires at least 25 trades, positive net P/L, PF strictly above 1.05, marked equity drawdown strictly below 10% and no halt in every 2022 and 2023 account at 1×, 1.5× and 2× spread/slippage costs. It ranks eligible candidates by their worst training account, retaining the earlier, more conservative policy on a tie. When no candidate passes, it explicitly falls back to strict_60_30. The entire training selection was written and hashed before starting this batch's 2024 replays. A separate 2022-only choice was also evaluated on already-used 2023 data; no benchmark had an eligible 2022-only policy.
+
+Zero policies pass the full training screen for any of the 24 benchmarks. No policy produces positive base-cost P/L in both training years for any benchmark. Every benchmark therefore retains the strict fallback. The following counts compare each policy's 2024 net to that benchmark's strict result, not a pooled portfolio:
+
+| Policy | Training policy passes /24 | 2024 benchmarks improved /24 | 2024 benchmarks worsened /24 | Median 2024 net change USD |
+| --- | ---: | ---: | ---: | ---: |
+| strict_60_30 | 0 | 0 | 0 | +0.00 |
+| scoped_60_30 | 0 | 4 | 20 | -4.60 |
+| scoped_45_30 | 0 | 4 | 20 | -5.21 |
+| scoped_30_30 | 0 | 4 | 20 | -5.23 |
+
+The same gold New York intraday momentum benchmark illustrates the tradeoff. Each 2024 half starts at USD 1,000 independently; P/L and counts combine those two accounts, and drawdown is the higher fold drawdown. These are reused development results:
+
+| Policy | 2024 net USD | PF | Trades | Max fold DD | 1.5× cost net USD | 2× cost net USD |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| strict_60_30 | +72.64 | 1.163 | 175 | 6.08% | +12.27 | -51.91 |
+| scoped_60_30 | +96.56 | 1.201 | 189 | 5.19% | +4.28 | -50.08 |
+| scoped_45_30 | +98.74 | 1.205 | 190 | 5.19% | +6.88 | -121.72 |
+| scoped_30_30 | +102.93 | 1.214 | 191 | 5.19% | +10.07 | -42.01 |
+
+The scoped 30/30 version improves gold's base-cost net by USD 30.29, but reduces its 1.5× cost net from USD 12.27 to USD 10.07 and remains negative at 2× costs. It has only 191 validation trades and PF 1.214. Its 2023 base-cost training account loses USD 100.67 and triggers the drawdown halt. The scoped 45/30 version also triggers a 2024 drawdown halt at 2× costs. Adjacent-window and cost behavior therefore do not justify adopting a looser policy. Strict remains the research default, and zero strategies qualify or advance to paper execution.
+
+The policy selector uses 2022–2023 only, but the benchmark choices and hypotheses were already influenced by 2024. Calling the new 2024 figures fresh out-of-sample results would be incorrect. Limiting this comparison does not erase the earlier 157,221-configuration screen or the 55 event-type/200 window diagnostics. No PBO, CSCV or statistical-significance guarantee has been calculated. Chronological evaluation and explicit trial accounting follow the concerns described by [Bailey et al.](https://www.davidhbailey.com/dhbpapers/backtest-prob.pdf) and the [time-series validation documentation](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.TimeSeriesSplit.html).
+
+Workspace maintenance removed the earlier local price cache. The code and latest report/calendar evidence were recovered, and all 24 HistData ZIPs were restored once using the existing public downloader. Every archive matches its original committed SHA-256. No 2025 archive was downloaded or opened. The calendar retains its original audited hash, and the known 2023 missing price windows remain excluded. A private reusable input checkpoint now contains exactly those 24 archives: `XMI_Verified_HistData_2022_2024.zip` (81,767,923 bytes), SHA-256 `e5aa9dc266cb645c6f37842a0468fa3791ccbec4ee7cde15b6c0db587dbc224c`. No raw vendor rows are included in the Git changes.
+
+All 28 relevant regression tests passed. Seven new checks cover uniform global-event scope, retained holiday/high-impact/uncertain-time blocks, central-bank buffer preservation, macro boundaries, rollover, failed-stress fallback and rejection of validation folds by the selector. All 192 strict base/stress account results match the earlier checkpoint exactly. All 40,657 retained validation trades across the candidate policies and cost cases passed blackout and ordering audits. Input hashes, configurations, costs, selection records, trade-log hashes and all per-period metrics are in [the full comparison](xmi-session-news-refinement-20261107.json). The [preregistration](xmi-session-news-refinement-preregistration-20261107.json) and [training selection freeze](xmi-session-news-refinement-freeze-20261107.json) preserve the decision order.
+
+The 2025 holdout remains sealed. Retrospective event labels/timing and unobserved event-specific bid/ask execution costs still prevent qualification claims. No orders, paid data, private production credentials or production/staging changes were used. Next bounded work should investigate the strategy's entry/exit edge and independently observed execution costs; the evidence does not support relaxing the current default news protections.
+
+```bash
+OPENBLAS_NUM_THREADS=1 python scripts/xmi-session-news-refinement.py \
+  --cache "$research_dir/histdata" \
+  --calendar "$research_dir/XMI_Economic_Calendar_2022_2024.json" \
+  --output "$research_dir/news-refinement-new" --workers 8
+```
