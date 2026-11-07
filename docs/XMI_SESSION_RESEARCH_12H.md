@@ -321,3 +321,102 @@ OPENBLAS_NUM_THREADS=1 python scripts/xmi-session-audit-leaders.py \
   --screen-audit docs/xmi-session-screen-audit-checkpoint-10.json \
   --output "$research_dir/increment-11-leader-audit.json"
 ```
+
+## Checkpoint 12 · Final XMI research report
+
+**Zero strategies qualified.** The 2022–2024 development inventory contained 157,221 distinct strategy-and-sizing configurations across seven FX majors and spot XAU/USD. None cleared development. The frozen shortlist was empty, so the 2025 holdout remained sealed and generated zero trades. There is no forward-paper performance evidence.
+
+### 2024 validation ranking
+
+Each lane ranks one leader per instrument by combined 2024 net P&L among configurations with at least 150 trades and under 10% drawdown. These are descriptive ranks selected on 2024 data. Each training year and each validation half began at USD 1,000 in a separate account. Dollar results and trades add across the two validation halves. Drawdown is the larger half-year equity drawdown. Gross is net plus modeled execution costs. Profit factor divides positive after-cost trade P&L by absolute negative after-cost trade P&L.
+
+#### Session open
+
+| Rank | Instrument | Setup | Trades | Gross USD | Net USD | USD/trade | PF | Max DD | Net 1.5× / 2× USD | Failed gates |
+| ---: | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 1 | XAU/USD | 15m opening context failure aligned · dual open | 153 | +177.25 | +54.49 | +0.36 | 1.171 | 9.77% | −49.50 / −85.90 | L, H, P, C |
+| 2 | USD/JPY | 5m opening failure · london open | 162 | +166.59 | +13.75 | +0.08 | 1.043 | 5.69% | −16.24 / −25.08 | L, H, P, C |
+| 3 | GBP/USD | 5m opening context failure plain · ny open | 160 | +36.18 | −19.92 | −0.12 | 0.753 | 1.88% | −26.79 / −36.92 | L, P, C |
+| 4 | USD/CAD | 5m opening failure · ny open | 155 | +41.91 | −22.49 | −0.15 | 0.786 | 1.97% | −21.90 / −7.96 | L, P, C |
+| 5 | EUR/USD | 15m opening context failure plain · ny open | 161 | +26.26 | −30.83 | −0.19 | 0.689 | 2.02% | −46.90 / −35.97 | L, P, C |
+| 6 | USD/CHF | 5m rsi recovery · london open | 168 | +27.16 | −34.10 | −0.20 | 0.624 | 3.59% | −58.84 / −83.59 | L, H, P, C |
+| 7 | AUD/USD | 15m opening failure · london open | 158 | +9.97 | −42.17 | −0.27 | 0.392 | 3.40% | −53.00 / −20.09 | L, P, C |
+| 8 | NZD/USD | 15m opening context failure plain · london open | 156 | +8.56 | −44.24 | −0.28 | 0.321 | 2.94% | −59.68 / −57.41 | L, P, C |
+
+#### Session close
+
+| Rank | Instrument | Setup | Trades | Gross USD | Net USD | USD/trade | PF | Max DD | Net 1.5× / 2× USD | Failed gates |
+| ---: | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 1 | XAU/USD | 15m trend momentum · dual close | 229 | +247.55 | +73.31 | +0.32 | 1.159 | 7.85% | −11.81 / −45.57 | L, H, P, C |
+| 2 | EUR/USD | 15m trend momentum · dual close | 160 | +31.00 | −22.46 | −0.14 | 0.690 | 2.11% | −32.66 / −24.96 | L, P, C |
+| 3 | USD/CHF | 5m close reversal · london close | 160 | +34.85 | −23.67 | −0.15 | 0.731 | 2.10% | −33.90 / −3.83 | L, P, C |
+| 4 | GBP/USD | 5m close reversal · london close | 186 | +35.90 | −32.74 | −0.18 | 0.760 | 3.57% | −38.06 / −19.62 | L, P, C |
+| 5 | USD/JPY | 15m trend momentum · dual close | 167 | +17.69 | −35.30 | −0.21 | 0.636 | 2.71% | −41.47 / −34.64 | L, P, C |
+| 6 | USD/CAD | 15m donchian breakout · london close | 186 | +16.63 | −42.61 | −0.23 | 0.626 | 2.79% | −60.84 / −62.13 | L, P, C |
+| 7 | NZD/USD | 5m close reversal · london close | 158 | +7.84 | −49.91 | −0.32 | 0.439 | 3.35% | −37.79 / −16.15 | L, P, C |
+| 8 | AUD/USD | 15m trend momentum · dual close | 182 | +8.48 | −53.56 | −0.29 | 0.427 | 3.05% | −56.57 / −32.26 | L, P, C |
+
+#### Intraday
+
+| Rank | Instrument | Setup | Trades | Gross USD | Net USD | USD/trade | PF | Max DD | Net 1.5× / 2× USD | Failed gates |
+| ---: | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 1 | XAU/USD | 15m trend momentum · ny intraday | 222 | +350.65 | +186.97 | +0.84 | 1.330 | 6.51% | +93.63 / +19.60 | L, H, C |
+| 2 | USD/JPY | 30m structure bos · london intraday | 186 | +49.36 | −8.18 | −0.04 | 0.925 | 3.18% | −22.09 / −28.55 | L, P, C |
+| 3 | GBP/USD | 15m intraday mean hourly · london intraday | 175 | +41.03 | −16.72 | −0.10 | 0.826 | 2.62% | −47.92 / −59.40 | L, P, C |
+| 4 | EUR/USD | 15m rsi recovery · ny intraday | 159 | +55.69 | −19.55 | −0.12 | 0.836 | 2.68% | −53.78 / −64.57 | L, P, C |
+| 5 | AUD/USD | 30m trend momentum · ny intraday | 153 | +20.27 | −30.22 | −0.20 | 0.701 | 2.50% | −39.97 / −17.78 | L, P, C |
+| 6 | USD/CAD | 15m intraday sweep · london intraday | 156 | +17.25 | −32.68 | −0.21 | 0.654 | 4.00% | −36.17 / −30.17 | L, P, C |
+| 7 | USD/CHF | 5m rsi recovery · ny intraday | 220 | +42.59 | −37.80 | −0.17 | 0.734 | 4.38% | −70.30 / −102.79 | L, P, C |
+| 8 | NZD/USD | 30m structure bos · ny intraday | 164 | +9.09 | −45.03 | −0.27 | 0.449 | 3.24% | −62.27 / −60.64 | L, P, C |
+
+### Advancement and qualification
+
+- **Development gates.** V requires at least 150 combined validation trades. N requires at least 25 trades in each of the four folds. L requires strictly positive net P&L in each fold. H requires no drawdown halt in any fold. P requires profit factor strictly above 1.05 in each validation half. C is the robustness check requiring positive net P&L, drawdown below 10% and no halt in each fold at 1.5× spread and slippage. The base failures alone eliminated every candidate.
+- **Holdout gates.** At least 200 distinct completed trades, positive net expectancy, profit factor strictly above 1.50, drawdown strictly below 10% without a halt, positive net and drawdown below 10% without a halt at 1.5× costs, clean data and timing, and stability across nearby settings and market periods. The 2× case is a separate sensitivity check. With zero frozen candidates, these gates were unevaluated on 2025.
+- **Closest observations.** New York gold momentum made USD 186.97 at base costs, USD 93.63 at 1.5× and USD 19.60 at 2× in 2024. It lost USD 32.63 in 2022 and USD 91.98 in 2023, and its weekly 95% expectancy interval included zero. The training-selected USD/CAD late-London Donchian breakout made USD 20.63 at a 1.815 profit factor but had only 28 validation trades and lost USD 7.49 at 2× costs.
+
+### Configurations and execution
+
+| Profile | Distinct configurations |
+| --- | ---: |
+| expanded | 36,855 |
+| targeted | 51,948 |
+| legacy | 54 |
+| opening-context | 6,624 |
+| closing-context | 10,692 |
+| intraday-context | 9,072 |
+| gold-sizing | 2,592 |
+| structure | 4,608 |
+| fx opening | 34,776 |
+
+The 88,857 baseline configurations included EMA cross, RSI recovery, Donchian breakout, EMA plus RSI momentum, modeled public presets and the documented USD/CHF legacy replay. The 68,364 additions tested opening-range confirmation, pre-open drift, closing reversal and continuation, higher-timeframe intraday filters, fractional gold sizing, and confirmed swing and double-pattern rules. The 117,837 parity reruns, 103 robustness configurations and 288 leader account replays do not increase the distinct count.
+
+The engine used 5-, 15- and 30-minute decision candles and selected 60-minute rules. London and New York opens were 08:00–10:00 local. London closes were 15:00–17:00 or 15:30–16:30 local, New York close was 15:00–16:45, and intraday was 10:00–15:00 in each city. Gold also used 08:20–10:20 and 12:30–13:45 New York activity windows. Entries were at the next minute open after a completed signal and strictly before the local cutoff. Positions flattened by cutoff. The replay handled adverse gaps at the next observed open, gave the stop priority on ambiguous bar ranges and stopped new trading after a 10% marked drawdown.
+
+| Model | Spread | Slippage per side | Commission per side | Minimum and step | Leverage |
+| --- | ---: | ---: | ---: | --- | ---: |
+| Spot FX | 2.0 pips | 0.3 pips | USD 3.50 per 100,000 units | 1,000 units | 30:1 |
+| Spot XAU/USD | USD 0.45/oz | USD 0.07/oz | USD 0.035/oz | 1 oz, with separate 0.1 oz sensitivity | 20:1 |
+
+Entry margin was capped at 90% of equity. Risk budgets were 0.25%, 0.5% or 1% of equity. Below-minimum sizes were skipped. USD-base FX P&L was converted to dollars at the modeled exit. Stress increased spread and slippage with unchanged commission. Costs are modeled using a bid archive and paired samples from the same provider.
+
+### Coverage and remaining work
+
+HistData Generic ASCII one-minute bid archives covered 2022–2024, ending roughly 22 months before this report. Source timestamps were fixed EST and converted to UTC before applying DST-aware session clocks. Verified all 24 development archive hashes against the freeze. Retained counts exclude exact duplicates and off-week minutes.
+
+| Instrument | 2022 minutes | 2023 minutes | 2024 minutes |
+| --- | ---: | ---: | ---: |
+| EUR/USD | 370,948 | 321,259 | 370,587 |
+| GBP/USD | 370,579 | 321,272 | 370,264 |
+| USD/JPY | 370,682 | 321,760 | 370,230 |
+| USD/CHF | 367,500 | 319,429 | 369,210 |
+| AUD/USD | 369,646 | 320,686 | 368,970 |
+| USD/CAD | 369,483 | 319,971 | 369,094 |
+| NZD/USD | 368,516 | 319,631 | 368,607 |
+| XAU/USD | 352,769 | 307,315 | 353,792 |
+
+The archive had recurring 2023 session gaps. EUR/USD New York open had 156 of 260 complete weekdays in 2023 versus 259 of 262 in 2024 before the pre-open prefix requirement. Affected windows were excluded. The paired January 2024 HistData ticks checked bid alignment and spread plausibility. Dukascopy rate limits and FXCM access failures left broad independent feed confirmation unresolved. Exact VWAP was blocked by zero recorded minute volume. The undefined custom preset, a shared-capital portfolio, 2025 and forward performance were unevaluated. The portfolio had no eligible constituents. Twelve Data was excluded.
+
+A practical paper next step is to log fresh paired quotes and simulated fills with zero orders, using fixed rules and separate USD 1,000 accounts. Use gold intraday momentum only as an execution benchmark. Compare actual observed spreads, minimum sizes and timing to the model, and require a new preregistered candidate to pass development before using sealed holdout data or starting a qualifying forward-paper run.
+
+[Frozen shortlist](xmi-session-frozen-checkpoint-10.json) · [Screen counts, configuration IDs and coverage](xmi-session-screen-audit-checkpoint-10.json) · [Fold and cost replays](xmi-session-leader-audit-checkpoint-11.json)
