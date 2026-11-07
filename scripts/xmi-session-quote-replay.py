@@ -105,7 +105,7 @@ def exit_trade(times, bid, ask, first, last, side, distance, model, equity, peak
     return first + i, float(net[i]), float(peaks[i]), float(dd[:i + 1].max()), reason
 
 
-def replay(study, variant, step, fold_indexes, aligned, matched_ends, times, bid, ask, case):
+def replay(study, variant, step, fold_indexes, aligned, matched_ends, times, bid, ask, case, restrictions=None):
     model = research.money_model(study.symbol, variant, 1.5 if case == "stressed" else 1.0, step)
     if case == "fixed":
         ask = bid + model.spread
@@ -130,6 +130,7 @@ def replay(study, variant, step, fold_indexes, aligned, matched_ends, times, bid
     drawdown, next_minute, window_end, window_trades = 0.0, 0, -1, 0
     skips = {"stop_cost": 0, "min_size": 0}
     trades = []
+    control_exits = {}
     for i, (entry, end, side, distance, limit) in enumerate(zip(first, ends, sides, distances, limits, strict=True)):
         entry_minute = study.t[entry]
         if end not in matched_ends or entry_minute < next_minute or not np.isfinite(distance) or distance <= 0:
@@ -139,6 +140,11 @@ def replay(study, variant, step, fold_indexes, aligned, matched_ends, times, bid
         if window_trades >= model.trades_per_window:
             continue
         start = aligned[entry]
+        if restrictions is not None:
+            blocked = restrictions.entry_reason(int(times[start]))
+            if blocked:
+                skips[blocked] = skips.get(blocked, 0) + 1
+                continue
         entry_spread = ask[start] - bid[start]
         commission = 2 * model.commission_per_unit_side
         friction = entry_spread + 2 * model.slippage
@@ -164,8 +170,17 @@ def replay(study, variant, step, fold_indexes, aligned, matched_ends, times, bid
                 if sides[j] != side:
                     final, reason = first[j], "flip"
                     break
+        if restrictions is not None:
+            minute, control_reason = restrictions.last_allowed_minute(int(times[start]), int(study.t[final]))
+            if control_reason:
+                final = int(np.searchsorted(study.t, minute))
+                reason = control_reason
         finish, net, peak, dd, reason = exit_trade(
             times, bid, ask, start, aligned[final], side, distance, model, equity, peak, units, reason)
+        if restrictions is not None:
+            restrictions.verify_trade(int(times[start]), int(times[finish]))
+            if reason in ("news", "rollover", "news+rollover"):
+                control_exits[reason] = control_exits.get(reason, 0) + 1
         equity += net
         drawdown = max(drawdown, dd)
         next_minute = times[finish] // MINUTE_MS + 1 + model.cooldown_minutes
@@ -177,14 +192,17 @@ def replay(study, variant, step, fold_indexes, aligned, matched_ends, times, bid
 
     pnl = np.array([trade["net_usd"] for trade in trades])
     wins, losses = float(pnl[pnl > 0].sum()), float(-pnl[pnl < 0].sum())
-    return {"trades": len(trades), "net_usd": round(equity - 1000, 6),
+    result = {"trades": len(trades), "net_usd": round(equity - 1000, 6),
             "expectancy_usd": round(float(pnl.mean()), 6) if trades else None,
             "profit_factor": round(wins / losses, 6) if losses else None,
             "max_drawdown": round(drawdown, 8), "halted": bool(drawdown >= model.max_drawdown),
             "skip_counts": skips, "trade_ledger_sha256": research.digest(trades)}
+    if restrictions is not None:
+        result["control_exits"] = control_exits
+    return result
 
 
-def run_symbol(symbol, leaders, expected_ticks, expected_bars, cache, ticks, normalized, executable):
+def run_symbol(symbol, leaders, expected_ticks, expected_bars, cache, ticks, normalized, executable, control_profiles=None):
     windows = sorted({row["variant"]["window"] for row in leaders.values()})
     study = research.Study(cache, symbol, research.DEVELOPMENT, executable, windows)
     if study.manifest != expected_bars:
@@ -222,6 +240,12 @@ def run_symbol(symbol, leaders, expected_ticks, expected_bars, cache, ticks, nor
             ends = {right - 1 for _, _, right in matched}
             results[group]["cases"] = {case: replay(study, variant, row["step_oz"], fold_indexes, aligned,
                                                    ends, times, bid, ask, case) for case in CASES}
+            if control_profiles:
+                results[group]["controls"] = {
+                    name: {case: replay(study, variant, row["step_oz"], fold_indexes, aligned, ends,
+                                        times, bid, ask, case, restrictions) for case in CASES}
+                    for name, restrictions in control_profiles.items()
+                }
         else:
             results[group]["blocked"] = "No complete session windows with exact bid OHLC parity"
     return symbol, {"paired_archive": source | parity, "m1_archives": study.manifest, "results": results}

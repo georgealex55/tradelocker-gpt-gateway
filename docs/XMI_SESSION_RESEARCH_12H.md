@@ -466,3 +466,34 @@ OPENBLAS_NUM_THREADS=1 python scripts/xmi-session-quote-replay.py \
   --normalized "$research_dir/normalized-ticks-202401" \
   --output "$research_dir/paired-quote-replay-202401.json"
 ```
+
+## Follow-up · News and rollover controls
+
+Added calendar blackouts and a rollover backstop to the research quote replay. The news windows reuse the existing XMI event settings. Standard releases block entries from 60 minutes before until 30 minutes after. FOMC events use 90 minutes before and 60 minutes after. A relevant currency in either leg makes the blackout apply. Gold uses USD events. Open positions close on the first observed quote in the last permitted minute before the blackout starts.
+
+Rollover uses America/New_York local time, with a modeled entry block from 16:45 through 17:15 and flattening before 16:45. Friday's block extends through Sunday 17:15. Winter and summer boundaries are calculated separately. The 17:00 reference comes from OANDA's published FX and gold financing rules. The execution broker's contract schedule and holiday adjustments remain unverified. Current research lanes end by New York 16:45, so the rollover backstop changed none of the 72 original quote replay cases. [OANDA financing policy](https://www.oanda.com/ca-en/trading/financing-costs/)
+
+The new runner defaults to strict calendar coverage. It blocks news-controlled trades when the calendar lacks full coverage for the period and the instrument's currencies. A partial calendar requires an explicit diagnostic option. The January sample contains 11 verified scheduled USD releases from BLS, BEA and the Federal Reserve, including CPI, payrolls, JOLTS, GDP, PCE and the FOMC decision, minutes and press conference. It is marked partial because other USD announcements, other currencies, speeches and unscheduled headlines are incomplete. Event times come from official historical pages. Contemporaneous changes to the original calendars are unarchived. [BLS calendar](https://www.bls.gov/schedule/2024/01_sched.htm) · [BEA GDP release](https://www.bea.gov/news/2024/gross-domestic-product-fourth-quarter-and-year-2023-advance-estimate) · [BEA PCE release](https://www.bea.gov/news/2024/personal-income-and-outlays-december-2023) · [FOMC statement](https://www.federalreserve.gov/newsevents/pressreleases/monetary20240131a.htm)
+
+The diagnostic comparison replayed the same 24 January 2024 setups with USD 1,000 per account and fixed, observed and stressed costs. It compared unfiltered entries, news controls, rollover controls and both controls together. Every unfiltered result and simulated trade-log hash matched the prior replay. At observed spreads the news controls blocked 29 otherwise considered entries and forced 10 early exits. Net P&L improved for six setups, worsened for seven and was unchanged for eleven.
+
+| January setup at observed spread | Original trades | Original net USD | Controlled trades | Controlled net USD | Controlled PF | Controlled max DD | Controlled stress net USD |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| USD/JPY London failed breakout | 24 | +46.20 | 24 | +46.20 | 2.589 | 0.98% | +15.68 |
+| XAU/USD New York intraday momentum | 16 | +7.80 | 15 | +10.58 | 1.252 | 3.35% | +4.13 |
+| XAU/USD closing momentum | 20 | −25.49 | 19 | −22.93 | 0.467 | 3.27% | −30.39 |
+
+Seven regression tests covered incomplete-calendar blocking, currency scope, explicit timezone offsets, inclusive boundaries, winter and summer rollover, weekend reopening and closing a synthetic position before a release. Ten boundary cases matched the existing JavaScript blackout helper. Strict mode produced zero news-controlled trades with the incomplete sample. All 216 controlled diagnostic cases reproduced after the checks. Zero strategies qualified. Calendar breadth and future months remain research work, and the 2025 holdout remains sealed.
+
+[Calendar input](xmi-news-calendar-202401.json) · [Comparison and input hashes](xmi-session-event-controls-202401.json)
+
+The new research entrypoint is strict by default. Use the explicit partial-calendar flag only for a labeled diagnostic run.
+
+```bash
+OPENBLAS_NUM_THREADS=1 python scripts/xmi-session-event-controls.py \
+  --cache "$research_dir/histdata" --ticks "$research_dir/paired-histdata" \
+  --normalized "$research_dir/normalized-ticks-202401" \
+  --calendar docs/xmi-news-calendar-202401.json \
+  --allow-partial-news --output "$research_dir/event-controls-202401.json"
+python -m unittest discover -s tests -p test_xmi_event_controls.py
+```

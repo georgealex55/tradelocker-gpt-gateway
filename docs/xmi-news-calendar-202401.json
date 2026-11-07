@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "valid_from": "2024-01-01T00:00:00Z",
+  "valid_to": "2024-02-01T00:00:00Z",
+  "complete_currencies": [],
+  "coverage": "partial",
+  "limitations": [
+    "Selected BLS, BEA and Federal Reserve scheduled USD releases only.",
+    "Other national calendars, retail sales, ISM, weekly claims, speeches and unscheduled headlines are incomplete.",
+    "Release times are retrospectively verified from official archives. Contemporaneous calendar revisions are not archived."
+  ],
+  "events": [
+    {
+      "name": "JOLTS November 2023",
+      "currencies": [
+        "USD"
+      ],
+      "scheduled_at": "2024-01-03T10:00:00-05:00",
+      "kind": "macro",
+      "source": "https://www.bls.gov/schedule/2024/01_sched.htm"
+    },
+    {
+      "name": "FOMC minutes December 2023",
+      "currencies": [
+        "USD"
+      ],
+      "scheduled_at": "2024-01-03T14:00:00-05:00",
+      "kind": "fomc",
+      "source": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20240103a.htm"
+    },
+    {
+      "name": "Employment Situation December 2023",
+      "currencies": [
+        "USD"
+      ],
+      "scheduled_at": "2024-01-05T08:30:00-05:00",
+      "kind": "macro",
+      "source": "https://www.bls.gov/schedule/2024/01_sched.htm"
+    },
+    {
+      "name": "CPI December 2023",
+      "currencies": [
+        "USD"
+      ],
+      "scheduled_at": "2024-01-11T08:30:00-05:00",
+      "kind": "macro",
+      "source": "https://www.bls.gov/schedule/2024/01_sched.htm"
+    },
+    {
+      "name": "PPI December 2023",
+      "currencies": [
+        "USD"
+      ],
+      "scheduled_at": "2024-01-12T08:30:00-05:00",
+      "kind": "macro",
+      "source": "https://www.bls.gov/schedule/2024/01_sched.htm"
+    },
+    {
+      "name": "GDP Q4 2023 advance",
+      "currencies": [
+        "USD"
+      ],
+      "scheduled_at": "2024-01-25T08:30:00-05:00",
+      "kind": "macro",
+      "source": "https://www.bea.gov/news/2024/gross-domestic-product-fourth-quarter-and-year-2023-advance-estimate"
+    },
+    {
+      "name": "Personal Income and Outlays December 2023",
+      "currencies": [
+        "USD"
+      ],
+      "scheduled_at": "2024-01-26T08:30:00-05:00",
+      "kind": "macro",
+      "source": "https://www.bea.gov/news/2024/personal-income-and-outlays-december-2023"
+    },
+    {
+      "name": "JOLTS December 2023",
+      "currencies": [
+        "USD"
+      ],
+      "scheduled_at": "2024-01-30T10:00:00-05:00",
+      "kind": "macro",
+      "source": "https://www.bls.gov/schedule/2024/01_sched.htm"
+    },
+    {
+      "name": "Employment Cost Index Q4 2023",
+      "currencies": [
+        "USD"
+      ],
+      "scheduled_at": "2024-01-31T08:30:00-05:00",
+      "kind": "macro",
+      "source": "https://www.bls.gov/schedule/2024/01_sched.htm"
+    },
+    {
+      "name": "FOMC policy statement",
+      "currencies": [
+        "USD"
+      ],
+      "scheduled_at": "2024-01-31T14:00:00-05:00",
+      "kind": "fomc",
+      "source": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20240131a.htm"
+    },
+    {
+      "name": "FOMC press conference",
+      "currencies": [
+        "USD"
+      ],
+      "scheduled_at": "2024-01-31T14:30:00-05:00",
+      "kind": "fomc",
+      "source": "https://www.federalreserve.gov/foia/chair-powell-calendar-012024.htm"
+    }
+  ]
+}
