@@ -306,3 +306,18 @@ Zero passed the base or stressed development screen. The earlier targeted USD/JP
 Reran 117,837 previously screened configurations on the current engine, including expanded, targeted, legacy, gold opening, closing, FX intraday and gold sizing. Their archives, coverage and every result row matched the earlier outputs exactly. The legacy rerun used the lockfile-verified trading-signals 8.3.0 dependency. With the new FX openings and the current-engine structure screen, the inventory contains 157,221 distinct strategy-and-sizing configurations. The standard freeze consumed 154,629 configurations. A separate identical rerun checked the 2,592 gold sizing sensitivity cases against the same base and stress gates. There were zero eligible candidates in either set.
 
 The [immutable freeze](xmi-session-frozen-checkpoint-10.json) records an empty shortlist and no holdout archive hashes. Its canonical hash is `bdeb88ffa4306410b9bdf55b804408c03b49817f5254a0149e0dd56c51d90f96`. The [screen audit](xmi-session-screen-audit-checkpoint-10.json) records the input hashes, coverage, configuration IDs and descriptive leaders by instrument and lane. The 2025 holdout was untouched. The next checkpoint can verify the frozen decision and record that no holdout trades were eligible for replay. Keep any timing and coverage audit on development data.
+
+## Checkpoint 11 · 2026-11-06
+
+Verified the canonical hash of the Checkpoint 10 empty freeze against its screen audit and the current engine. The holdout command, pointed at an empty cache directory, returned an empty results array. It ran zero strategies and read zero 2025 archives. The output SHA-256 is `b0ad6d6b1afc5956b2e4d1e06085daec4c3577f1103d84b834fbb1db92a8cfb5`. There are zero qualifiers because zero strategies reached the holdout.
+
+On 2022–2024 data, replayed the 24 descriptive leaders, one for each instrument and lane, under base, 1.5× and 2× spread and slippage with unchanged commission. Each of the 288 independent replays started at USD 1,000. Archive hashes matched the freeze. All 24 base benchmarks reproduced, as did the existing 1.5× benchmarks where available. Checked 22,245 completed trade records against planned entries, trade direction, independent DST-aware local window calculations, fold boundaries, no same-account overlap, maximum holding time and lot increments. Also verified friction and commission arithmetic on 12,504 USD-quoted trade records. USD-base trade costs reproduced through replay, and the per-fill conversion was outside the independent arithmetic check.
+
+Four descriptive leaders earned positive 2024 net at base costs. Only XAU/USD New York intraday momentum stayed positive at both 1.5× and 2× costs. It lost money in both training years. No descriptive leader reached all four numeric qualification thresholds even on the 2024 validation sample. These are development results selected from the 2024 sample. The [leader audit](xmi-session-leader-audit-checkpoint-11.json) records configuration IDs, the freeze reference, 2022–2024 fold results and validation metrics under all three cost cases. Next, publish the final rankings and gate-by-gate report using the frozen inventory and these cost replays.
+
+```bash
+OPENBLAS_NUM_THREADS=1 python scripts/xmi-session-audit-leaders.py \
+  --cache "$research_dir/histdata" --freeze docs/xmi-session-frozen-checkpoint-10.json \
+  --screen-audit docs/xmi-session-screen-audit-checkpoint-10.json \
+  --output "$research_dir/increment-11-leader-audit.json"
+```
