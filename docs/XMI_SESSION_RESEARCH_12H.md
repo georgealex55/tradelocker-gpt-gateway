@@ -627,3 +627,47 @@ OPENBLAS_NUM_THREADS=1 python scripts/xmi-session-calendar-audit.py \
   --input "$research_dir/calendar-screen-new" \
   --output "$research_dir/calendar-screen-new-audit.json" --workers 8
 ```
+
+## Follow-up · Gold news-window attribution · 2026-11-07
+
+Diagnosed the same frozen 15-minute XAU/USD New York intraday EMA+RSI momentum configuration used in the complete-calendar replay. No parameters or blackout rules changed. The two 2024 validation accounts each started at USD 1,000 with the same base and stressed costs. Six baseline, full-calendar and stressed validation account replays exactly reproduced their saved results. The reconstructed raw-event intervals exactly matched the original merged blackout policy.
+
+Completed 626 bounded account replays: the six parity accounts, 55 event-type removals at two cost cases across both halves, and 200 merged-window removals at base costs across both halves. Each removal is a diagnostic counterfactual with every other restriction retained. The table shows the change in the two-account 2024 net when all relevant instances of that one event type are removed. A positive recovery means that event-type block reduced modeled profit; a negative recovery means the block protected modeled profit. Overlapping event types can keep a window blocked even when one type is removed. These conditional effects are nonlinear and must not be added together.
+
+| Event type removed | Instances | Net profit recovered USD | Resulting 2024 net USD | Resulting stressed net USD |
+| --- | ---: | ---: | ---: | ---: |
+| WEF Annual Meetings | 5 | +39.36 | +112.00 | +11.55 |
+| 30-y Bond Auction | 3 | +20.26 | +92.91 | +23.77 |
+| Prelim UoM Consumer Sentiment | 7 | +15.65 | +88.29 | +20.52 |
+| 10-y Bond Auction | 1 | +14.76 | +87.40 | +8.99 |
+| New Home Sales | 1 | +11.92 | +84.57 | +23.90 |
+| ISM Manufacturing PMI | 12 | +4.97 | +77.62 | +26.99 |
+| Fed Chairman Powell Testifies | 4 | +2.89 | +75.53 | +15.16 |
+| OPEC-JMMC Meetings | 6 | +2.45 | +75.09 | +23.87 |
+
+The WEF Annual Meetings block has the largest event-type opportunity cost at USD 39.36. Removing it increases modeled base-cost net from USD 72.64 to USD 112.00, while stressed net falls from USD 12.27 to USD 11.55. Higher base-cost profit therefore does not imply better execution-cost robustness. CPI, core CPI, regular non-farm payrolls, ADP and core PCE type-removal cases leave this configuration's net unchanged. The intraday lane starts at 10:00 America/New_York, after their modeled morning blackout windows.
+
+Some controls protect profit. These rows show the P/L change if the event type is removed:
+
+| Event type removed | Change in 2024 net USD |
+| --- | ---: |
+| FOMC Meeting Minutes | -9.15 |
+| G20 Meetings | -11.60 |
+| ISM Services PMI | -12.26 |
+| Revised UoM Consumer Sentiment | -13.21 |
+| Bank Holiday | -18.30 |
+
+Trade-level accounting reconciles the USD 114.324954 reduction from the unfiltered run. Fifty original entries disappear, including 24 winners and 26 losers with combined original net USD 72.570243. Forty-five overlap an entry blackout directly; five have no direct entry overlap and are left as downstream path effects, with original net USD 25.774000. Three new entries lose USD 23.653347. The 172 shared entries lose USD 18.101365 relative to their originals: six earlier exits account for USD 17.884365 of that reduction, and the remaining shared-entry effects account for USD 0.217000. No absent trade is assigned to an announcement solely because an event happened later.
+
+Twenty-one regression tests pass, including three new independent accounting checks for overlapping bundles, unexplained path effects and merged component membership. The private result contains all 55 event-type diagnostics, all 200 dated window diagnostics and the six early-exit event matches. Raw calendar rows and the dated window list were excluded from Git. The full private-result SHA-256 is `21dad35177da0de3b3e5d0116271e6aef6811e622698fe48fcf3bcbc99147ce1`. [Aggregate diagnostics and input hashes](xmi-session-news-attribution-2024.json)
+
+This measures opportunity costs of the model's blackout policy. It does not establish that an announcement caused a price move or that the omitted trades were executable at the fixed modeled spreads. The provider calendar remains retrospective; announcement and holiday execution costs are unverified. These are validation diagnostics, not new qualified strategies. The 2025 archive remains sealed, and production and staging services are unchanged. No orders were submitted.
+
+Next bounded work: inspect the classification and contemporaneous timing evidence for the broad WEF/OPEC blocks, and independently sample execution costs for the Treasury auction and FOMC windows. Keep these hypotheses separate from any future frozen strategy evaluation.
+
+```bash
+OPENBLAS_NUM_THREADS=1 python scripts/xmi-session-news-attribution.py \
+  --cache "$research_dir/histdata" \
+  --calendar "$research_dir/XMI_Economic_Calendar_2022_2024.json" \
+  --output "$research_dir/gold-news-attribution-new.json"
+```
