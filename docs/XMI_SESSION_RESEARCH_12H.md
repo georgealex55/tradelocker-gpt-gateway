@@ -544,3 +544,86 @@ python scripts/xmi-session-calendar.py \
   --output "$research_dir/XMI_Economic_Calendar_2022_2024.json" \
   --manifest "$research_dir/calendar-coverage-rebuilt.json"
 ```
+
+## Follow-up · Full calendar rerun · 2026-11-07
+
+Completed the full saved-grid rerun with the new 2022–2024 economic calendar. The HistData price archives, strategy rules and parameter grids were unchanged. All nine saved grid files matched their committed audit hashes and the original research engine identity. The inventory contains 157,221 unique effective strategy/sizing configurations across EUR/USD, GBP/USD, USD/JPY, USD/CHF, AUD/USD, USD/CAD, NZD/USD and spot XAU/USD. All configurations ran at base and 1.5× spread/slippage stress across 2022, 2023, 2024 H1 and 2024 H2: 1,257,768 independent USD 1,000 account replays.
+
+| Saved grid | Configurations rerun |
+| --- | ---: |
+| expanded | 36,855 |
+| targeted | 51,948 |
+| legacy | 54 |
+| opening-context | 6,624 |
+| closing-context | 10,692 |
+| intraday-context | 9,072 |
+| gold-sizing | 2,592 |
+| structure | 4,608 |
+| fx-opening | 34,776 |
+
+The strict calendar covers all eight currencies and global events, with standard 60-minute-before/30-minute-after blackouts and 90-minute-before/60-minute-after policy-event windows. Tentative/unknown/variable times use a full Europe/London provider day with buffers. Both FX currency legs apply; gold uses USD/global events. Entries remain after fully closed signals. The minute engine blocks any entry minute overlapping a restriction and closes at the preceding permitted minute's close before a blackout. It preserves each original session end and trade cap. This is minute-bar execution with modeled costs; the earlier January paired-quote replay uses observed quotes and a different forced-exit timestamp, so the two samples must be identified separately.
+
+Base costs are 2 pips spread and 0.3 pip adverse slippage per side for FX, plus USD 3.50 per 100,000 base units per side. Gold uses USD 0.45 spread per ounce, USD 0.07 adverse slippage per ounce per side and USD 0.035 commission per ounce per side. The stress case multiplies spreads and slippage by 1.5 with unchanged commissions. Position sizing and stop/cost filters recalculate at stressed costs. FX minimum and step remain 1,000 base units at 30:1 leverage. Gold tests retain the saved 1.0- and 0.1-ounce minimum/increment arms at 20:1 leverage. The original risk budgets, margin limits, pessimistic ambiguous stops, gap handling, lane flattening and 10% drawdown halt remain in force.
+
+Zero configurations pass the development screen, and zero satisfy all numerical validation qualification gates together. Across matched configurations, the calendar improves 2024 net P/L in 112,585 (71.6%), worsens it in 27,382 and leaves it unchanged in 17,254. These are per-configuration comparisons, not portfolio returns. Only ten configurations have positive 2024 net P/L with at least 150 trades, drawdown below 10% and no halt; all ten are gold. None reaches the complete qualification gates. All seven FX instruments' supported lane leaders remain net negative at modeled costs.
+
+The following table ranks the highest-net descriptive configuration per instrument and session lane among configurations with at least 150 validation trades, maximum validation fold drawdown below 10% and no validation halt. It is a comparison threshold, not the qualification threshold of at least 200 trades. Every instrument/lane had a configuration meeting that comparison threshold. The two 2024 halves each start at USD 1,000; net P/L and trade counts sum those separate accounts, and drawdown is the higher half-year value. The rows do not form a portfolio, and these validation-selected leaders have not earned a holdout test.
+
+| Lane | Instrument | 2024 trades | Gross P/L before costs USD | Costs USD | Net P/L USD | Expectancy USD | PF | Max fold DD | Stressed net USD |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| open | XAUUSD | 180 | +207.14 | 207.90 | -0.76 | -0.004 | 0.998 | 9.43% | -134.42 |
+| open | USDJPY | 198 | +78.60 | 82.80 | -4.20 | -0.021 | 0.975 | 3.08% | -13.98 |
+| open | USDCAD | 165 | +23.86 | 61.39 | -37.53 | -0.227 | 0.479 | 2.40% | -38.85 |
+| open | EURUSD | 150 | +9.06 | 49.83 | -40.77 | -0.272 | 0.402 | 2.90% | -52.14 |
+| open | AUDUSD | 200 | +23.97 | 66.33 | -42.36 | -0.212 | 0.485 | 3.49% | -64.42 |
+| open | USDCHF | 150 | +10.23 | 54.96 | -44.74 | -0.298 | 0.493 | 2.78% | -33.70 |
+| open | GBPUSD | 197 | +22.21 | 71.28 | -49.07 | -0.249 | 0.525 | 3.92% | -63.28 |
+| open | NZDUSD | 153 | -11.04 | 52.14 | -63.18 | -0.413 | 0.154 | 3.20% | -78.98 |
+| close | XAUUSD | 182 | +150.49 | 136.62 | +13.87 | +0.076 | 1.038 | 6.94% | -47.52 |
+| close | USDCHF | 150 | +39.24 | 54.89 | -15.65 | -0.104 | 0.801 | 1.97% | -27.96 |
+| close | EURUSD | 158 | +34.79 | 69.30 | -34.51 | -0.218 | 0.659 | 3.64% | -29.79 |
+| close | GBPUSD | 159 | +23.54 | 59.07 | -35.53 | -0.223 | 0.687 | 3.45% | -37.76 |
+| close | USDJPY | 154 | +11.92 | 48.86 | -36.93 | -0.240 | 0.573 | 3.35% | -29.04 |
+| close | NZDUSD | 159 | +21.20 | 67.32 | -46.12 | -0.290 | 0.508 | 2.83% | -44.20 |
+| close | AUDUSD | 162 | +11.84 | 58.08 | -46.24 | -0.285 | 0.442 | 2.64% | -44.46 |
+| close | USDCAD | 170 | +6.51 | 55.38 | -48.88 | -0.288 | 0.498 | 3.45% | -39.36 |
+| intraday | XAUUSD | 175 | +199.36 | 126.72 | +72.64 | +0.415 | 1.163 | 6.08% | +12.27 |
+| intraday | GBPUSD | 156 | +43.81 | 59.73 | -15.92 | -0.102 | 0.852 | 2.14% | -38.88 |
+| intraday | USDJPY | 161 | +36.09 | 55.72 | -19.63 | -0.122 | 0.821 | 4.11% | -35.39 |
+| intraday | EURUSD | 162 | +37.88 | 65.67 | -27.79 | -0.172 | 0.719 | 2.71% | -21.55 |
+| intraday | USDCHF | 177 | +32.69 | 64.62 | -31.93 | -0.180 | 0.694 | 3.09% | -58.05 |
+| intraday | USDCAD | 153 | +2.94 | 40.75 | -37.81 | -0.247 | 0.465 | 2.66% | -48.33 |
+| intraday | AUDUSD | 173 | +7.23 | 57.75 | -50.52 | -0.292 | 0.502 | 3.54% | -56.56 |
+| intraday | NZDUSD | 155 | -4.28 | 51.81 | -56.09 | -0.362 | 0.312 | 3.72% | -69.95 |
+
+The gold New York intraday EMA+RSI momentum leader uses 15-minute decision bars, 1% risk, a 1.7 ATR stop, 2.2R target and a 1-ounce minimum/increment. Its local entry window is 10:00–15:00 America/New_York with DST, flattened by 15:00. Its matched 2024 net falls from USD 186.97 without calendar controls to USD 72.64 with them: gross USD 199.36 less USD 126.72 costs, 175 trades, USD 0.415 net expectancy, PF 1.163 and 6.08% maximum validation fold drawdown. Stressed net is USD 12.27 at PF 1.027. It also loses USD 99.56 in the 2023 training account and triggers that account's 10% drawdown halt. It fails sample size, profit factor and stability requirements.
+
+The following counts are independent marginal gate counts and overlap. The intersection is zero:
+
+| Validation gate | Configurations meeting it |
+| --- | ---: |
+| At least 200 validation trades | 3,761 |
+| Positive net validation expectancy | 6,158 |
+| Validation profit factor strictly above 1.5 | 1,966 |
+| Validation max fold drawdown strictly below 10%, with no halt | 127,354 |
+| Positive stressed validation P/L and drawdown below 10% | 5,528 |
+| All numerical validation gates together | 0 |
+| Development and four-fold stress screen | 0 |
+
+All 18 regression tests pass, including real C++ execution through a synthetic news gap, inclusive interval boundaries, full-period coverage failure and preserved session caps. 196 unfiltered account replays reproduce the saved baseline metrics. All 157,221 result IDs, saved baseline rows and profile memberships were independently checked against the input inventories. All eight full result-file hashes and row coverage checks passed. The prior 24 fixed leaders were matched in the new results. 9,047 retained leader trades were checked for blackout overlaps and ordering. The initial USD/CHF batch stopped because the isolated worktree lacked the existing locked trading-signals 8.3.0 dependency. After linking the existing local installation, USD/CHF replayed from the start; its incomplete first-attempt rows were excluded. Seven completed instrument files were reused. The runner now checks that dependency before starting a full grid.
+
+The completed calendar is retrospective, with later schedule edits and impact reclassifications unverified. Existing 2023 price gaps remain excluded under the same complete-window rules. No historical spreads were invented for the full period. Broker-specific holidays/maintenance and contemporaneous calendar evidence remain unverified. The 2025 archive and holdout results remain untouched; there are zero finalists and zero qualifiers. Production and staging services were unchanged, and no orders, private production credentials or paid data were used.
+
+[Full rerun summary, configurations, session windows, data hashes and costs](xmi-session-calendar-rerun-2022-2024.json) · [Independent gate audit and prior-leader comparisons](xmi-session-calendar-rerun-audit-2022-2024.json)
+
+Next bounded work: independently verify paired execution costs on additional development months and recover contemporaneous event schedules before changing the strategy grid. Keep the 2025 holdout sealed. No configuration currently supports advancement to paper execution.
+
+```bash
+OPENBLAS_NUM_THREADS=1 python scripts/xmi-session-calendar-screen.py \
+  --cache "$research_dir/histdata" --saved-screens "$research_dir" \
+  --calendar "$research_dir/XMI_Economic_Calendar_2022_2024.json" \
+  --output "$research_dir/calendar-screen-new" --workers 8
+OPENBLAS_NUM_THREADS=1 python scripts/xmi-session-calendar-audit.py \
+  --input "$research_dir/calendar-screen-new" \
+  --output "$research_dir/calendar-screen-new-audit.json" --workers 8
+```

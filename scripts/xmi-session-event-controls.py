@@ -111,8 +111,11 @@ def load_calendar(path):
     return calendar
 
 
-def build_profiles(symbol, calendar, settings, partial):
-    start, end = (research.utc_minute(d) * MINUTE for d in quote.FOLD[1:])
+def build_profiles(symbol, calendar, settings, partial, *, period=None):
+    dates = quote.FOLD[1:] if period is None else period
+    start, end = (research.utc_minute(d) * MINUTE for d in dates)
+    if start >= end:
+        raise ValueError("Research period is reversed")
     currencies = {symbol[:3], symbol[3:]} - {"XAU"}
     full = (calendar["coverage"] == "complete" and currencies <= set(calendar["complete_currencies"])
             and epoch_ms(calendar["valid_from"]) <= start and epoch_ms(calendar["valid_to"]) >= end)
