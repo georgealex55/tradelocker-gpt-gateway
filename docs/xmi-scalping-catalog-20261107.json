@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "scope": "Strict scalping only; separate from all prior 15-minute/210-minute intraday experiments",
+  "starting_equity_usd_per_independent_account": 1000,
+  "symbols": ["EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD", "USDCAD", "NZDUSD", "XAUUSD"],
+  "training_years": [2022, 2023],
+  "reused_development_folds": ["2024-H1", "2024-H2"],
+  "sealed_holdout": 2025,
+  "decision_bar_minutes": [1, 5],
+  "maximum_holding_minutes": [5, 10, 15],
+  "risk_fractions": [0.0025, 0.005],
+  "stop_atr14_multiple": 1.5,
+  "target_stop_multiple": 1.0,
+  "windows": ["london-open", "ny-open", "london-close", "ny-close", "london-intraday", "ny-intraday"],
+  "common_rules": ["ema-trend", "rsi-recovery", "donchian-breakout", "trend-momentum", "preset-scalp"],
+  "lane_rules": {
+    "open": [{"rule": "opening-break", "parameter": 15}, {"rule": "opening-failure", "parameter": 15}],
+    "close": [{"rule": "close-continuation", "parameter": 60}, {"rule": "close-reversal", "parameter": 60}],
+    "intraday": [{"rule": "intraday-pullback", "parameter": 25}, {"rule": "intraday-mean", "parameter": 20}]
+  },
+  "preset_label": "preset-scalp is the existing modeled closed-bar EMA20/50, RSI55/45 and MACD histogram alignment interpretation; not an exact broker implementation",
+  "entry": "Exact next available minute open only when it coincides with the fully closed signal decision; complete lane minutes required",
+  "exits": "Fixed stop, fixed target, hard UTC holding cap, pre-news cutoff or lane cutoff; no opposite-signal exits and no breakeven/trailing experiments",
+  "trade_caps_per_session": {"open": 2, "close": 3, "intraday": 5},
+  "cost_multipliers_spread_and_slippage_only": [1.0, 1.5, 2.0],
+  "costs": {
+    "fx": {"spread_pips": 2.0, "slippage_pips_per_side": 0.3, "commission_usd_per_100000_base_units_per_side": 3.5, "minimum_units": 1000, "unit_step": 1000, "leverage": 30},
+    "gold": {"spread_usd_per_oz": 0.45, "slippage_usd_per_oz_per_side": 0.07, "commission_usd_per_oz_per_side": 0.035, "minimum_oz": 1, "step_oz": 1, "leverage": 20},
+    "basis": "HistData minute bid OHLC with conservative fixed modeled asks; no measured full-period spread claim",
+    "maximum_initial_margin_fraction": 0.9,
+    "maintenance_margin_audit_fraction_of_reserved_margin": 0.5,
+    "maintenance_breach": "Reject the path from selection and qualification; do not invent a broker-specific liquidation fill",
+    "drawdown_halt_fraction": 0.1
+  },
+  "news_policy": "Unchanged strict 60/30-minute macro, 90/60-minute central-bank, full-day uncertainty/holiday and New York 16:45-17:15 rollover controls",
+  "training_selection": {
+    "per": "instrument and lane; freeze before any new 2024 replay",
+    "requirements_every_training_year_and_cost": {"minimum_completed_trades": 25, "net_pnl_strictly_above_usd": 0, "profit_factor_strictly_above": 1.05, "max_equity_drawdown_strictly_below": 0.1, "halted": false, "liquidation_audit_breaches": 0},
+    "ranking": "Eligible first, then both base-cost training years having at least 25 trades, then highest worst training account net across years/costs, then base-cost training trade count; retain first catalog entry on ties",
+    "fallback": "If none eligible, retain the training-ranked diagnostic benchmark labeled unqualified; no advancement to holdout"
+  },
+  "loss_attribution": {
+    "scope": "Prior fixed gold NY intraday baseline, 2022-2023 only; descriptive associations, never a trading filter in this batch",
+    "adx14_buckets": [20, 25],
+    "volatility": "ATR14 / closed signal close * 10000; low/middle/high split at the 2022 complete NY-lane decision-bar 25th and 75th percentiles, fixed for 2023",
+    "cost_to_initial_stop_buckets": [0.1, 0.2],
+    "other_groups": ["entry New York clock hour", "long/short", "training year"],
+    "causality": "Entry features use the last fully closed signal candle; never future returns or exit candles"
+  },
+  "promotion": "Disabled. 2024 is reused development evidence. Fresh untouched evidence, PF > 1.5, net expectancy > 0, DD < 10%, >= 200 distinct completed trades, stressed costs and stability are all required.",
+  "no_production_or_staging_changes": true,
+  "no_orders_or_paid_data": true
+}

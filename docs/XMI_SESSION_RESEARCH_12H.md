@@ -780,3 +780,124 @@ OPENBLAS_NUM_THREADS=1 python scripts/xmi-session-entry-exit.py \
   --calendar "$research_dir/XMI_Economic_Calendar_2022_2024.json" \
   --output "$research_dir/entry-exit-new"
 ```
+
+## Follow-up · Strict scalping and training loss conditions · 2026-11-07
+
+Scope was explicitly narrowed to scalping. The previous gold benchmark had 15-minute signals and a 210-minute maximum hold; it is retained only as a labeled intraday diagnostic. For this bounded scalp batch, the operational maximum is 15 elapsed minutes. All new candidates use closed 1-minute or 5-minute signals, exact next-minute entries, 5/10/15-minute hard clock caps, lane/news flattening, and separate USD 1,000 accounts. This maximum is a research definition adopted for the user's scalping constraint.
+
+The candidate catalog was saved and hashed before any new replay or loss stratification. It covers all seven requested FX pairs plus spot XAU/USD: 504 configurations per instrument, 4,032 total. Each instrument uses the four registry baselines (EMA10/30 cross, RSI30/70 recovery, prior Donchian20 breakout, EMA10/30 plus RSI55/45 momentum), the documented modeled scalp preset (EMA20/50, RSI55/45, MACD histogram alignment), and two lane-specific families: 15-minute opening-range breakout/failure, 60-minute-context close continuation/reversal, or ADX25 trend pullback/ADX20 mean reversion. Signal definitions are inherited from the frozen research engine; the preset is an objective interpretation, not an exact broker implementation.
+
+Every configuration uses a 1.5 ATR14 stop and 1.0 stop-distance target, with independent 0.25% and 0.5% equity-risk budgets. Those settings were fixed for this batch; there was no adaptive target, stop, indicator-threshold or market-regime search. Same-close opposite-signal exits are disabled uniformly. The original production/chart code and original replay source are unchanged. A separate scalp wrapper caps exit limits by UTC timestamps as well as row counts, preserving session counters through news blackouts. A missing minute cannot extend the maximum holding period.
+
+| Reference lane | DST-aware local entry window | Latest ordinary fill minute / flat cutoff |
+| --- | --- | --- |
+| London open | 08:00–10:00 Europe/London | 09:59 / 10:00 |
+| New York open | 08:00–10:00 America/New_York | 09:59 / 10:00 |
+| London close | 15:00–17:00 Europe/London | 16:59 / 17:00 |
+| New York close | 15:00–16:45 America/New_York | 16:44 / 16:45 |
+| London intraday scalps | 10:00–15:00 Europe/London | 14:59 / 15:00 |
+| New York intraday scalps | 10:00–15:00 America/New_York | 14:59 / 15:00 |
+
+Only fully complete source-minute session windows are eligible. Actual fills also require a closed signal, safe news minute, sufficient risk/margin capacity and remaining session cap (open 2, close 3, intraday 5). Opening-range methods wait for the range and a subsequent closed decision bar; they cannot enter during their formation range. Positions flatten earlier at their bracket, 5/10/15-minute cap or last safe minute before news. The table's flat cutoff is the boundary after the final permitted source minute, not a guaranteed tick fill at that second.
+
+Reused all 24 verified HistData ZIPs for 2022–2024, with no vendor downloads, plus the unchanged audited calendar SHA-256 `ea2e7e62a799eb13886f87a81bd1ad542a7c208ea8f85df870218c4be23e8e2f`. The inputs contain 8,472,885 original minute bars; exact source hashes, first/last timestamps, duplicate/sort audits and complete/missing window counts are preserved per instrument in the result. A private reusable normalized NumPy cache was created and its source and array hashes checked before reuse. As of 2026-11-07 these are approximately 1.9–4.8-year-old historical observations, not current trading conditions. No Twelve Data series was read.
+
+The EUR/USD New York-open completeness issue remains: 2023 has 156/260 complete weekday windows versus 259/262 in 2024 (2022: 259/260). Incomplete windows were excluded and no prices were interpolated. The calendar is retrospective, with uncertain events treated as full-day blackouts; it is not a verified point-in-time release archive. Strict macro 60/30-minute, central-bank 90/60-minute, holiday/uncertainty and New York rollover controls remain active. No volume, order-flow or manipulation intent is inferred from minute OHLC.
+
+Base costs remain 2.0 FX pips spread, 0.3 pip adverse slippage per side, and USD 3.50 per 100,000 base units per side. Gold uses USD 0.45/oz spread, USD 0.07/oz slippage per side and USD 0.035/oz commission per side: USD 0.66/oz round trip at base assumptions. The 1.5× and 2× cases multiply spread/slippage while retaining commissions. These are conservative models; there is no claim of observed full-period spreads. USD-base P/L and quote friction convert at exit. FX minimum/increment is 1,000 units, leverage 30:1; gold minimum/increment is 1 ounce, leverage 20:1. Entry margin is limited to 90% of equity; risk sizing rounds down and skips below-minimum fills. The original 10% marked-drawdown halt and pessimistic stop/target/gap handling remain active.
+
+A separate audit checks every realized path against a modeled maintenance threshold of 50% of its initially reserved margin. No tested path breached it. A breach would reject the path rather than invent a broker-specific liquidation fill. The synthetic extreme-gap regression does trigger this rejection and bankruptcy flag. Broker liquidation rules and intraminute liquidity remain unverified; this audit is not a claim of historical broker execution.
+
+The Q1 loss analysis reproduced the prior baseline's exact two training ledgers before classifying entry conditions. Features come only from the fully closed signal candle. Volatility is ATR14 / signal close × 10,000, with low/middle/high boundaries fixed from the 2022 complete NY-lane decision bars (5,040 bars): 14.311715 and 20.410663 basis points. The boundaries were then retained for 2023. The following partitions are descriptive; they are not new trading filters and overlapping tables must not be added together.
+
+| Prior intraday training condition | Trades | Net USD | PF |
+| --- | ---: | ---: | ---: |
+| All 2022–2023 training fills | 272 | -68.48 | 0.903 |
+| Low ATR/price regime | 87 | +42.08 | 1.196 |
+| Middle ATR/price regime | 142 | -76.86 | 0.786 |
+| High ATR/price regime | 43 | -33.71 | 0.740 |
+| ADX14 below 20 | 97 | -8.01 | 0.969 |
+| ADX14 20 to below 25 | 73 | -24.30 | 0.875 |
+| ADX14 at least 25 | 102 | -36.17 | 0.855 |
+
+The earlier baseline generated USD 169.12 before costs and paid USD 237.60, leaving a USD 68.48 net loss. In 2023 it lost USD 19.70 before costs and USD 99.56 after costs; cheaper execution alone would not rescue that year's observed path. All five New York entry-hour groups were negative after modeled costs. Higher ADX readings did not identify a profitable group. The low-volatility subset's PF 1.196 remains below 1.5 and has only 87 training trades; selecting it retrospectively would be another unqualified hypothesis. The 2023 account halted after 80 trades, and missing windows further limit representativeness. These associations do not establish a cause of losses.
+
+Executed 24,192 independent training account cases (4,032 configurations × 2 years × 3 costs), then froze one diagnostic benchmark per instrument/lane before any new 2024 replay. A configuration needed at least 25 trades, positive net, PF > 1.05, DD < 10%, no halt and no maintenance breach in every training-year/cost account to be training-eligible. Zero configurations passed. The 24 frozen choices are explicitly unqualified training-ranked fallbacks, selected by the registered ranking; they are not finalists. No 2024 metric influenced this batch's freeze.
+
+Evaluated those 24 fixed choices on 2024 H1/H2 at all three costs: 144 new development account cases. Also independently repeated their 144 selected training accounts with identical metrics, audits and ledger hashes, plus the two prior intraday baseline checks. Total distinct scalp account cases: 24,336. Training audits covered 1,950,408 simulated fills across configuration/cost cases; the new 2024 cases covered 6,840. These overlapping simulations are not 1.95 million distinct out-of-sample trades. Maximum audited elapsed holding upper bound was 15 minutes. An independent streaming inventory check reconciled every configuration ID, account, trade-audit count and saved training-file hash.
+
+All 24 frozen benchmarks lost at 2024 base costs; none had 200 completed 2024 trades. Maximum base PF was 0.370 (USD/JPY NY-open RSI recovery, 95 trades, -43.23 USD net). All chose 5-minute signals and 0.25% risk under the fixed training ranking. That does not prove those settings are optimal or viable. The following tables rank the frozen diagnostic benchmarks within each lane by 2024 PF; 2024 has already been repeatedly used and remains development evidence. Net/gross/cost/trade totals combine two separately reset USD 1,000 half-year accounts; DD is the higher fold DD. They do not describe one compounded USD 1,000 year or a shared portfolio.
+
+### Frozen open scalp diagnostics · reused 2024
+
+| Instrument | Rule | Window | Signal / max hold | Trades | Gross USD | Costs USD | Net USD | Expectancy USD | PF | Max fold DD | 1.5× net USD | 2× net USD |
+| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| USDJPY | rsi-recovery | ny-open | 5m / 15m | 95 | +9.36 | 52.59 | -43.23 | -0.455 | 0.370 | 3.02% | -51.35 | -64.68 |
+| GBPUSD | rsi-recovery | ny-open | 5m / 10m | 95 | +6.74 | 52.80 | -46.06 | -0.485 | 0.223 | 2.84% | -60.13 | -67.49 |
+| EURUSD | rsi-recovery | ny-open | 5m / 15m | 78 | +6.30 | 54.78 | -48.48 | -0.621 | 0.177 | 3.20% | -58.98 | -67.87 |
+| USDCAD | rsi-recovery | ny-open | 5m / 15m | 106 | +7.26 | 86.39 | -79.13 | -0.746 | 0.177 | 4.40% | -94.95 | -105.97 |
+| XAUUSD | ema-trend | ny-open | 5m / 5m | 15 | -3.21 | 9.90 | -13.11 | -0.874 | 0.099 | 1.36% | -7.44 | -0.12 |
+| NZDUSD | rsi-recovery | ny-open | 5m / 15m | 85 | +11.80 | 72.93 | -61.13 | -0.719 | 0.092 | 3.77% | -74.52 | -83.01 |
+| AUDUSD | rsi-recovery | ny-open | 5m / 15m | 105 | -6.46 | 88.11 | -94.57 | -0.901 | 0.058 | 5.45% | -105.16 | -114.80 |
+| USDCHF | rsi-recovery | ny-open | 5m / 5m | 107 | -4.73 | 76.72 | -81.45 | -0.761 | 0.053 | 4.53% | -93.27 | -101.68 |
+
+### Frozen close scalp diagnostics · reused 2024
+
+| Instrument | Rule | Window | Signal / max hold | Trades | Gross USD | Costs USD | Net USD | Expectancy USD | PF | Max fold DD | 1.5× net USD | 2× net USD |
+| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| USDCHF | ema-trend | london-close | 5m / 10m | 167 | -2.38 | 102.06 | -104.44 | -0.625 | 0.140 | 5.66% | -115.01 | -119.64 |
+| GBPUSD | close-continuation | london-close | 5m / 15m | 55 | -12.37 | 26.40 | -38.77 | -0.705 | 0.122 | 2.39% | -38.89 | -40.38 |
+| USDJPY | rsi-recovery | ny-close | 5m / 15m | 75 | +1.10 | 56.08 | -54.98 | -0.733 | 0.118 | 3.14% | -65.32 | -73.75 |
+| AUDUSD | rsi-recovery | ny-close | 5m / 15m | 76 | +4.98 | 68.97 | -63.99 | -0.842 | 0.083 | 3.28% | -75.04 | -79.86 |
+| USDCAD | close-continuation | london-close | 5m / 5m | 55 | -3.13 | 32.50 | -35.63 | -0.648 | 0.065 | 2.13% | -39.96 | -46.37 |
+| NZDUSD | rsi-recovery | ny-close | 5m / 15m | 77 | +7.66 | 75.57 | -67.91 | -0.882 | 0.051 | 3.72% | -80.27 | -84.65 |
+| XAUUSD | close-reversal | ny-close | 5m / 5m | 27 | +2.86 | 17.82 | -14.96 | -0.554 | 0.018 | 1.41% | -14.32 | -13.95 |
+| EURUSD | rsi-recovery | ny-close | 5m / 5m | 91 | -3.90 | 85.14 | -89.04 | -0.978 | 0.012 | 4.54% | -101.11 | -102.76 |
+
+### Frozen intraday scalp diagnostics · reused 2024
+
+| Instrument | Rule | Window | Signal / max hold | Trades | Gross USD | Costs USD | Net USD | Expectancy USD | PF | Max fold DD | 1.5× net USD | 2× net USD |
+| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| USDJPY | intraday-pullback | ny-intraday | 5m / 15m | 138 | -5.11 | 66.58 | -71.69 | -0.520 | 0.227 | 4.51% | -82.85 | -93.04 |
+| GBPUSD | intraday-pullback | ny-intraday | 5m / 15m | 147 | -13.16 | 72.93 | -86.09 | -0.586 | 0.209 | 4.92% | -93.36 | -104.36 |
+| EURUSD | intraday-pullback | ny-intraday | 5m / 15m | 126 | +5.13 | 82.83 | -77.70 | -0.617 | 0.170 | 5.24% | -88.67 | -102.76 |
+| USDCAD | intraday-pullback | ny-intraday | 5m / 15m | 154 | +0.65 | 101.73 | -101.08 | -0.656 | 0.165 | 7.06% | -117.65 | -126.13 |
+| USDCHF | intraday-pullback | ny-intraday | 5m / 15m | 129 | -3.85 | 80.61 | -84.46 | -0.655 | 0.149 | 4.44% | -96.15 | -105.69 |
+| AUDUSD | intraday-pullback | ny-intraday | 5m / 15m | 150 | +8.80 | 112.20 | -103.40 | -0.689 | 0.120 | 5.62% | -125.09 | -133.86 |
+| XAUUSD | intraday-mean | ny-intraday | 5m / 10m | 16 | -0.93 | 10.56 | -11.49 | -0.718 | 0.057 | 1.19% | -6.16 | +0.00 |
+| NZDUSD | intraday-pullback | ny-intraday | 5m / 10m | 139 | -9.11 | 107.25 | -116.36 | -0.837 | 0.052 | 6.40% | -134.65 | -142.46 |
+
+Higher modeled costs can remove fills when the risk budget can no longer fund the minimum ounce/lot. Gold intraday at 2× costs records zero fills and zero P/L; that is not cost robustness. Per-fold minimum-size skips, costs, stop/target/timeout counts, halts, ledger digests and full config IDs are in the machine-readable results. The tables compare the identical frozen rules, with dynamically risk-sized fills; stressed accounts need not contain the same trades.
+
+| Qualification gate | Result for 24 frozen scalp diagnostics |
+| --- | --- |
+| Positive base net expectancy | 0 pass |
+| Base PF strictly above 1.5 | 0 pass |
+| At least 200 distinct completed base validation trades | 0 pass |
+| Base maximum equity DD strictly below 10%, no halt | 24 pass |
+| Positive net and DD < 10% under both 1.5× and 2× modeled costs | 0 pass |
+| Stable eligible 2022/2023 training at all modeled costs | 0 pass |
+| No observed maintenance-margin audit breach | 24 pass |
+| Untouched out-of-sample/holdout evidence | Not evaluated; 2025 sealed |
+| All gates | 0 qualifiers |
+
+All 40 relevant tests passed: 12 new scalp tests plus 13 event-control, 5 calendar-screen and 10 prior entry/exit tests. The new tests verify 5/10/15-minute clock bounds, gaps, next-open signal alignment, no same-close opposite exits, gold minimum sizing, USD-base fee/P&L conversion, pre-news flattening, rejection of long holds, future-price-independent entry features, deterministic threshold boundaries, unique bounded inventory and maintenance-breach rejection. The new tests and wrapper are separate; the earlier experiment's rules/results remain intact.
+
+No 2025 archive was read, no strategy advanced to holdout or execution, and no production/staging code, service, order, purchase or private production credential was used. This batch did not test tick scalping, sub-minute signals, pair-specific or structure presets, gold-specific alternative hours, trailing/breakeven exits, verified variable spreads, a shared-capital portfolio or a new volatility/ADX trading filter. The next bounded step is scalp cost/size feasibility using independent quote evidence or an explicitly labeled diagnostic model; no cheaper spread should be assumed merely to produce a profitable backtest. Any new regime-gated scalp must be separately registered and tested without selecting on its 2024 result.
+
+Reproduce with the verified private cache and calendar:
+
+```bash
+OPENBLAS_NUM_THREADS=1 python scripts/xmi-session-scalping.py \
+  --cache "$research_dir/histdata" \
+  --calendar "$research_dir/XMI_Economic_Calendar_2022_2024.json" \
+  --normalized "$research_dir/scalp-normalized" \
+  --output "$research_dir/scalp-new" --workers 6
+```
+
+Immutable output SHA-256 values:
+
+- `results.json`: `7c4b5f63f187a2ce7341be6a3da5fd9c09f8281fce3d262320d5e0758a70e69e`
+- `preregistration.json`: `f3c6426975ac806d9afde858f64b99af8d90daba958d4794cd9cf84d566fb3fa`
+- `training-selection-freeze.json`: `5c533141a77ff23c67aa476f5e9af9134963e6083470ecf81404486b96c453de`
+- `training-loss-conditions.json`: `2bbcde42e1e246eb93548b0e8d894f788285437d7f7fe0dfac2ae9907b2c83d2`
