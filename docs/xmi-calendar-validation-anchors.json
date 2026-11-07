@@ -1,0 +1,181 @@
+{
+  "scope": "Official release date and time spot checks, including daylight saving changes",
+  "checks": [
+    {
+      "name": "JOLTS November 2023",
+      "currency": "USD",
+      "provider_day": "2024-01-03",
+      "name_pattern": "^JOLTS Job Openings$",
+      "expected_utc": "2024-01-03T15:00:00Z",
+      "source": "https://www.bls.gov/schedule/2024/01_sched.htm"
+    },
+    {
+      "name": "FOMC minutes December 2023",
+      "currency": "USD",
+      "provider_day": "2024-01-03",
+      "name_pattern": "^FOMC Meeting Minutes$",
+      "expected_utc": "2024-01-03T19:00:00Z",
+      "source": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20240103a.htm"
+    },
+    {
+      "name": "Employment Situation December 2023",
+      "currency": "USD",
+      "provider_day": "2024-01-05",
+      "name_pattern": "^Non-Farm Employment Change$",
+      "expected_utc": "2024-01-05T13:30:00Z",
+      "source": "https://www.bls.gov/schedule/2024/01_sched.htm"
+    },
+    {
+      "name": "CPI December 2023",
+      "currency": "USD",
+      "provider_day": "2024-01-11",
+      "name_pattern": "^CPI m/m$",
+      "expected_utc": "2024-01-11T13:30:00Z",
+      "source": "https://www.bls.gov/schedule/2024/01_sched.htm"
+    },
+    {
+      "name": "PPI December 2023",
+      "currency": "USD",
+      "provider_day": "2024-01-12",
+      "name_pattern": "^PPI m/m$",
+      "expected_utc": "2024-01-12T13:30:00Z",
+      "source": "https://www.bls.gov/schedule/2024/01_sched.htm"
+    },
+    {
+      "name": "GDP Q4 2023 advance",
+      "currency": "USD",
+      "provider_day": "2024-01-25",
+      "name_pattern": "^Advance GDP q/q$",
+      "expected_utc": "2024-01-25T13:30:00Z",
+      "source": "https://www.bea.gov/news/2024/gross-domestic-product-fourth-quarter-and-year-2023-advance-estimate"
+    },
+    {
+      "name": "Personal Income and Outlays December 2023",
+      "currency": "USD",
+      "provider_day": "2024-01-26",
+      "name_pattern": "^Core PCE Price Index m/m$",
+      "expected_utc": "2024-01-26T13:30:00Z",
+      "source": "https://www.bea.gov/news/2024/personal-income-and-outlays-december-2023"
+    },
+    {
+      "name": "JOLTS December 2023",
+      "currency": "USD",
+      "provider_day": "2024-01-30",
+      "name_pattern": "^JOLTS Job Openings$",
+      "expected_utc": "2024-01-30T15:00:00Z",
+      "source": "https://www.bls.gov/schedule/2024/01_sched.htm"
+    },
+    {
+      "name": "Employment Cost Index Q4 2023",
+      "currency": "USD",
+      "provider_day": "2024-01-31",
+      "name_pattern": "^Employment Cost Index q/q$",
+      "expected_utc": "2024-01-31T13:30:00Z",
+      "source": "https://www.bls.gov/schedule/2024/01_sched.htm"
+    },
+    {
+      "name": "FOMC policy statement",
+      "currency": "USD",
+      "provider_day": "2024-01-31",
+      "name_pattern": "^FOMC Statement$",
+      "expected_utc": "2024-01-31T19:00:00Z",
+      "source": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20240131a.htm"
+    },
+    {
+      "name": "FOMC press conference",
+      "currency": "USD",
+      "provider_day": "2024-01-31",
+      "name_pattern": "^FOMC Press Conference$",
+      "expected_utc": "2024-01-31T19:30:00Z",
+      "source": "https://www.federalreserve.gov/foia/chair-powell-calendar-012024.htm"
+    },
+    {
+      "name": "ECB press conference January 2024",
+      "currency": "EUR",
+      "provider_day": "2024-01-25",
+      "name_pattern": "^ECB Press Conference$",
+      "expected_utc": "2024-01-25T13:45:00Z",
+      "source": "https://www.ecb.europa.eu/press/pr/date/2024/html/ecb.mp240125~f738889bde.en.html"
+    },
+    {
+      "name": "BoC policy January 2024",
+      "currency": "CAD",
+      "provider_day": "2024-01-24",
+      "name_pattern": "^Overnight Rate$",
+      "expected_utc": "2024-01-24T14:45:00Z",
+      "source": "https://www.bankofcanada.ca/2023/12/bank-canada-announces-changes-communications-interest-rate-decisions/"
+    },
+    {
+      "name": "UK CPI January 2024 release",
+      "currency": "GBP",
+      "provider_day": "2024-01-17",
+      "name_pattern": "^CPI y/y$",
+      "expected_utc": "2024-01-17T07:00:00Z",
+      "source": "https://www.ons.gov.uk/releases/consumerpriceinflationukdecember2023timeseries"
+    },
+    {
+      "name": "Australia CPI January 2024 release",
+      "currency": "AUD",
+      "provider_day": "2024-01-31",
+      "name_pattern": "^CPI (q/q|m/m)$",
+      "expected_utc": "2024-01-31T00:30:00Z",
+      "source": "https://www.abs.gov.au/media-centre/media-releases/cpi-rose-06-cent-december-2023-quarter"
+    },
+    {
+      "name": "Swiss CPI February 2024 release",
+      "currency": "CHF",
+      "provider_day": "2024-02-13",
+      "name_pattern": "^CPI m/m$",
+      "expected_utc": "2024-02-13T07:30:00Z",
+      "source": "https://dam-api.bfs.admin.ch/hub/api/dam/assets/30225915/master"
+    },
+    {
+      "name": "New Zealand CPI January 2024 release date",
+      "currency": "NZD",
+      "name_pattern": "^CPI q/q$",
+      "official_local_date": "2024-01-24",
+      "official_zone": "Pacific/Auckland",
+      "source": "https://www.stats.govt.nz/information-releases/consumers-price-index-december-2023-quarter/"
+    },
+    {
+      "name": "BoJ January 2024 actual release time",
+      "currency": "JPY",
+      "provider_day": "2024-01-23",
+      "name_pattern": "^BOJ Policy Rate$",
+      "expected_utc": "2024-01-23T03:09:00Z",
+      "source": "https://www.boj.or.jp/en/mopo/mpmdeci/state_2024/k240123a.htm"
+    },
+    {
+      "name": "US winter/summer 2022-03-10",
+      "currency": "USD",
+      "provider_day": "2022-03-10",
+      "name_pattern": "^CPI m/m$",
+      "expected_utc": "2022-03-10T13:30:00Z",
+      "source": "https://www.bls.gov/news.release/archives/cpi_03102022.htm"
+    },
+    {
+      "name": "US winter/summer 2022-04-12",
+      "currency": "USD",
+      "provider_day": "2022-04-12",
+      "name_pattern": "^CPI m/m$",
+      "expected_utc": "2022-04-12T12:30:00Z",
+      "source": "https://www.bls.gov/news.release/archives/cpi_04122022.htm"
+    },
+    {
+      "name": "US winter/summer 2023-01-06",
+      "currency": "USD",
+      "provider_day": "2023-01-06",
+      "name_pattern": "^Non-Farm Employment Change$",
+      "expected_utc": "2023-01-06T13:30:00Z",
+      "source": "https://www.bls.gov/news.release/archives/empsit_01062023.htm"
+    },
+    {
+      "name": "US winter/summer 2023-07-07",
+      "currency": "USD",
+      "provider_day": "2023-07-07",
+      "name_pattern": "^Non-Farm Employment Change$",
+      "expected_utc": "2023-07-07T12:30:00Z",
+      "source": "https://www.bls.gov/news.release/archives/empsit_07072023.htm"
+    }
+  ]
+}

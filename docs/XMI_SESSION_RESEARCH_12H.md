@@ -497,3 +497,50 @@ OPENBLAS_NUM_THREADS=1 python scripts/xmi-session-event-controls.py \
   --allow-partial-news --output "$research_dir/event-controls-202401.json"
 python -m unittest discover -s tests -p test_xmi_event_controls.py
 ```
+
+## Follow-up · Complete historical calendars · 2026-11-07
+
+Completed the 2022–2024 provider calendar for USD, EUR, GBP, JPY, CHF, AUD, CAD and NZD. Spot XAU/USD uses USD and global events; both currency legs apply to Forex pairs. The 36 original Forex Factory monthly pages contain all 1,096 expected calendar days and 14,501 source rows. Importing the eight currencies and global events retains 13,735 events. CNY-only rows are outside this study. Every month contains each research currency. Mirrored page states agree, rendered and serialized row counts match, IDs are unique, and every imported timed event agrees with its provider calendar day. Source pages were retrieved on 2026-11-07 UTC; these are retrospective schedules covering dates roughly 1.9–4.8 years before retrieval.
+
+| Currency | 2022 events | 2023 events | 2024 events |
+| --- | ---: | ---: | ---: |
+| USD | 1266 | 1293 | 1407 |
+| EUR | 1001 | 1029 | 1022 |
+| GBP | 656 | 663 | 622 |
+| JPY | 425 | 424 | 428 |
+| CHF | 163 | 172 | 180 |
+| AUD | 371 | 349 | 350 |
+| CAD | 345 | 344 | 351 |
+| NZD | 241 | 238 | 245 |
+
+These currency counts exclude global events. The complete import includes all published provider impact levels and holidays. High-impact events, central-bank policy decisions and press conferences, currency holidays, and global medium/high-impact events generate 3,039 blackout records. Lower-impact events remain visible with an observe action. Of the blackout records, 517 have tentative, unspecified or variable times and use their entire provider calendar day with pre/post buffers. Full-day boundaries use Europe/London, including 23- and 25-hour DST days. BoJ variable-time decisions keep a full-day block even when the later actual release time is known. No actual, forecast, previous or revised economic values are included in the normalized input.
+
+Standard timed releases use the existing XMI 60-minute-before/30-minute-after policy. Central-bank decisions and press conferences use 90 minutes before/60 minutes after, extending the existing FOMC policy to the other currencies. Entries remain next-bar executions after fully closed signals, and open positions flatten before a blackout. The 16:45–17:15 America/New_York rollover backstop, Friday-to-Sunday block and existing account/fee/size constraints remain active. This calendar contains public currency holidays; the execution broker's instrument-specific holidays, financing and maintenance schedule still require its contract calendar.
+
+All 22 timing/date checks against official sources passed across the eight currencies, including winter/summer US release times, the Bank of Canada's January 2024 timing change and the BoJ variable release. This is independent spot verification, not a claim that every source row was separately verified. A community CSV was rejected for erroneous midnight policy-event times and inconsistent offsets. It was excluded from both the completed calendar and the replay. The normalized calendar SHA-256 is `ea2e7e62a799eb13886f87a81bd1ad542a7c208ea8f85df870218c4be23e8e2f`; every monthly source hash and official check is recorded in [the coverage audit](xmi-calendar-coverage-2022-2024.json).
+
+The strict January 2024 paired-quote replay tested the same 24 fixed instrument/lane configurations at fixed, observed and stressed costs, with an independent USD 1,000 account for each case. It completed 216 controlled cases and reproduced all 216 exactly on a second run. All 72 uncontrolled cases and trade-log hashes still match the earlier benchmark; rollover-only results also match. No incomplete-calendar skips remain. At observed spreads, news controls blocked 175 considered entries and forced 10 early exits. Net P&L improved for eight setups and worsened for sixteen. All 24 trade logs differ from the earlier partial-calendar comparison. The following rows are separate accounts and must not be added together as a portfolio:
+
+| January setup | Unfiltered net USD | Partial calendar net USD | Complete calendar net USD | Complete trades | Complete PF | Complete max DD | Complete stress net USD |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| USD/JPY London failed breakout | +46.20 | +46.20 | +26.15 | 14 | 2.948 | 0.87% | +4.88 |
+| USD/JPY London intraday BOS | -0.66 | +1.59 | +7.10 | 13 | 2.392 | 0.44% | +7.31 |
+| XAU/USD New York intraday momentum | +7.80 | +10.58 | -7.46 | 12 | 0.809 | 3.07% | -6.32 |
+| XAU/USD opening failed breakout | +15.21 | +26.09 | +3.50 | 8 | 1.345 | 1.19% | -0.97 |
+| XAU/USD closing momentum | -25.49 | -22.93 | -26.88 | 16 | 0.375 | 3.67% | -32.73 |
+
+Thirteen regression tests passed, covering coverage failure, currency scope, observe-only rows, full-day uncertainty, non-US policy buffers, DST, rollover and forced exits. The strict replay SHA-256 is `af222d350eb51d5dddfc436b7ddfe6e53b7049ae276564203246208613efa8ed`. Exact configurations, costs, instrument units, date ranges, archive hashes and simulated trade-log hashes are in [the complete-calendar replay](xmi-session-calendar-complete-202401.json).
+
+Zero strategies qualify. Every January account is below 200 completed trades, January is development evidence, and the calendar is a retrospective provider snapshot. Historical schedule edits, contemporaneous impact labels and surprise headlines remain outside the verified evidence. The 2022–2024 calendar is complete relative to the retrieved provider pages; a complete point-in-time news archive has not been established. The full historical strategy sweep has not yet been rerun with these calendars. The 2025 price holdout remains sealed. Production and staging services were unchanged, and no orders or paid data were used.
+
+Next bounded batch: replay the fixed 24 configurations on the 2022–2024 minute archives under the same calendar policy, separating train/validation and modeling costs explicitly; expand quote verification only when independently verified paired archives exist. Do not select new parameters from January's results or open the 2025 holdout. Obtain broker-specific maintenance/holiday rules and contemporaneous schedule evidence before treating these controls as qualification evidence.
+
+Rebuild the private normalized input from the cached public pages, or use `--download` once when the cache is absent. The downloader does not bypass rate limits. Keep vendor pages and the normalized full event calendar outside Git:
+
+```bash
+python scripts/xmi-session-calendar.py \
+  --cache "$research_dir/economic-calendar-sources" \
+  --anchors docs/xmi-calendar-validation-anchors.json \
+  --output "$research_dir/XMI_Economic_Calendar_2022_2024.json" \
+  --manifest "$research_dir/calendar-coverage-rebuilt.json"
+```

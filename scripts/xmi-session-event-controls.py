@@ -78,7 +78,7 @@ def rollover_windows(start, end):
 
 def load_calendar(path):
     calendar = json.loads(path.read_text())
-    if calendar["schema_version"] != 1 or calendar["coverage"] not in ("partial", "complete"):
+    if calendar["schema_version"] not in (1, 2) or calendar["coverage"] not in ("partial", "complete"):
         raise ValueError("Unknown calendar format or completeness")
     start, end = epoch_ms(calendar["valid_from"]), epoch_ms(calendar["valid_to"])
     if start >= end:
@@ -90,13 +90,21 @@ def load_calendar(path):
         raise ValueError("Invalid complete currency coverage")
     identities = set()
     for event in calendar["events"]:
-        at = epoch_ms(event["scheduled_at"])
-        if (not start <= at < end or at % MINUTE or event["kind"] not in ("macro", "fomc")
+        if "scheduled_at" in event:
+            at = epoch_ms(event["scheduled_at"])
+            valid_time = start <= at < end and at % MINUTE == 0
+            identity_time = at
+        else:
+            left, right = epoch_ms(event["blackout_from"]), epoch_ms(event["blackout_to"])
+            valid_time = start - 86400000 <= left < right <= end + 86400000
+            identity_time = (left, right)
+        if (not valid_time or event["kind"] not in ("macro", "fomc", "central_bank")
+                or event.get("risk_action", "blackout") not in ("blackout", "observe")
                 or not isinstance(event["currencies"], list) or not event["currencies"]
                 or any(c not in known for c in event["currencies"])
                 or not event["source"].startswith("https://")):
             raise ValueError("Event is invalid or outside declared coverage")
-        identity = (at, event["name"], tuple(event["currencies"]))
+        identity = event.get("id", (identity_time, event["name"], tuple(event["currencies"])))
         if identity in identities:
             raise ValueError("Duplicate calendar event")
         identities.add(identity)
@@ -110,13 +118,16 @@ def build_profiles(symbol, calendar, settings, partial):
             and epoch_ms(calendar["valid_from"]) <= start and epoch_ms(calendar["valid_to"]) >= end)
     news = []
     for event in calendar["events"]:
-        if not currencies.intersection(event["currencies"]):
+        if event.get("risk_action", "blackout") == "observe" or not currencies.intersection(event["currencies"]):
             continue
-        prefix = "fomc" if event["kind"] == "fomc" else ""
+        prefix = "fomc" if event["kind"] in ("fomc", "central_bank") else ""
         before = settings["fomcPreEventMinutes" if prefix else "preEventMinutes"]
         after = settings["fomcPostEventMinutes" if prefix else "postEventMinutes"]
-        at = epoch_ms(event["scheduled_at"])
-        news.append((at - before * MINUTE, at + after * MINUTE, "news"))
+        if "scheduled_at" in event:
+            left = right = epoch_ms(event["scheduled_at"])
+        else:
+            left, right = epoch_ms(event["blackout_from"]), epoch_ms(event["blackout_to"])
+        news.append((left - before * MINUTE, right + after * MINUTE, "news"))
     rollover = rollover_windows(start, end)
     missing = not full and not partial
     return {

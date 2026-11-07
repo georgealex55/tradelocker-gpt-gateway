@@ -74,5 +74,65 @@ class EventControlTests(unittest.TestCase):
         self.assertTrue(isclose(result["net_usd"], .34, abs_tol=1e-6))
 
 
+class CompleteCalendarTests(unittest.TestCase):
+    def test_observed_low_impact_event_does_not_block(self):
+        calendar = {
+            "coverage": "complete", "complete_currencies": ["USD", "JPY"],
+            "valid_from": "2022-01-01T00:00:00Z", "valid_to": "2025-01-01T00:00:00Z",
+            "events": [{"kind": "macro", "risk_action": "observe", "currencies": ["USD"],
+                        "scheduled_at": "2024-01-05T12:00:00Z"}],
+        }
+        profiles = controls.build_profiles("USDJPY", calendar, {}, False)
+        self.assertFalse(profiles["news"].coverage_missing)
+        self.assertIsNone(profiles["news"].entry_reason(controls.epoch_ms("2024-01-05T12:00:00Z")))
+
+    def test_non_us_central_bank_uses_wider_window(self):
+        calendar = {
+            "coverage": "complete", "complete_currencies": ["USD", "CAD"],
+            "valid_from": "2022-01-01T00:00:00Z", "valid_to": "2025-01-01T00:00:00Z",
+            "events": [{"kind": "central_bank", "currencies": ["CAD"],
+                        "scheduled_at": "2024-01-24T14:45:00Z"}],
+        }
+        settings = {"fomcPreEventMinutes": 90, "fomcPostEventMinutes": 60}
+        policy = controls.build_profiles("USDCAD", calendar, settings, False)["news"]
+        self.assertEqual(policy.entry_reason(controls.epoch_ms("2024-01-24T13:15:00Z")), "news")
+        self.assertEqual(policy.entry_reason(controls.epoch_ms("2024-01-24T15:45:00Z")), "news")
+        self.assertIsNone(policy.entry_reason(controls.epoch_ms("2024-01-24T15:45:01Z")))
+
+    def test_unknown_time_blocks_entire_day(self):
+        calendar = {
+            "coverage": "complete", "complete_currencies": ["USD"],
+            "valid_from": "2022-01-01T00:00:00Z", "valid_to": "2025-01-01T00:00:00Z",
+            "events": [{"kind": "macro", "currencies": ["USD"],
+                        "blackout_from": "2024-01-05T00:00:00Z", "blackout_to": "2024-01-06T00:00:00Z"}],
+        }
+        policy = controls.build_profiles("XAUUSD", calendar, {"preEventMinutes": 60, "postEventMinutes": 30}, False)["news"]
+        self.assertEqual(policy.entry_reason(controls.epoch_ms("2024-01-05T23:59:59Z")), "news")
+
+    def test_variable_boj_release_stays_uncertain(self):
+        importer = import_module("xmi-session-calendar")
+        day = {"dateline": 1705968000}
+        event = {"id": 1, "currency": "JPY", "impactName": "medium", "name": "BOJ Policy Rate",
+                 "dateline": 1705979340, "timeMasked": False, "url": "/calendar"}
+        result = importer.normalize_event(event, day)
+        self.assertEqual(result["time_status"], "uncertain")
+        self.assertEqual(result["risk_action"], "blackout")
+        self.assertNotIn("scheduled_at", result)
+
+    def test_full_calendar_days_follow_daylight_saving(self):
+        importer = import_module("xmi-session-calendar")
+        for stamp, hours in [(1711843200, 23), (1729983600, 25)]:
+            event = {"id": stamp, "currency": "EUR", "impactName": "high", "name": "Tentative release",
+                     "dateline": stamp, "timeMasked": True, "url": "/calendar"}
+            result = importer.normalize_event(event, {"dateline": stamp})
+            duration = controls.epoch_ms(result["blackout_to"]) - controls.epoch_ms(result["blackout_from"])
+            self.assertEqual(duration, hours * 60 * controls.MINUTE)
+
+    def test_missing_provider_day_rejects_completeness(self):
+        importer = import_module("xmi-session-calendar")
+        with self.assertRaises(ValueError):
+            importer.extract_days(b'days: [{"dateline":1704067200,"events":[]}]', 2024, 1)
+
+
 if __name__ == "__main__":
     unittest.main()
