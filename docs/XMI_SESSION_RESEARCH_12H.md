@@ -721,3 +721,62 @@ OPENBLAS_NUM_THREADS=1 python scripts/xmi-session-news-refinement.py \
   --calendar "$research_dir/XMI_Economic_Calendar_2022_2024.json" \
   --output "$research_dir/news-refinement-new" --workers 8
 ```
+
+## Follow-up · Fixed entry-and-exit diagnostic batch · 2026-11-07
+
+Completed the authorized baseline-plus-three-experiment batch on the frozen gold New York intraday EMA10/EMA30 plus RSI55/45 cross strategy. The scope is this one documented 15-minute gold benchmark. All four cases keep the same USD 1,000 starting equity per account, 1% risk budget, 1.7 ATR stop, 2.2R target, 210-minute maximum hold, NY 10:00–15:00 DST-aware lane and flattening, 1-ounce minimum/increment, modeled 20:1 leverage, session trade cap, strict news/rollover rules and drawdown halt.
+
+The [fixed hypothesis catalog](xmi-session-entry-exit-candidates-20261107.json) was written and hashed before computing the baseline diagnostics or alternative results. Tests were separate, with no combinations or threshold changes: (1) allow a new entry only when the fully closed signal candle is within one ATR of EMA10; (2) exit at the exact next minute's open after a subsequent fully closed 15-minute candle crosses EMA10 against the position; and (3) wait 30 full clock minutes after the stop minute before another entry. The signal-candle distance rule does not promise a fill-price distance when the next open gaps.
+
+The original execution source is unchanged. A separate diagnostic kernel includes that frozen kernel and exports an additional entrypoint. The entry cap leaves the original opposite-signal exit timeline intact. Invalidation market exits use the next open without reading that minute's later high/low. Stop gaps and capped favorable target gaps retain precedence. Stop cooldowns use UTC elapsed minutes, not counts of available rows, and begin after the exit minute to avoid inventing an intraminute stop timestamp. Target, timeout and ordinary opposite-signal exits do not start the additional cooldown.
+
+First audited the baseline 2022–2023 trades at base costs. There were 272 trades and 155 losses. MFE/MAE use initial bid-price stop distance as one R, separately from the engine's cost-inclusive cash-risk R. For intraminute stop/target/risk exits, the unknown exit-minute range is excluded; only fully held earlier minutes and the known fill endpoint count. These are conservative excursion lower bounds. Progress-time observations are minute-close upper bounds, not invented tick times. No new entry or exit rule uses the later excursion measurements.
+
+| Training diagnostic | Observation |
+| --- | ---: |
+| Median favorable excursion | 0.603R |
+| Median adverse excursion | 0.529R |
+| Median modeled round-trip cost / initial stop distance | 0.131R |
+| Losing trades observed to reach at least +0.5R | 47 / 155 |
+| Losing trades observed to reach at least +1R | 18 / 155 |
+| Losing trades with some positive modeled net excursion | 111 / 155 |
+| Target exits | 18 / 272 |
+
+The 272 original training trades included 71 stops, 18 targets, 179 time/lane/news exits, one risk-halt exit and three opposite-signal exits. The time/lane/news reason is combined and must not be interpreted as a pure timeout count. Observing earlier favorable movement does not by itself validate a tighter exit: the actual early-EMA experiment below performs worse.
+
+Ran 48 distinct independent account cases: four variants × four periods × three cost cases. The cost cases retain USD 0.45/oz base spread, USD 0.07/oz adverse slippage per side and USD 0.035/oz commission per side, with 1×, 1.5× and 2× spread/slippage multipliers and unchanged commissions. Margin, minimum trade size, cost floors, gap risk and equity halts remain active. Every case's metrics and simulated trade-ledger digest reproduced on a second complete pass after fill-level audits were added. Each pass also performed 12 original-kernel baseline replays for parity; these are verification replays, not additional candidate configurations.
+
+The training-only choice was frozen before this batch's 2024 evaluations. It reused the registered requirement of at least 25 trades, positive net P/L, PF above 1.05, drawdown below 10% and no halt in every 2022/2023 account at all three costs. No variant passed; baseline remains an unqualified fallback. The base-cost training results show the instability:
+
+| Case | 2022 net USD | 2023 net USD | Halted in either training year |
+| --- | ---: | ---: | --- |
+| Original baseline | +31.08 | -99.56 | Yes |
+| Signal close within 1 ATR of EMA10 | -64.75 | -100.10 | Yes |
+| Exit on a later adverse EMA10 cross | -26.87 | -94.34 | Yes |
+| 30-minute cooldown after a stop | -22.22 | -94.46 | Yes |
+
+The following 2024 figures combine two separately reset USD 1,000 half-year accounts. Net P/L and trade counts are summed; drawdown is the higher fold value. This is reused development evidence, since the benchmark and hypotheses were already influenced by 2024:
+
+| Case | Trades | Gross before costs USD | Costs USD | Net USD | PF | Max fold DD | 1.5× cost net USD | 2× cost net USD |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Original baseline | 175 | +199.36 | 126.72 | +72.64 | 1.163 | 6.08% | +12.27 | -51.91 |
+| Signal close within 1 ATR of EMA10 | 147 | +135.20 | 105.60 | +29.60 | 1.083 | 6.15% | -11.82 | -53.90 |
+| Exit on a later adverse EMA10 cross | 217 | +124.70 | 155.76 | -31.06 | 0.935 | 8.16% | -82.76 | -176.89 |
+| 30-minute cooldown after a stop | 174 | +221.20 | 126.06 | +95.14 | 1.221 | 5.33% | +27.83 | -45.42 |
+
+The cooldown improves 2024 net by USD 22.50 and maximum validation fold drawdown from 6.08% to 5.33%. It blocks five otherwise considered entry signals at base costs, but changes the later trading path and reduces the final trade count by only one. Its improvement is mostly higher gross P/L (USD 21.84), with USD 0.66 lower modeled costs. It still loses USD 22.22 in 2022 and USD 94.46 in 2023, triggering the 2023 drawdown halt. Its PF 1.221, 174 validation trades and negative 2× cost net fail the required gates.
+
+The one-ATR entry cap reduces net by USD 43.04: gross P/L falls more than its cost savings. The early-EMA exit produces 125 invalidation exits at base costs, increases validation trades from 175 to 217 and raises costs from USD 126.72 to USD 155.76 while reducing gross P/L. It loses USD 31.06 at base costs and triggers a drawdown halt at 2× costs. These two hypotheses are not supported by this batch. No variant is promoted, and zero strategies qualify.
+
+All 38 relevant regression tests passed, including ten new execution/diagnostic tests for original-kernel parity in USD-quoted and USD-base models, next-open exit timing, ignored post-exit bar ranges, gap priority, retained opposite-signal exits, clock-based stop cooldowns across gaps, absence of cooldown after targets, conservative excursion bounds, serializable diagnostics and later-candle invalidation timing. All 4,694 simulated fills per complete pass were audited for news/rollover overlap and ordering; candidate fills additionally passed entry-cap, closed-signal and cooldown checks. All 12 baseline account metrics and logs match the frozen original, and the three combined validation ledger digests match the prior committed records.
+
+The [full result and verification hashes](xmi-session-entry-exit-20261107.json), [preregistration](xmi-session-entry-exit-preregistration-20261107.json) and [training freeze](xmi-session-entry-exit-freeze-20261107.json) preserve the evidence and chronology. Exact verified gold ZIPs and the audited calendar were reused with no vendor downloads. The known 2023 missing price windows, retrospective calendar limits and modeled full-period spreads remain limitations. No raw vendor rows or individual simulated ledgers were added to Git; the private evidence package preserves the complete simulated ledgers and excursion records.
+
+The 2025 archive remains sealed. No production/staging changes, real or paper orders, paid data or private production credentials were used. No combined variants, new indicator settings, new targets or risk-budget changes were tested. Next bounded work should examine the fixed baseline's losing trade mechanisms and independently verified execution costs. The cooldown failed the current gates and requires independent evidence before any promotion.
+
+```bash
+OPENBLAS_NUM_THREADS=1 python scripts/xmi-session-entry-exit.py \
+  --cache "$research_dir/histdata" \
+  --calendar "$research_dir/XMI_Economic_Calendar_2022_2024.json" \
+  --output "$research_dir/entry-exit-new"
+```

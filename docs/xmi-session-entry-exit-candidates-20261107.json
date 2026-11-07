@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "status": "research_only_fixed_hypotheses",
+  "benchmark_source": "docs/xmi-session-calendar-rerun-2022-2024.json: XAUUSD/intraday",
+  "scope": "Frozen gold New York intraday 15-minute EMA10/EMA30 plus RSI55/45 cross benchmark only",
+  "starting_equity_usd_per_account": 1000,
+  "training_years": [2022, 2023],
+  "reused_development_periods": ["2024-H1", "2024-H2"],
+  "sealed_holdout": 2025,
+  "cost_multipliers": [1.0, 1.5, 2.0],
+  "variants": [
+    {"id": "baseline", "entry_max_ema_distance_atr": null, "exit_on_fast_ema_cross": false, "stop_cooldown_minutes": 0},
+    {"id": "entry_distance_1_atr", "entry_max_ema_distance_atr": 1.0, "exit_on_fast_ema_cross": false, "stop_cooldown_minutes": 0},
+    {"id": "early_ema_exit", "entry_max_ema_distance_atr": null, "exit_on_fast_ema_cross": true, "stop_cooldown_minutes": 0},
+    {"id": "stop_cooldown_30m", "entry_max_ema_distance_atr": null, "exit_on_fast_ema_cross": false, "stop_cooldown_minutes": 30}
+  ],
+  "entry_distance_definition": "Absolute signal-candle close minus EMA10, divided by ATR14 of that fully closed 15-minute candle; apply only to new entries and preserve all original opposite-signal exits",
+  "early_exit_definition": "After entry, a fully closed 15-minute candle crosses EMA10 against the position; exit at the next available exact next-minute open. Adverse stop gaps and capped target gaps at that open retain precedence. No exit-bar range is read for an open exit.",
+  "cooldown_definition": "After a stop or stop gap, block entries for 30 complete clock minutes following the stop minute. Target, timeout, opposite-signal and risk-halt exits do not trigger this additional cooldown.",
+  "unchanged": ["15-minute EMA10/30 and RSI55/45 entry signal", "1% risk budget", "1.7 ATR initial stop", "2.2R target", "210-minute maximum hold and lane flattening", "NY 10:00-15:00 with DST", "1-ounce minimum/increment and 20:1 margin model", "strict news and rollover policy", "original session trade caps", "modeled costs and 10% drawdown halt"],
+  "selection": "Reuse the registered training-only gate from the news-policy catalog; no validation results enter selection. Keep baseline as an unqualified fallback when no variant passes.",
+  "diagnostics": "Baseline 2022-2023 trades at base costs only; conservative MFE/MAE bounds exclude unknown intraminute exit-bar ranges, retain known exit endpoints, and cannot change the preregistered variant thresholds.",
+  "combinations_tested": false,
+  "benchmark_and_hypotheses_previously_used_2024": true,
+  "production_or_paper_promotion_enabled": false
+}
