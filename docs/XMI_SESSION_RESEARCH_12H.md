@@ -901,3 +901,119 @@ Immutable output SHA-256 values:
 - `preregistration.json`: `f3c6426975ac806d9afde858f64b99af8d90daba958d4794cd9cf84d566fb3fa`
 - `training-selection-freeze.json`: `5c533141a77ff23c67aa476f5e9af9134963e6083470ecf81404486b96c453de`
 - `training-loss-conditions.json`: `2bbcde42e1e246eb93548b0e8d894f788285437d7f7fe0dfac2ae9907b2c83d2`
+
+## Follow-up · Entry-only target-to-cost scalp filter · 2026-11-07
+
+Completed the requested matched refinement of the 24 previously frozen scalp benchmarks, one per instrument/lane. All eight instruments remain in scope. This is 96 benchmark/filter combinations: unchanged rules with no filter or a minimum intended gross target equal to 2×, 3× or 5× full modeled round-trip cost. It is not a new search of all 4,032 base strategies, nor a claim that the old unqualified benchmarks were finalists. All 24 retain their original 5-minute signals, 5/10/15-minute maximum holds and 0.25% equity-risk budget. Each independent account starts with exactly USD 1,000. No targets, stops, costs, lot sizes, session rules or risk levels were altered to make a filter pass.
+
+The catalog and wrapper were hashed before replay. A rejected signal receives a nonfinite execution distance and is skipped by the unchanged kernel; all signal rows and session-end identities remain in place. The full account path is then re-simulated. Entry remains the exact minute after a fully closed signal; brackets, hard UTC time limit, pre-news flattening, session cap and margin guards remain unchanged. Filtering an earlier trade can change later fills, so results are not obtained by deleting losing trades from a saved ledger.
+
+The ratio uses the intended gross target, not a predicted favorable move or a later realized exit. In quote-price units it is:
+
+`reward × stop distance / [spread + 2 × adverse slippage + 2 × USD commission per unit per side × conversion]`
+
+For USD-quoted instruments the conversion is 1. For USD-base FX it is the intended target bid level, computed from the entry-open bid, direction and closed-signal ATR. Both target gross P/L and price friction convert to USD at that entry-known target level; commissions remain USD. No future quote, realized target hit, MFE/MAE or exit outcome enters the decision. A generous intended target does not establish that it can be reached within the maximum holding time.
+
+Reused all verified 2022–2024 HistData ZIPs, the existing hashed normalized cache, original engine sources and audited calendar. No vendor downloads were made. Complete source hashes, normalized hashes, archive date ranges and session coverage remain recorded for each instrument. FX costs remain 2.0 pips spread, 0.3 pip slippage per side and USD 3.50 per 100,000 units per side, with 1,000-unit minimum/increment and 30:1 leverage. Gold retains USD 0.45/oz spread, USD 0.07/oz slippage per side and USD 0.035/oz commission per side, a one-ounce minimum/increment and 20:1 leverage. 1.5× and 2× cases stress spread/slippage, not commission. These are modeled full-period costs, not verified tick spreads.
+
+London reference windows remain 08:00–10:00 open, 15:00–17:00 close and 10:00–15:00 intraday in Europe/London. New York windows remain 08:00–10:00 open, 15:00–16:45 close and 10:00–15:00 intraday in America/New_York. All new positions still flatten within their 5/10/15-minute limit and before lane/news cutoffs. Strict macro 60/30-minute, central-bank 90/60-minute, uncertainty/holiday and 16:45–17:15 New York rollover controls remain active. There are no date-specific exceptions.
+
+Ran 576 training accounts (24 benchmarks × 4 floors × 2 years × 3 costs), wrote the training-only selection freeze, then ran 576 reused-2024 H1/H2 development accounts. All 288 no-filter accounts matched the prior frozen metrics, audits and simulated-ledger hashes exactly. They are included in the 1,152 account cases, not additional configurations. An independent audit reconciled all 18,323 training and 9,366 development fills against saved ledgers, sample counts, net P/L, cost-floor eligibility, 15-minute holding bounds and margin checks. There were 384 zero-fill accounts across all periods/costs/floors and no maintenance-audit breaches. The overlapping simulations cannot be pooled into a qualifying out-of-sample sample.
+
+No threshold passed the registered training requirements: at least 25 trades, net > 0, PF > 1.05, DD < 10%, no halt or maintenance breach in every training-year/cost account. The 24 training-chosen floors are unqualified diagnostic choices, with the original no-filter case retained on ranking ties. No 2024 result was used for this batch's selection. Eighteen choices reduced base-cost 2024 losses; the other six retained no filter. Every training-selected choice was still negative at 2024 base costs. No strategy advanced to 2025.
+
+The following table compares all fixed floors descriptively across the 24 benchmarks. Each floor's dollar and trade totals sum 48 separately reset USD 1,000 half-year accounts; these are not returns on a single account or a portfolio. A flat account is never scored as profitable.
+
+| Fixed floor | Completed base-cost 2024 trades | Benchmarks with fills | Positive-net benchmarks | Gross USD | Costs USD | Net USD |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| None | 2,308 | 24 | 0 | +4.32 | 1593.45 | -1589.12 |
+| 2× | 1,127 | 24 | 0 | -30.98 | 577.66 | -608.63 |
+| 3× | 413 | 21 | 0 | +7.50 | 147.49 | -139.99 |
+| 5× | 57 | 9 | 4 | -1.39 | 15.17 | -16.56 |
+
+Loss reduction mainly reflects less activity and lower costs; it is not a validated positive expectancy. The 5× floor leaves only 57 trades across all 24 benchmarks and 15 benchmarks with no fills. Its four positive cases have only 1–5 trades each. GBP/USD open at 5× has PF 2.344 and +USD 0.43 from three trades, but zero trades under either stressed cost. It was not the training-selected floor. USD/JPY close at 5× has five trades, +USD 0.36 and PF 1.197; its 2× stress has no fills. The other positive cases have one or two trades and no losing trades, so PF is undefined rather than a defensible infinite score. None supplies the required 200-trade sample or training/cost robustness.
+
+The next tables show only the floors chosen before 2024, ordered within each lane by base 2024 PF. Each row's totals combine its two independent USD 1,000 half-year accounts. DD is the higher fold value; all rows are research diagnostics, not promoted strategies.
+
+### Training-selected open cost filters · reused 2024
+
+| Instrument | Floor | No-filter trades / net USD | Filtered trades | Gross USD | Costs USD | Net USD | Expectancy USD | PF | Max fold DD | 1.5× net USD | 2× net USD |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| USDJPY | 3 | 95 / -43.23 | 42 | +7.40 | 15.67 | -8.28 | -0.197 | 0.614 | 0.82% | -12.26 | -8.70 |
+| GBPUSD | 3 | 95 / -46.06 | 31 | +5.51 | 10.23 | -4.72 | -0.152 | 0.560 | 0.49% | -2.55 | -0.30 |
+| EURUSD | 2 | 78 / -48.48 | 34 | +7.91 | 17.16 | -9.25 | -0.272 | 0.408 | 0.87% | -7.69 | -1.03 |
+| USDCAD | 2 | 106 / -79.13 | 33 | -3.89 | 18.61 | -22.49 | -0.682 | 0.280 | 1.48% | -3.87 | -0.69 |
+| NZDUSD | 2 | 85 / -61.13 | 16 | +2.13 | 8.91 | -6.78 | -0.424 | 0.253 | 0.83% | -2.38 | -0.02 |
+| USDCHF | 2 | 107 / -81.45 | 41 | -1.45 | 21.59 | -23.05 | -0.562 | 0.175 | 1.84% | -10.60 | -7.92 |
+| XAUUSD | 2 | 15 / -13.11 | 14 | -1.60 | 9.24 | -10.84 | -0.774 | 0.141 | 1.14% | +0.00 | +0.00 |
+| AUDUSD | 2 | 105 / -94.57 | 19 | -6.88 | 9.57 | -16.45 | -0.866 | 0.125 | 1.22% | -3.13 | -0.28 |
+
+### Training-selected close cost filters · reused 2024
+
+| Instrument | Floor | No-filter trades / net USD | Filtered trades | Gross USD | Costs USD | Net USD | Expectancy USD | PF | Max fold DD | 1.5× net USD | 2× net USD |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| USDCHF | 3 | 167 / -104.44 | 16 | +1.27 | 5.90 | -4.62 | -0.289 | 0.342 | 0.33% | -0.71 | +0.00 |
+| USDJPY | 0 | 75 / -54.98 | 75 | +1.10 | 56.08 | -54.98 | -0.733 | 0.118 | 3.14% | -65.32 | -73.75 |
+| GBPUSD | 2 | 55 / -38.77 | 51 | -14.62 | 23.76 | -38.38 | -0.753 | 0.115 | 2.35% | -14.82 | -11.22 |
+| AUDUSD | 0 | 76 / -63.99 | 76 | +4.98 | 68.97 | -63.99 | -0.842 | 0.083 | 3.28% | -75.04 | -79.86 |
+| USDCAD | 2 | 55 / -35.63 | 49 | -2.89 | 27.80 | -30.69 | -0.626 | 0.074 | 1.95% | -13.21 | -3.50 |
+| NZDUSD | 0 | 77 / -67.91 | 77 | +7.66 | 75.57 | -67.91 | -0.882 | 0.051 | 3.72% | -80.27 | -84.65 |
+| XAUUSD | 0 | 27 / -14.96 | 27 | +2.86 | 17.82 | -14.96 | -0.554 | 0.018 | 1.41% | -14.32 | -13.95 |
+| EURUSD | 0 | 91 / -89.04 | 91 | -3.90 | 85.14 | -89.04 | -0.978 | 0.012 | 4.54% | -101.11 | -102.76 |
+
+### Training-selected intraday cost filters · reused 2024
+
+| Instrument | Floor | No-filter trades / net USD | Filtered trades | Gross USD | Costs USD | Net USD | Expectancy USD | PF | Max fold DD | 1.5× net USD | 2× net USD |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| EURUSD | 3 | 126 / -77.70 | 17 | +4.47 | 5.61 | -1.14 | -0.067 | 0.789 | 0.48% | +0.67 | +0.00 |
+| GBPUSD | 3 | 147 / -86.09 | 59 | +4.39 | 19.47 | -15.08 | -0.256 | 0.481 | 1.27% | -0.95 | -0.32 |
+| USDJPY | 3 | 138 / -71.69 | 80 | -3.68 | 26.07 | -29.76 | -0.372 | 0.332 | 1.84% | -17.97 | -14.07 |
+| USDCAD | 2 | 154 / -101.08 | 91 | +0.06 | 51.97 | -51.91 | -0.570 | 0.223 | 3.59% | -28.55 | -2.99 |
+| USDCHF | 3 | 129 / -84.46 | 21 | -6.32 | 7.76 | -14.08 | -0.670 | 0.212 | 0.99% | -2.83 | +0.00 |
+| AUDUSD | 2 | 150 / -103.40 | 51 | +0.06 | 30.36 | -30.30 | -0.594 | 0.190 | 2.10% | -6.56 | -1.76 |
+| XAUUSD | 0 | 16 / -11.49 | 16 | -0.93 | 10.56 | -11.49 | -0.718 | 0.057 | 1.19% | -6.16 | +0.00 |
+| NZDUSD | 2 | 139 / -116.36 | 32 | -8.39 | 19.47 | -27.86 | -0.871 | 0.053 | 1.44% | -1.98 | -1.03 |
+
+The largest PF among training-selected cases is EUR/USD NY-intraday at 3×: PF 0.789, 17 trades and -USD 1.14 net. It is not a candidate for promotion. A higher modeled cost sometimes removes most or all entries and reduces the dollar loss; zero P/L from zero trades does not demonstrate stress robustness.
+
+Gold exposes a structural sizing constraint under these specific assumptions. With reward=1, the target and stop distances are equal. A threshold T requires target distance ≥ T × round-trip cost C, so the minimum one-ounce stop-plus-cost risk is at least `(T + 1) × C`. At USD 1,000 and 0.25% risk, the initial budget is USD 2.50. These are analytical lower bounds, not additional backtests:
+
+| Gold floor | Minimum cash risk at base costs | At 1.5× spread/slippage | At 2× spread/slippage |
+| --- | ---: | ---: | ---: |
+| 2× | 1.980 USD | 2.865 USD | 3.750 USD |
+| 3× | 2.640 USD | 3.820 USD | 5.000 USD |
+| 5× | 3.960 USD | 5.730 USD | 7.500 USD |
+
+Thus gold at 3× or 5× cannot fund even its first minimum-size trade at base costs; at stressed costs, even 2× is unaffordable. Margin and data availability can further restrict entries but cannot rescue this risk-budget inequality. This explains the no-fill cases without inventing a different broker contract or raising risk. Gold 2× open still takes 14 base-cost development trades and loses USD 10.84. No 0.1-ounce or higher-risk sensitivity was run in this matched filter batch.
+
+| Qualification gate | Result |
+| --- | --- |
+| Stable training at all three cost levels | 0 / 96 threshold cases pass |
+| Positive expectancy among training-selected development cases | 0 / 24 pass |
+| PF > 1.5 among training-selected development cases | 0 / 24 pass |
+| At least 200 distinct completed base development trades | 0 / 96 threshold cases pass |
+| DD < 10%, no halt for training-selected base cases | 24 / 24 pass |
+| Positive stressed net at both 1.5× and 2× for training-selected cases | 0 / 24 pass |
+| Untouched out-of-sample evidence | Not evaluated; 2025 sealed |
+| All gates | 0 qualifiers |
+
+All 40 relevant tests passed: 10 new cost-filter checks, 12 prior scalp, 13 event-control and 5 calendar-screen tests. New checks cover both USD currency bases, both trade directions, all fee components, inclusive threshold boundaries, unchanged zero-filter replay, rejected entries without target/cost changes, stressed eligibility, retained session caps, independence from future path changes and failure of zero-fill accounts on profit/sample gates. The complete 288-account saved-data parity and independent ledger reconciliation add historical execution evidence beyond the synthetic tests.
+
+The known missing 2023 source windows remain excluded (EUR/USD NY-open 156/260 versus 259/262 in 2024). Archives are 2022–2024 historical observations, approximately 1.9–4.8 years old as of 2026-11-07. Retrospective calendars, modeled spreads/slippage, unavailable full-period paired quotes and broker-specific liquidation/contract details remain limitations. 2024 has already been used repeatedly and is development evidence, never fresh qualification. No quarantined Twelve Data data, fabricated volume, vendor purchases, private production credentials, production/staging changes, paper orders or real orders were used.
+
+The filter is useful as a cost/size feasibility guard in research; this batch does not validate a winning entry strategy. The next bounded step is to verify the intended broker/feed's actual contract minimum, fees and observed spread/slippage before considering a separately labeled sizing/cost sensitivity. Do not lower modeled costs, increase risk or widen targets merely to manufacture a passing backtest. Further scalp rules need separate registration and independent evidence; 2025 remains sealed.
+
+```bash
+OPENBLAS_NUM_THREADS=1 python scripts/xmi-session-scalp-cost.py \
+  --cache "$research_dir/histdata" \
+  --calendar "$research_dir/XMI_Economic_Calendar_2022_2024.json" \
+  --normalized "$research_dir/scalp-normalized" \
+  --output "$research_dir/scalp-cost-new" --workers 6
+```
+
+Immutable full evidence SHA-256 values:
+
+- `results.json`: `5e09c2dd80af1bd0fd8521bde8ebec82efc5a098b8577bfdc9ecb2ad66712c9c`
+- `preregistration.json`: `9bd9933fcd4b9e61062549e925e4c15cb1e2613cb2dc62d1919593ee59c30a55`
+- `training-selection-freeze.json`: `1cf0766b02c650c65331cd68f9d1e1ea38e74d684b8f4e8cb9ce660383f66097`
+- `independent-audit.json`: `88ada0ac4a5d53907291c078509c09f55446afd072ec9067e0c42763831fc9bf`

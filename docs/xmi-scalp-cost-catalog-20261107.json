@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "purpose": "Matched entry-only target-to-cost refinement of 24 frozen strict scalp benchmarks",
+  "source": "docs/xmi-session-scalping-20261107.json",
+  "scope": "Eight instruments, three independently ranked lanes, unchanged 24 training-frozen unqualified benchmarks; no new base strategy/risk/target search",
+  "thresholds": [0, 2, 3, 5],
+  "threshold_definition": "Allow entry when the intended gross target value divided by modeled round-trip spread, adverse slippage and commission is >= threshold; zero disables the filter",
+  "quote_formula": "reward * stop_distance / (spread + 2 * slippage + 2 * commission_usd_per_unit_side * (intended_target_bid if USD-base else 1))",
+  "information_boundary": "Closed signal ATR and modeled entry-open bid, fixed known cost assumptions, direction and intended bracket; no realized exit, excursion, return or future bar",
+  "usd_base_conversion": "Intended target is an entry-known order level. Both target gross P/L and price friction convert at that level; dollar commissions remain dollars. No realized exit is used in the filter.",
+  "execution": "A rejected signal gets a nonfinite stop distance and is skipped by the unchanged kernel. Preserve every signal row, session counter, hold cap, blackout, and cost; re-simulate the complete path.",
+  "risk_and_holding": "Inherit each frozen benchmark exactly: $1000 per account, 0.25% risk, 5-minute closed signals, 5/10/15-minute maximum holds; no target widening to pass the filter",
+  "training": [2022, 2023],
+  "reused_development": ["2024-H1", "2024-H2"],
+  "sealed_holdout": 2025,
+  "spread_slippage_multipliers": [1.0, 1.5, 2.0],
+  "cost_policy": "All original spreads, slippage, fees, margin and minimum sizes stay unchanged. Recompute eligibility at each stressed cost; zero fills are not a robust profit.",
+  "selection": {
+    "per": "fixed instrument/lane benchmark",
+    "requirements_every_training_year_and_cost": {"minimum_completed_trades": 25, "net_pnl_strictly_above_usd": 0, "profit_factor_strictly_above": 1.05, "max_equity_drawdown_strictly_below": 0.1, "halted": false, "liquidation_audit_breaches": 0},
+    "rank": "Use the frozen scalp selection function: eligible first, both base-cost training years with at least 25 trades second, then highest worst training account net across years/costs, then base training count. Prefer earlier catalog threshold on a tie.",
+    "fallback": "Unqualified diagnostic choice only; no promotion when no threshold passes training",
+    "chronology": "Write a training-only selection freeze before any new 2024 replay; all 2024 threshold results are descriptive comparisons, never grounds for reselection"
+  },
+  "qualification": "Positive net expectancy, PF > 1.5, DD < 10%, at least 200 distinct completed out-of-sample trades, stressed-cost and stability passes, no timing/data/margin failure. Previously reused 2024 cannot provide fresh qualification.",
+  "parity": "All 288 threshold-zero accounts must match the prior frozen training/2024 metrics, audits and trade-ledger hashes exactly",
+  "no_orders_or_paid_data": true,
+  "no_production_or_staging_changes": true
+}
