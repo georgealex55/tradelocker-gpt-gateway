@@ -45,3 +45,32 @@ Totals: **1,017,924 actual validated five-minute candle rows** over 14 symbol-ye
 The frozen runner counts only funded and resolved positions. Unfundable, occupied, shadow-only, and unpriced overnight swap cases are separately recorded, not added to funded net P&L. The main comparison uses same-day funded risk-fit lane only. Candle stop-target conflict resolved conservatively stop-first, but intraminute/tick fills, dynamic spreads, news, swap, margin maintenance, market impact and real execution latency are not independently verified.
 
 **Next:** independent quote/contract validation; 2022–2023 source sensitivity and cost stress on USDJPY; freeze a candidate; 2024 only as already-observed development, **leave 2025 sealed** until a proper untouched final validation plan.
+
+## USDJPY candidate ledger and execution-friction audit
+
+- Successful independently audited result, 2022/2023: https://github.com/georgealex55/tradelocker-gpt-gateway/actions/runs/42441343193
+- Ledger-derived figures are from actual frozen offline scenario decisions, not broker trades. Confirmed zero over-risk funded entries in the selected risk-fit 1% scenario.
+
+| Metric | 2022 | 2023 |
+|---|---:|---:|
+| Funded completed trades | 26 | 46 |
+| Winning trades | 14 | 23 |
+| Losing trades | 12 | 23 |
+| Win rate | 53.85% | 50.00% |
+| **Net profit factor** | **1.692** | **1.358** |
+| Net P&L | **+$61.58** | **+$63.09** |
+| Gross P&L before assumed execution friction | +$81.29 | +$99.67 |
+| Modeled friction deduction | $19.71 | $36.58 |
+| Maximum CLOSED-position equity drawdown | **2.18%** | **4.24%** |
+| Final independently started equity | $1,061.58 | $1,063.09 |
+
+### Cost stress — identical USDJPY strategy definition
+
+| Historical fold | Base 2-pip spread + 0.3-pip slippage/side | +50% spread/slippage | +100% spread/slippage |
+|---|---:|---:|---:|
+| 2022 | +$61.58 (26 trades) | +$35.41 (26 trades) | +$28.23 (26 trades) |
+| 2023 | +$63.09 (46 trades) | +$29.51 (46 trades) | +$11.73 (46 trades) |
+
+Each stress is a new independently re-executed funded $1,000-account model, with cost-sensitive size/eligibility recalculated, no parameter retuning. Spread at +50% is JPY 0.03, adverse slippage JPY 0.0045 per side; at +100%, JPY 0.04 and JPY 0.006 per side. **Stress cases remain positive in both training years, but these aren't verified historical broker cost distributions.**
+
+**The 2023 PF of 1.358 is below the user's >1.5 target.** Max drawdown above excludes intrabar exposure and margin-maintenance effects. The best 1% risk model has only 72 total training-year trades, not 200 independent OOS trades. No 2024 development or sealed 2025 holdout is evaluated here. Thus strict advance-to-live requirements remain unfulfilled.
