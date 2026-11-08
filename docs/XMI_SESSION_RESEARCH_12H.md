@@ -1148,3 +1148,214 @@ Immutable SHA-256 values:
 - `preregistration.json`: `e28fc51288be548a8952649cab5a403b3f6aca0c83595e78bea1f604e7bcfdf6`
 - `training-selection-freeze.json`: `740a48175866b353e4b3cc52956844cdae70953a89373e2b59e9158960af8e6c`
 - `independent-audit.json`: `bc578842b0405a986152a6cac7babd942fdd6f50c65b66e5265d3f0c719c499f`
+
+## Post-series follow-up · new scalp entries at fixed 0.01 lots · batch 2026-11-07
+
+Completed and audited 2026-11-08 UTC. This is a bounded follow-up to the completed hourly series, not another scheduled hourly increment. Outcome: **zero qualifiers; zero training-eligible configurations; all 27 frozen diagnostic choices lose after base costs on previously reused 2024 data.**
+
+The user selected testing new scalp entry rules at the same fixed 0.01-lot size. Each account starts independently at exactly USD 1,000. Signals use fully closed 1m or 5m candles, enter at the next available consecutive minute, and hold at most 5, 10 or 15 elapsed minutes. The 60 consecutive closed-bar warm-up resets across gaps. Planned per-trade risk ceilings remain 0.25% and 0.50% of current account cash (initially USD 2.50 and USD 5.00). A minimum-size trade that exceeds risk or margin is skipped. No trade size or risk ceiling was raised to force a fill.
+
+### Registered entry rules and grid
+
+| Entry family | Objective closed-bar hypothesis | Registered choices |
+| --- | --- | --- |
+| entry-compression | Prior N-bar high-low width <= 2 times prior ATR14. Close outside that prior range by 0.1 current ATR; candle body >=60% of range, aligned with EMA20/50. | 4, 6 |
+| entry-sweep | Low/high exceeds prior N-bar extreme by 0.1 ATR, then closes inside prior range. Rejection wick >=50% of candle range, ADX14<=25; long RSI14<45, short RSI14>55. | 6, 12 |
+| entry-pullback | At least one prior N close is on the pullback side of EMA10. Current directional body closes beyond all prior N highs/lows, aligned with EMA10/30, rising/falling EMA30 over three bars, ADX14>=20 and last completed 15m EMA20/50 direction. | 2, 3 |
+| entry-impulse-reversal | Parameter/10 is the prior candle true-range multiple of ATR known before that impulse. Prior directional candle RSI reaches <=35 or >=65. Current opposite body closes past 50% of prior real body but before its open. | 15, 20 |
+| entry-break-retest | Close breaks prior N-bar extreme by 0.1 ATR aligned with EMA10/30. A later candle within three bars retests the most recent break level, closes beyond its 0.1 break-ATR buffer in the original direction, and has a directional body. Reject intervening invalidating closes; require same entry-window ID. Never signal a retest on the break candle. | 6, 12 |
+| entry-band-return | Use previous N-bar mean and sample standard deviation to form +/-2-sigma bands. Current extreme breaches the band, then closes between that band and prior mean with a reversing body >=0.25 ATR. ADX14<=20; long RSI14<45, short RSI14>55. | 12, 24 |
+
+These are mechanical research interpretations. Similar pattern families appeared in earlier broad research; their exact rules here were registered before this batch. An OHLC sweep or reversal does not establish manipulation intent. No volume or VWAP was invented.
+
+The grid is 6 families × 2 parameters × 2 signal granularities × 6 reference windows × 3 holding caps × 2 risk ceilings × 4 target/cost floors (0, 2, 3, 5) = **3,456 configurations per instrument/profile**. Stops are 1.5× ATR14 and gross targets are 1R. The cost floor is the gross target divided by modeled round-trip friction; zero disables that filter. Eight instruments use the zero-commission profile; gold also has an independent wider-spread profile, giving 9 instrument/profile arms and **31,104 configurations**. All actual config IDs and account metrics are retained in the compressed full training inventory.
+
+### Clocks, costs and capital controls
+
+| Reference window | Local zone | Actual permitted entry-minute opens | Forced lane cutoff |
+| --- | --- | --- | --- |
+| london-open | Europe/London | 08:00–09:59 | 10:00 |
+| ny-open | America/New_York | 08:00–09:59 | 10:00 |
+| london-close | Europe/London | 15:00–16:59 | 17:00 |
+| ny-close | America/New_York | 15:00–16:44 | 16:45 |
+| london-intraday | Europe/London | 10:00–14:59 | 15:00 |
+| ny-intraday | America/New_York | 10:00–14:59 | 15:00 |
+
+Zones are DST-aware; these are research reference windows, not exchange auction claims for spot FX. Every position exits by the earlier lane cutoff, news blackout or elapsed holding cap. A final-minute entry can therefore last less than its nominal cap. High-impact relevant-currency releases block 60 minutes before through 30 after; FOMC blocks 90 before through 60 after. Uncertain event times block the relevant full local day. New York 16:45–17:15 is excluded, with Friday blackout extended through Sunday 17:15. This batch inherits the verified calendar and restrictions unchanged; no newly obtained historical data or calendars were introduced.
+
+| Modeled profile | Spread | Adverse slippage | Commission | Modeled leverage |
+| --- | --- | --- | --- | --- |
+| FX zero commission | 2 pips | 0.3 pip per side | USD 0 | 1:500 |
+| Gold lower spread | 0.45 quoted-price units | 0.07 per side | USD 0 | 1:200 |
+| Gold wider spread sensitivity | 1.72 quoted-price units | 0.07 per side | USD 0 | 1:200 |
+
+Both 1.5× and 2× stress multiply spread and slippage, and eligibility is recalculated at each cost level. Changed costs can remove fills, so a tiny stressed gain from a different surviving subset is not evidence that costs improve an entry. Gold friction at fixed 0.01 lots is USD 0.59 per completed base trade under the lower-spread model and USD 1.86 under the wider-spread model. The modeled contract multipliers are 100,000 base units per FX lot and 100 per gold lot, with minimum/step 0.01 lots. These remain conditional assumptions, not verified historical account-specific contract specifications.
+
+Cash margin is recalculated from each historical entry price, and reserved entry margin cannot exceed 90% of cash. USD-quoted price P/L is converted directly; USD-base P/L is divided by its exit exchange rate, while USD-base margin is calculated from USD notional. Planned stop risk includes friction and conservative USD conversion. The core keeps adverse gap opens, caps favorable target gaps, resolves ambiguous stop/target candles stop first, marks adverse intrabar equity, and halts at 10% drawdown. The 50%-of-reserved-margin maintenance audit observed no selected breach; broker-specific historical liquidation fills remain unverified. Displayed margin at one modern quote is not reused as a constant across past prices.
+
+### Data, chronology and actual work
+
+Reused 24 previously verified HistData ZIPs for 2022–2024, covering spot FX and XAU/USD as quoted in a Forex feed. The source consists of bid minute OHLC, not full historical bid/ask ticks. Ask prices and execution friction are modeled. Provider archive observations are approximately 1.9–4.8 years old as of the registered 2026-11-07 date; this is historical simulation, not current execution evidence. Exact ZIP, normalized array, executable and configuration hashes accompany the results. The quarantined Twelve Data series was excluded; no vendor downloads or private production credentials were used.
+
+| Instrument | Raw minute rows across 3 ZIPs | First UTC observation | Last UTC observation |
+| --- | ---: | --- | --- |
+| EURUSD | 1,067,882 | 2022-01-02T22:03:00+00:00 | 2024-12-31T21:58:00+00:00 |
+| GBPUSD | 1,067,068 | 2022-01-02T22:01:00+00:00 | 2024-12-31T21:58:00+00:00 |
+| USDJPY | 1,067,635 | 2022-01-02T22:00:00+00:00 | 2024-12-31T21:58:00+00:00 |
+| USDCHF | 1,061,235 | 2022-01-02T22:10:00+00:00 | 2024-12-31T21:58:00+00:00 |
+| AUDUSD | 1,064,454 | 2022-01-02T22:10:00+00:00 | 2024-12-31T21:58:00+00:00 |
+| USDCAD | 1,063,682 | 2022-01-02T22:07:00+00:00 | 2024-12-31T21:58:00+00:00 |
+| NZDUSD | 1,061,837 | 2022-01-02T22:30:00+00:00 | 2024-12-31T21:58:00+00:00 |
+| XAUUSD | 1,019,092 | 2022-01-02T23:00:00+00:00 | 2024-12-31T21:57:00+00:00 |
+
+Only complete, consecutive eligible session windows were used. Timestamp basis is fixed EST converted to UTC, then DST-aware reference-zone selection. Exact duplicate rows are removed; conflicting duplicates, invalid OHLC and backward-order problems are audited. No missing prices are filled. The known EUR/USD New York-open completeness issue remains **156/260 in 2023 versus 259/262 in 2024** (259/260 in 2022). Other 2023 lanes also have missing windows, so a thin sample cannot be represented as full-year coverage. Per-symbol/year/lane counts remain in the aggregate results.
+
+The catalog and source hashes were saved before computation. Only 2022 and 2023 determined the training-only freeze. Training eligibility requires at least 25 trades, positive net, PF strictly above 1.05, DD strictly below 10%, no halt and no bankruptcy/maintenance breach in every year and every cost scenario. If none pass, the deterministic training ranking retains an explicitly unqualified diagnostic choice per instrument/profile/lane. Earlier ties retain the first registered configuration. All 27 selections are such fallbacks. **2024 has been reused repeatedly in this project and cannot establish untouched out-of-sample performance.** The new entry choices were frozen before their 2024 evaluation. Replays of already known 2024 controls were used solely to verify execution parity. **2025 remains sealed and unread.**
+
+| Completed computation | Count |
+| --- | ---: |
+| New configurations | 31,104 |
+| New 2022–2023 training accounts, including 3 cost levels | 186,624 |
+| Completed training fills summed across configurations/accounts | 8,394,527 |
+| Training-eligible configurations | 0 |
+| Frozen diagnostic choices | 27 |
+| New 2024 development accounts (27 × 2 half-years × 3 costs) | 162 |
+| Total new training/development account cases | 186,786 |
+| Prior fixed-lot control accounts reproduced exactly | 324 |
+| Selected training accounts independently replayed | 162 |
+| Selected accounts independently reconciled to price/cash (including 2024) | 324 |
+| Selected completed fills independently price-audited | 3,868 |
+| Relevant unit tests passed | 60 |
+
+Six local workers and reusable normalized caches were used. Counts across configurations and stresses reuse the same market history; **8,394,527 is not a count of distinct out-of-sample trades**. Account totals are independent experiments, not a USD 1,000 shared-capital portfolio. No portfolio or future forward run was promoted when no entry qualified. The exhaustive audit independently reconstructed all 31,104 registered tuples and config IDs, verified inventory hashes, independently checked training ranks/frozen IDs, and reconciled selected ledger hashes, holding clocks, bracket prices, dollar P/L, currency conversions, margins, minimum size, risk and event boundaries. All audit checks passed.
+
+Across the training grid, 11,952 configurations have at least 25 base trades in each year and 260 have positive base net in both years, counting overlapping instrument/profile/parameter cases. None passes the full training stability screen. Those counts are training diagnostics, not strategy qualifiers.
+
+### Frozen 2024 development rankings
+
+Each H1/H2 account starts separately at USD 1,000. Net, gross and costs below sum the two independent half-year accounts; DD is the maximum equity drawdown of either account. They are not a single compounded annual account. PF and expectancy use all distinct completed base trades for that choice. Rankings are descriptive within lane after the fixed training selection; no config was chosen or retuned from these 2024 rankings.
+
+#### Open lane · zero-commission profile · fixed 0.01 lots
+
+| Instrument | Frozen rule / parameter | Signal / max hold | Window | Risk ceiling / cost floor | Trades | Gross USD | Costs USD | Net USD | Expectancy USD | PF | Max fold DD |
+| --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| USDJPY | entry-pullback / 2 | 5m / 15m | london-open | 0.25% / 5 | 19 | +2.38 | 3.29 | -0.91 | -0.048 | 0.844 | 0.32% |
+| USDCAD | entry-sweep / 6 | 1m / 10m | ny-open | 0.25% / 2 | 8 | +0.56 | 1.54 | -0.98 | -0.122 | 0.481 | 0.16% |
+| GBPUSD | entry-band-return / 24 | 5m / 5m | london-open | 0.50% / 3 | 5 | -0.49 | 1.30 | -1.79 | -0.358 | 0.077 | 0.22% |
+| AUDUSD | entry-impulse-reversal / 15 | 5m / 5m | london-open | 0.25% / 2 | 11 | -0.02 | 2.86 | -2.88 | -0.262 | 0.027 | 0.21% |
+| USDCHF | entry-compression / 4 | 5m / 5m | london-open | 0.25% / 3 | 6 | -2.11 | 1.80 | -3.91 | -0.651 | 0.196 | 0.37% |
+| EURUSD | entry-compression / 6 | 5m / 5m | london-open | 0.25% / 2 | 16 | -0.60 | 4.16 | -4.76 | -0.297 | 0.094 | 0.27% |
+| NZDUSD | entry-compression / 4 | 1m / 15m | ny-open | 0.25% / 2 | 19 | -2.67 | 4.94 | -7.61 | -0.400 | 0.238 | 0.71% |
+| XAUUSD | entry-sweep / 12 | 5m / 15m | london-open | 0.50% / 3 | 62 | +19.10 | 36.58 | -17.48 | -0.282 | 0.681 | 1.63% |
+
+#### Close lane · zero-commission profile · fixed 0.01 lots
+
+| Instrument | Frozen rule / parameter | Signal / max hold | Window | Risk ceiling / cost floor | Trades | Gross USD | Costs USD | Net USD | Expectancy USD | PF | Max fold DD |
+| --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| NZDUSD | entry-sweep / 6 | 5m / 15m | london-close | 0.25% / 3 | 2 | -0.91 | 0.52 | -1.43 | -0.716 | 0.000 | 0.14% |
+| USDCAD | entry-sweep / 12 | 5m / 15m | ny-close | 0.25% / 2 | 26 | +1.11 | 4.91 | -3.81 | -0.146 | 0.256 | 0.27% |
+| GBPUSD | entry-compression / 6 | 5m / 15m | london-close | 0.25% / 5 | 12 | -2.34 | 3.12 | -5.46 | -0.455 | 0.435 | 0.52% |
+| USDJPY | entry-sweep / 12 | 5m / 10m | london-close | 0.25% / 5 | 19 | -2.51 | 3.29 | -5.80 | -0.305 | 0.308 | 0.55% |
+| USDCHF | entry-sweep / 12 | 5m / 15m | london-close | 0.25% / 3 | 21 | -1.05 | 6.19 | -7.24 | -0.345 | 0.277 | 0.63% |
+| AUDUSD | entry-band-return / 24 | 5m / 5m | london-close | 0.25% / 2 | 24 | -2.65 | 6.24 | -8.89 | -0.370 | 0.057 | 0.55% |
+| EURUSD | entry-compression / 6 | 5m / 10m | london-close | 0.50% / 3 | 43 | -0.63 | 11.18 | -11.81 | -0.275 | 0.339 | 0.84% |
+| XAUUSD | entry-compression / 4 | 1m / 15m | london-close | 0.25% / 3 | 90 | -23.00 | 53.10 | -76.10 | -0.846 | 0.377 | 3.86% |
+
+#### Intraday lane · zero-commission profile · fixed 0.01 lots
+
+| Instrument | Frozen rule / parameter | Signal / max hold | Window | Risk ceiling / cost floor | Trades | Gross USD | Costs USD | Net USD | Expectancy USD | PF | Max fold DD |
+| --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| USDCAD | entry-sweep / 6 | 1m / 5m | london-intraday | 0.25% / 2 | 9 | +1.00 | 1.73 | -0.73 | -0.081 | 0.522 | 0.10% |
+| GBPUSD | entry-pullback / 2 | 5m / 10m | ny-intraday | 0.50% / 5 | 26 | +5.79 | 6.76 | -0.97 | -0.037 | 0.882 | 0.31% |
+| NZDUSD | entry-break-retest / 6 | 1m / 15m | london-intraday | 0.25% / 2 | 7 | -1.78 | 1.82 | -3.60 | -0.514 | 0.165 | 0.24% |
+| XAUUSD | entry-pullback / 3 | 5m / 15m | ny-intraday | 0.25% / 0 | 10 | -0.04 | 5.90 | -5.94 | -0.594 | 0.000 | 0.75% |
+| AUDUSD | entry-break-retest / 6 | 1m / 10m | london-intraday | 0.25% / 2 | 18 | -1.77 | 4.68 | -6.45 | -0.358 | 0.233 | 0.43% |
+| USDCHF | entry-band-return / 24 | 5m / 10m | london-intraday | 0.50% / 2 | 36 | +3.72 | 10.79 | -7.07 | -0.196 | 0.396 | 0.59% |
+| USDJPY | entry-sweep / 12 | 5m / 15m | ny-intraday | 0.25% / 5 | 39 | -3.72 | 6.83 | -10.55 | -0.270 | 0.400 | 1.15% |
+| EURUSD | entry-band-return / 12 | 5m / 5m | ny-intraday | 0.50% / 2 | 59 | -0.84 | 15.34 | -16.18 | -0.274 | 0.084 | 1.26% |
+
+#### Gold · separate wider-spread sensitivity · fixed 0.01 lots
+
+| Lane | Frozen rule / parameter | Signal / max hold | Window | Trades | Gross USD | Costs USD | Net USD | Expectancy USD | PF | Max fold DD |
+| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| open | entry-impulse-reversal / 15 | 5m / 10m | london-open | 19 | +1.52 | 35.34 | -33.82 | -1.780 | 0.034 | 2.07% |
+| close | entry-impulse-reversal / 15 | 1m / 5m | ny-close | 16 | -0.72 | 29.76 | -30.48 | -1.905 | 0.000 | 1.97% |
+| intraday | entry-band-return / 24 | 1m / 15m | ny-intraday | 29 | +0.40 | 53.94 | -53.54 | -1.846 | 0.000 | 5.23% |
+
+All 27 frozen choices lose at base costs. Gold lower-spread London-open sweep: USD 19.10 before friction, USD 36.58 cost, **-USD 17.48 net** over 62 trades (PF 0.681). Its 2× cost result is +USD 2.86 from only two surviving fills, while the 1.5× result is -USD 10.35 from 17 fills. This is not robust stressed performance. The widest base sample is gold London-close compression: 90 trades, -USD 76.10 net, PF 0.377. No frozen choice reaches the required 200 distinct completed development trades.
+
+### Stress and exact qualification gates
+
+| Instrument / profile | Lane | 1.5× trades | 1.5× net USD | 2× trades | 2× net USD |
+| --- | --- | ---: | ---: | ---: | ---: |
+| EURUSD / zero_commission | open | 4 | -1.89 | 0 | +0.00 |
+| EURUSD / zero_commission | close | 8 | -2.75 | 0 | +0.00 |
+| EURUSD / zero_commission | intraday | 22 | -10.58 | 10 | -7.16 |
+| GBPUSD / zero_commission | open | 0 | +0.00 | 0 | +0.00 |
+| GBPUSD / zero_commission | close | 0 | +0.00 | 0 | +0.00 |
+| GBPUSD / zero_commission | intraday | 1 | +1.70 | 0 | +0.00 |
+| USDJPY / zero_commission | open | 3 | -0.28 | 0 | +0.00 |
+| USDJPY / zero_commission | close | 7 | -2.59 | 0 | +0.00 |
+| USDJPY / zero_commission | intraday | 12 | -5.48 | 2 | +0.25 |
+| USDCHF / zero_commission | open | 1 | -2.47 | 0 | +0.00 |
+| USDCHF / zero_commission | close | 1 | -0.68 | 1 | -0.83 |
+| USDCHF / zero_commission | intraday | 7 | -0.65 | 2 | +0.99 |
+| AUDUSD / zero_commission | open | 0 | +0.00 | 0 | +0.00 |
+| AUDUSD / zero_commission | close | 6 | -2.00 | 0 | +0.00 |
+| AUDUSD / zero_commission | intraday | 4 | -2.44 | 0 | +0.00 |
+| USDCAD / zero_commission | open | 1 | -0.22 | 0 | +0.00 |
+| USDCAD / zero_commission | close | 0 | +0.00 | 0 | +0.00 |
+| USDCAD / zero_commission | intraday | 1 | -0.29 | 0 | +0.00 |
+| NZDUSD / zero_commission | open | 4 | -1.90 | 0 | +0.00 |
+| NZDUSD / zero_commission | close | 0 | +0.00 | 0 | +0.00 |
+| NZDUSD / zero_commission | intraday | 0 | +0.00 | 0 | +0.00 |
+| XAUUSD / zero_commission | open | 17 | -10.35 | 2 | +2.86 |
+| XAUUSD / zero_commission | close | 0 | +0.00 | 0 | +0.00 |
+| XAUUSD / zero_commission | intraday | 4 | -3.53 | 0 | +0.00 |
+| XAUUSD / gold_high_spread | open | 12 | -37.71 | 1 | -4.87 |
+| XAUUSD / gold_high_spread | close | 0 | +0.00 | 0 | +0.00 |
+| XAUUSD / gold_high_spread | intraday | 0 | +0.00 | 0 | +0.00 |
+
+At 1.5× costs, nine frozen choices have no fills; at 2×, 21 have none. A flat account with no fills does not pass cost robustness. The isolated positive stress outcomes involve one or two trades and do not pass both stressed levels. Cost filters and the fixed minimum size explain much of the sample collapse.
+
+| Gate across 27 frozen diagnostic choices | Pass count |
+| --- | ---: |
+| Positive base net expectancy | 0 / 27 |
+| Base profit factor strictly above 1.5 | 0 / 27 |
+| Maximum base equity DD strictly below 10%, no halt | 27 / 27 |
+| At least 200 distinct completed base trades | 0 / 27 |
+| Positive net and DD <10%, no halt at both 1.5× and 2× costs | 0 / 27 |
+| Registered stability across both training years and all costs | 0 / 27 |
+| No observed maintenance audit breach | 27 / 27 |
+| Untouched out-of-sample evidence | 0 / 27 |
+| Verified historical contract and execution costs | 0 / 27 |
+| All qualification gates | **0 qualifiers** |
+
+The original core source/execution hashes remain unchanged. All 324 prior fixed-0.01-lot accounts reproduced complete metrics, audits, lot statistics and ledger digests exactly. The previous lot rerun had three small positive base fixed-lot diagnostic choices; this new training-selected entry batch has zero. That is a documented failure to improve profitability, not a reason to replace prior rules. The entry rules are the research change; fixed-lot cash accounting, news/rollover restrictions and each execution scenario were held constant. Different training-selected rules/windows/cost floors mean the 27 result rows are not a matched entry-only causal effect across every legacy configuration.
+
+What improved: objective entry catalog, causal timing and gap guards, six closed-bar entry implementations, reproducible training-only selection, exact fixed-lot execution parity, and complete independent inventory/price audits. What remains untested or unverified: full-period broker bid/ask and contract specifications, latency/rejections, tick-order execution, fresh out-of-sample/forward behavior, broader regimes, other stop/target designs, and a capital-constrained portfolio. The latest 1m/5m batch does not rerun 15m/30m directional styles; those remain prior evidence, outside the current strict-scalping increment.
+
+Next bounded batch: use training-only matched fill-path diagnostics to separate pre-cost entry edge from friction and calculate break-even spread thresholds, then decide whether independent historical quote verification justifies further work. Keep 2025 sealed. No candidate is ready for forward paper execution under the qualification gates. No orders, purchases, production/staging service changes or chart/application changes occurred. No raw vendor rows, private account information or individual simulated ledgers are published to Git.
+
+```bash
+OPENBLAS_NUM_THREADS=1 python scripts/xmi-session-new-entries.py \
+  --cache "$research_dir/histdata" \
+  --calendar "$research_dir/XMI_Economic_Calendar_2022_2024.json" \
+  --normalized "$research_dir/scalp-normalized" \
+  --output "$research_dir/new-entries" --workers 6
+OPENBLAS_NUM_THREADS=1 python scripts/xmi-session-new-entries-audit.py \
+  --cache "$research_dir/histdata" \
+  --calendar "$research_dir/XMI_Economic_Calendar_2022_2024.json" \
+  --normalized "$research_dir/scalp-normalized" \
+  --output "$research_dir/new-entries"
+```
+
+Immutable SHA-256 values:
+
+- `results.json`: `82d3fb14b54b7ec5e1743c390705c8927dd943695d32f5e2207f32fdf9623f8e` (committed as `docs/xmi-session-new-entries-20261107.json`)
+- `preregistration.json`: `5804ef2269cda30387dea3eb0fa2cf323241aa7c59ad54fabe4cba14a2f5ea88` (committed as `docs/xmi-session-new-entries-prereg-20261107.json`)
+- `training-selection-freeze.json`: `2c4d999613d9d9bc98bbdae3d72dcbfc99dccce7d5c1dccbb1902b1885b21d9b` (committed as `docs/xmi-session-new-entries-freeze-20261107.json`)
+- `independent-audit.json`: `95656f5c1b630ca55c38c2ad72d2355136beea40db428ab2d71ea91169f34e33` (committed as `docs/xmi-session-new-entries-audit-20261107.json`)
+- `scripts/xmi-session-new-entries.py`: `fda9cfee0f72202dfb706d09860b3861f6e69ad73044da6925a20698f2b436cc`
+- `scripts/xmi-session-new-entries-audit.py`: `711ba40259512fb00e581a54986a21194e3ffb682ff13d1511fd2a8bf7af66d9`
+- `docs/xmi-new-scalp-entry-catalog-20261107.json`: `a6a51be1b86a6fae123cd70137fc426a4727baf78c1a5e2e973bcc48cce4c19d`

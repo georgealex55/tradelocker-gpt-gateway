@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "scope": "New objective closed-bar scalp entry hypotheses; fixed 0.01 lots throughout",
+  "source_execution": "docs/xmi-session-lot-rerun-20261107.json",
+  "starting_equity_usd": 1000,
+  "training": [2022, 2023],
+  "reused_development": ["2024-H1", "2024-H2"],
+  "sealed_holdout": 2025,
+  "signal_minutes": [1, 5],
+  "holding_caps_minutes": [5, 10, 15],
+  "risk_ceiling_fractions": [0.0025, 0.005],
+  "cost_floors": [0, 2, 3, 5],
+  "windows": ["london-open", "ny-open", "london-close", "ny-close", "london-intraday", "ny-intraday"],
+  "stop_atr": 1.5,
+  "gross_target_r": 1.0,
+  "contiguous_closed_bars_required": 60,
+  "rules": [
+    {"id": "entry-compression", "parameters": [4, 6], "definition": "Prior N-bar high-low width <= 2 times prior ATR14. Close outside that prior range by 0.1 current ATR; candle body >=60% of range, aligned with EMA20/50."},
+    {"id": "entry-sweep", "parameters": [6, 12], "definition": "Low/high exceeds prior N-bar extreme by 0.1 ATR, then closes inside prior range. Rejection wick >=50% of candle range, ADX14<=25; long RSI14<45, short RSI14>55."},
+    {"id": "entry-pullback", "parameters": [2, 3], "definition": "At least one prior N close is on the pullback side of EMA10. Current directional body closes beyond all prior N highs/lows, aligned with EMA10/30, rising/falling EMA30 over three bars, ADX14>=20 and last completed 15m EMA20/50 direction."},
+    {"id": "entry-impulse-reversal", "parameters": [15, 20], "definition": "Parameter/10 is the prior candle true-range multiple of ATR known before that impulse. Prior directional candle RSI reaches <=35 or >=65. Current opposite body closes past 50% of prior real body but before its open."},
+    {"id": "entry-break-retest", "parameters": [6, 12], "definition": "Close breaks prior N-bar extreme by 0.1 ATR aligned with EMA10/30. A later candle within three bars retests the most recent break level, closes beyond its 0.1 break-ATR buffer in the original direction, and has a directional body. Reject intervening invalidating closes; require same entry-window ID. Never signal a retest on the break candle."},
+    {"id": "entry-band-return", "parameters": [12, 24], "definition": "Use previous N-bar mean and sample standard deviation to form +/-2-sigma bands. Current extreme breaches the band, then closes between that band and prior mean with a reversing body >=0.25 ATR. ADX14<=20; long RSI14<45, short RSI14>55."}
+  ],
+  "interpretation": "Mechanical research interpretations; price shapes do not identify manipulation intent or guarantee a reversal. No volume/VWAP is fabricated.",
+  "unchanged_execution": "Inherit both cost profiles, contract/lot assumptions, margin, min-lot skips, next-minute fills, bracket/time exits, stop-first ambiguity, drawdown halt, news and rollover controls from the source execution. Preserve risk ceiling even at fixed 0.01 lots.",
+  "selection": "Per instrument/profile/lane, training-only eligibility/ranking from the existing scalp function. At least 25 trades, positive net, PF>1.05, DD<10%, no halt or maintenance breach in every training year/cost. Otherwise retain an explicitly unqualified diagnostic fallback. Never choose from 2024 results.",
+  "chronology": "Save catalog and source hashes first; write a training-only freeze before evaluating any new entry on 2024. Prior known controls can be replayed for parity.",
+  "controls": "Reproduce all 324 prior fixed-0.01-lot profile/lane/fold/cost accounts with exact metrics, audits, lot statistics and ledger digests.",
+  "qualification": "Positive net expectancy, PF>1.5, DD<10%, at least 200 distinct completed untouched out-of-sample trades, robust stressed costs and stability, no timing/data failure. Previously reused 2024 and unverified historical broker contracts/costs cannot establish qualification.",
+  "no_orders_or_production_changes": true
+}
