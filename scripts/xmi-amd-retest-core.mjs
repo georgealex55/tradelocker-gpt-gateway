@@ -50,13 +50,16 @@ export function detectAMDRetest(raw,settings={}){
   if(!["rolling","session_asia_london"].includes(rangeModel)||!["range_reclaim_retest","mss_fvg_retest"].includes(entryModel))
     throw Error("Unregistered AMD configuration");
   const signals=[],stats={rangeOpportunities:0,sweeps:0,displacements:0,retests:0,expired:0,gaps:0};
-  let session={day:"",high:-Infinity,low:Infinity,n:0},p=null;
+  let session={day:"",high:-Infinity,low:Infinity,n:0,valid:true,first:null,last:null},p=null;
   for(let i=0;i<bars.length;i++){
     const b=bars[i],clock=localTime(b.t);
     if(clock.day!==session.day){
-      session={day:clock.day,high:-Infinity,low:Infinity,n:0};p=null;
+      session={day:clock.day,high:-Infinity,low:Infinity,n:0,valid:true,first:null,last:null};p=null;
     }
+    if(i&&b.t-bars[i-1].t!==STEP_MS&&clock.hour<6&&session.n>0)session.valid=false;
     if(clock.hour<6){
+      if(session.n===0)session.first=clock.hour*60+clock.minute;
+      session.last=clock.hour*60+clock.minute;
       session.high=Math.max(session.high,b.h);session.low=Math.min(session.low,b.l);session.n++;
     }
     if(i&&b.t-bars[i-1].t!==STEP_MS){stats.gaps++;p=null;}
@@ -96,7 +99,7 @@ export function detectAMDRetest(raw,settings={}){
     if(clock.hour<6)continue;
     let region=null;
     if(rangeModel==="session_asia_london"){
-      if(session.n<6||clock.hour<7||clock.hour>=16)continue;
+      if(!session.valid||session.n!==72||session.first!==0||session.last!==355||clock.hour<7||clock.hour>=16)continue;
       region={high:session.high,low:session.low,mid:(session.high+session.low)/2};
       if(region.high-region.low>10*atr)continue;
     }else{
