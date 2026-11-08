@@ -72,8 +72,8 @@ def parse_minute(text,year,week):
         if h<max(o,c)-1e-10 or l>min(o,c)+1e-10:
             raise ValueError("Invalid bid high/low")
         a=float(rec[ask]) if ask and rec[ask] else None
-        if a is not None and (not math.isfinite(a) or a<o-.000001):
-            raise ValueError("Bad ask open")
+        if a is not None and (not math.isfinite(a) or a<=0):
+            raise ValueError(f"Nonpositive or invalid ask at {t}")
         n+=1
         yield t,(o,h,l,c,a)
 
@@ -135,6 +135,7 @@ def run(pair,outdir):
                "raw_source_timezone":"UTC reported by FXCM",
                "first":datetime.fromtimestamp(bars[0][0],UTC).isoformat(),
                "last":datetime.fromtimestamp(bars[-1][0],UTC).isoformat(),
+               "crossed_bid_ask_minute_quotes":sum(x<0 for x in spreads),
                "sample_bid_ask_spread_median":statistics.median(spreads) if spreads else None,
                "sample_bid_ask_spread_p95":sorted(spreads)[int(.95*(len(spreads)-1))] if spreads else None,
                "broker_execution_verified":False,"holdout_2025_read":False}
