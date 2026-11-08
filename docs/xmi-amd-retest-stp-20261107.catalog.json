@@ -1,0 +1,236 @@
+{
+  "schema_version": 1,
+  "study": "xmi_amd_retest_stp",
+  "date": "2026-11-07",
+  "status": "IMPLEMENTATION_STAGING_ONLY_NO_HISTORICAL_REPLAY_YET",
+  "branch": "research/xmi-amd-retest-stp-20261107",
+  "underlying": "research/xmi-profitability-gross-net-spread-20261107",
+  "capitalUSD": 1000,
+  "account": {
+    "broker": "GatesFX",
+    "type": "Standard STP",
+    "advertisedCommissionUSD": 0,
+    "advertisedMaxLeverage": 500,
+    "verifiedSymbolLeverage": false,
+    "brokerAccountInstrumentDetailsVerified": false
+  },
+  "timeframe": "5m closed bars from verified contiguous data (15m higher bias planned, not asserted active)",
+  "rangeModels": [
+    "session_asia_london",
+    "rolling"
+  ],
+  "entryModels": [
+    "mss_fvg_retest",
+    "range_reclaim_retest"
+  ],
+  "exitModels": [
+    "bracket_2r",
+    "structure_opposite_liquidity"
+  ],
+  "carryModels": [
+    "session_flat",
+    "overnight_with_swap_sensitivity"
+  ],
+  "sizingModels": [
+    "risk_0.0025",
+    "risk_0.005",
+    "risk_0.01",
+    "fixed_0.01"
+  ],
+  "noSkipLanes": [
+    "force_min_if_margin",
+    "risk_fit",
+    "shadow_every_signal"
+  ],
+  "riskControls": {
+    "riskDrawdownHalt": 0.1,
+    "marginUtilizationMax": 0.9,
+    "stopBeforeTargetOnAmbiguousBars": true,
+    "orderExecution": "next fully closed 5m bar open",
+    "noArbitraryMinutesHoldingCap": true,
+    "sessionFlatExitNY": "16:40",
+    "forcedMinimumRiskExcessLabeled": true,
+    "simultaneousSignalsAlwaysLogged": true
+  },
+  "amd": {
+    "sessionAccumulationZone": "Europe/London",
+    "sessionAccumulationLocalRange": [
+      "00:00",
+      "06:00"
+    ],
+    "sessionSweepAllowedLocalRange": [
+      "07:00",
+      "16:00"
+    ],
+    "minSessionRangeBars": 6,
+    "rollingPriorBars": 12,
+    "rangeMaxATRSession": 10,
+    "rangeMaxATRRolling": 5,
+    "sweepBufferATR": 0.1,
+    "confirmationBars": 8,
+    "retestBars": 12,
+    "displacementBodyATR": 0.35,
+    "bracketRewardR": 2
+  },
+  "instruments": {
+    "EURUSD": {
+      "lotSize": 100000,
+      "minLot": 0.01,
+      "lotStep": 0.01,
+      "maxLot": null,
+      "symbolLeverage": 500,
+      "spreadPrice": 0.0002,
+      "slippagePriceEachSide": 0.00003,
+      "swapLongUsdPerLotPerNight": null,
+      "swapShortUsdPerLotPerNight": null,
+      "specStatus": "MODELED_UNVERIFIED",
+      "costStatus": "HISTORICAL_STP_BID_ASK_UNVERIFIED",
+      "leverageStatus": "CONDITIONAL_ACCOUNT_HEADLINE_500"
+    },
+    "GBPUSD": {
+      "lotSize": 100000,
+      "minLot": 0.01,
+      "lotStep": 0.01,
+      "maxLot": null,
+      "symbolLeverage": 500,
+      "spreadPrice": 0.0002,
+      "slippagePriceEachSide": 0.00003,
+      "swapLongUsdPerLotPerNight": null,
+      "swapShortUsdPerLotPerNight": null,
+      "specStatus": "MODELED_UNVERIFIED",
+      "costStatus": "HISTORICAL_STP_BID_ASK_UNVERIFIED",
+      "leverageStatus": "CONDITIONAL_ACCOUNT_HEADLINE_500"
+    },
+    "USDJPY": {
+      "lotSize": 100000,
+      "minLot": 0.01,
+      "lotStep": 0.01,
+      "maxLot": null,
+      "symbolLeverage": 500,
+      "spreadPrice": 0.02,
+      "slippagePriceEachSide": 0.003,
+      "swapLongUsdPerLotPerNight": null,
+      "swapShortUsdPerLotPerNight": null,
+      "specStatus": "MODELED_UNVERIFIED",
+      "costStatus": "HISTORICAL_STP_BID_ASK_UNVERIFIED",
+      "leverageStatus": "CONDITIONAL_ACCOUNT_HEADLINE_500"
+    },
+    "USDCHF": {
+      "lotSize": 100000,
+      "minLot": 0.01,
+      "lotStep": 0.01,
+      "maxLot": null,
+      "symbolLeverage": 500,
+      "spreadPrice": 0.0002,
+      "slippagePriceEachSide": 0.00003,
+      "swapLongUsdPerLotPerNight": null,
+      "swapShortUsdPerLotPerNight": null,
+      "specStatus": "MODELED_UNVERIFIED",
+      "costStatus": "HISTORICAL_STP_BID_ASK_UNVERIFIED",
+      "leverageStatus": "CONDITIONAL_ACCOUNT_HEADLINE_500"
+    },
+    "AUDUSD": {
+      "lotSize": 100000,
+      "minLot": 0.01,
+      "lotStep": 0.01,
+      "maxLot": null,
+      "symbolLeverage": 500,
+      "spreadPrice": 0.0002,
+      "slippagePriceEachSide": 0.00003,
+      "swapLongUsdPerLotPerNight": null,
+      "swapShortUsdPerLotPerNight": null,
+      "specStatus": "MODELED_UNVERIFIED",
+      "costStatus": "HISTORICAL_STP_BID_ASK_UNVERIFIED",
+      "leverageStatus": "CONDITIONAL_ACCOUNT_HEADLINE_500"
+    },
+    "USDCAD": {
+      "lotSize": 100000,
+      "minLot": 0.01,
+      "lotStep": 0.01,
+      "maxLot": null,
+      "symbolLeverage": 500,
+      "spreadPrice": 0.0002,
+      "slippagePriceEachSide": 0.00003,
+      "swapLongUsdPerLotPerNight": null,
+      "swapShortUsdPerLotPerNight": null,
+      "specStatus": "MODELED_UNVERIFIED",
+      "costStatus": "HISTORICAL_STP_BID_ASK_UNVERIFIED",
+      "leverageStatus": "CONDITIONAL_ACCOUNT_HEADLINE_500"
+    },
+    "NZDUSD": {
+      "lotSize": 100000,
+      "minLot": 0.01,
+      "lotStep": 0.01,
+      "maxLot": null,
+      "symbolLeverage": 500,
+      "spreadPrice": 0.0002,
+      "slippagePriceEachSide": 0.00003,
+      "swapLongUsdPerLotPerNight": null,
+      "swapShortUsdPerLotPerNight": null,
+      "specStatus": "MODELED_UNVERIFIED",
+      "costStatus": "HISTORICAL_STP_BID_ASK_UNVERIFIED",
+      "leverageStatus": "CONDITIONAL_ACCOUNT_HEADLINE_500"
+    },
+    "XAUUSD": {
+      "lotSize": 100,
+      "minLot": 0.01,
+      "lotStep": 0.01,
+      "maxLot": null,
+      "symbolLeverage": 200,
+      "spreadPrice": 0.45,
+      "slippagePriceEachSide": 0.07,
+      "swapLongUsdPerLotPerNight": null,
+      "swapShortUsdPerLotPerNight": null,
+      "specStatus": "MODELED_UNVERIFIED",
+      "costStatus": "HISTORICAL_STP_BID_ASK_UNVERIFIED",
+      "leverageStatus": "CONDITIONAL_GOLD_200_NOT_ACCOUNT_VERIFIED"
+    }
+  },
+  "alternativeGoldSpread": {
+    "base": 0.45,
+    "wideScenario": 1.72,
+    "wideScenarioSource": "single prior user quote, not verified historical distribution"
+  },
+  "baselineComparators": [
+    "docs/xmi-session-calendar-rerun-2022-2024.json",
+    "docs/xmi-session-lot-rerun-20261107.json",
+    "docs/xmi-session-new-entries-20261107.json"
+  ],
+  "folds": [
+    {
+      "id": "training_2022",
+      "start": "2022-01-01",
+      "end": "2023-01-01"
+    },
+    {
+      "id": "training_2023",
+      "start": "2023-01-01",
+      "end": "2024-01-01"
+    },
+    {
+      "id": "reused_dev_2024_h1",
+      "start": "2024-01-01",
+      "end": "2024-07-01"
+    },
+    {
+      "id": "reused_dev_2024_h2",
+      "start": "2024-07-01",
+      "end": "2025-01-01"
+    }
+  ],
+  "sealedHoldout": 2025,
+  "holdoutReadAllowed": false,
+  "eligibleForLiveTrading": false,
+  "evidence": {
+    "GatesFXSTP": "https://gatesfx.com/account-types",
+    "TradeLockerInstrumentAPI": "https://public-api.tradelocker.com/reference/getinstrumentdetails"
+  },
+  "limitations": [
+    "Live account instrument details absent; gold lot size, minimum and leverage must be replaced with verified values",
+    "Broker spreads are scenario parameters and not measured historical Standard STP execution",
+    "Overnight swap charges not established: carried positions must be marked swap_unknown until supplied",
+    "No-overnight mode closes by New York session end; not an arbitrary elapsed-hold cap",
+    "No forced/unfundable shadow fills count toward executable account P/L",
+    "Historical minute-bar private cache is not committed to repo; no valid 2022–2024 AMD results can be asserted until local runner reads it"
+  ]
+}
