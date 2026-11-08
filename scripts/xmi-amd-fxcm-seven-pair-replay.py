@@ -44,7 +44,12 @@ def timestamp(s):
         else:
             dt=datetime.fromisoformat(s.replace(" ","T"))
     except ValueError: raise ValueError(f"Bad UTC timestamp {s!r}")
-    if dt.tzinfo is None: dt=dt.replace(tzinfo=UTC)
+    if dt.tzinfo is not None:
+        if dt.utcoffset() != timezone.utc.utcoffset(None):
+            raise ValueError(f"Non-UTC timezone offset in FXCM source timestamp {s!r}")
+        dt=dt.astimezone(UTC)
+    else:
+        dt=dt.replace(tzinfo=UTC)
     return int(dt.timestamp())
 
 def parse_minute(text,year,week):
@@ -74,6 +79,8 @@ def parse_minute(text,year,week):
         a=float(rec[ask]) if ask and rec[ask] else None
         if a is not None and (not math.isfinite(a) or a<=0):
             raise ValueError(f"Nonpositive or invalid ask at {t}")
+        if a is not None and a < o:
+            raise ValueError(f"Crossed bid/ask open at {t}: ask {a} < bid {o}")
         n+=1
         yield t,(o,h,l,c,a)
 
