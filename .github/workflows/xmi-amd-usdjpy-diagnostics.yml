@@ -1,0 +1,62 @@
+name: XMI AMD USDJPY research candidate diagnostics (2022-2023)
+on:
+  push:
+    branches: [research/xmi-amd-seven-pair-fxcm-replay-20261107]
+    paths:
+      - '.github/workflows/xmi-amd-usdjpy-diagnostics.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  candidate-diagnostics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout isolated research branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Frozen engine regression
+        run: node --test tests/xmi-amd-retest.test.mjs
+      - name: Obtain and validate original USDJPY historical quotes, run frozen baseline
+        run: |
+          python3 scripts/xmi-amd-fxcm-seven-pair-replay.py \
+            --symbol USDJPY --out "$RUNNER_TEMP/usdjpy"
+      - name: Produce exact trade ledgers for 2022 and 2023
+        run: |
+          for year in 2022 2023; do
+            node scripts/xmi-amd-retest-runner.mjs \
+              --input "$RUNNER_TEMP/usdjpy/USDJPY-$year-bid-m5.csv" \
+              --symbol USDJPY --fold "training_$year" \
+              --output "$RUNNER_TEMP/usdjpy/USDJPY-ledgers-$year.json" \
+              --ledgers-dir "$RUNNER_TEMP/usdjpy/ledger-$year"
+          done
+      - name: Replay +50% and +100% cost stress without parameter retuning
+        run: |
+          printf '%s\n' '{"spreadPrice":0.03,"slippagePriceEachSide":0.0045}' > "$RUNNER_TEMP/usdjpy/spec-stress15.json"
+          printf '%s\n' '{"spreadPrice":0.04,"slippagePriceEachSide":0.006}' > "$RUNNER_TEMP/usdjpy/spec-stress20.json"
+          for profile in stress15 stress20; do
+            for year in 2022 2023; do
+              node scripts/xmi-amd-retest-runner.mjs \
+                --input "$RUNNER_TEMP/usdjpy/USDJPY-$year-bid-m5.csv" \
+                --symbol USDJPY --fold "training_$year" \
+                --symbol-spec "$RUNNER_TEMP/usdjpy/spec-$profile.json" \
+                --output "$RUNNER_TEMP/usdjpy/USDJPY-$profile-$year.json"
+            done
+          done
+      - name: Audit candidate fill ledgers, drawdown and cost sensitivity
+        run: python3 scripts/xmi-amd-usdjpy-diagnostics.py "$RUNNER_TEMP/usdjpy"
+      - name: Upload audit artifacts (no raw vendor candles)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xmi-usdjpy-amd-candidate-audit-2022-2023
+          path: |
+            /home/runner/work/_temp/usdjpy/USDJPY-candidate-diagnostics.json
+            /home/runner/work/_temp/usdjpy/USDJPY-summary.json
+          if-no-files-found: warn
+          retention-days: 30
