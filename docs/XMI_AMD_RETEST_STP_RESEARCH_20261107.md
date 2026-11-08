@@ -1,6 +1,6 @@
 # XMI 2.0 · $1,000 AMD + retest · isolated research implementation
 
-**As of:** 2026-11-07. **Working branch:** \`research/xmi-amd-retest-stp-20261107\`.
+**As of:** 2026-11-07. **Working branch:** `research/xmi-amd-retest-stp-20261107`.
 
 ## State of the work
 
@@ -26,33 +26,33 @@ Total requested full-factorial grid: **192 scenarios per symbol × 8 symbols = 1
 ### Verified public facts (not individual live account quotes)
 
 - GatesFX publishes STP Standard **zero commission** and **up-to-1:500** advertised leverage: https://gatesfx.com/account-types .
-- The TradeLocker instrument detail API exposes \`lotSize\`, \`minLot\`, \`lotStep\`, and \`leverage\` for a specific instrument and route: https://public-api.tradelocker.com/reference/getinstrumentdetails .
-- Public GatesFX \`instruments\` page quotes ECN Raw values; those are **not Standard STP historical execution samples**.
+- The TradeLocker instrument detail API exposes `lotSize`, `minLot`, `lotStep`, and `leverage` for a specific instrument and route: https://public-api.tradelocker.com/reference/getinstrumentdetails .
+- Public GatesFX `instruments` page quotes ECN Raw values; those are **not Standard STP historical execution samples**.
 - The earlier user-provided gold quote spread of 1.72 is a single observation, not a 2022–2024 STP time series.
 
 ## Scripts and artifacts
 
 | Asset | Function |
 | --- | --- |
-| \`docs/xmi-amd-retest-stp-20261107.catalog.json\` | Frozen modes, symbols, risk settings, verified-vs-modeled fields, holdout guard |
-| \`scripts/xmi-amd-retest-core.mjs\` | Causal session / rolling range, sweep, displacement, retest signal detector |
-| \`scripts/xmi-amd-retest-execution.mjs\` | Zero-commission bid/ask cash replay, risk-budget/forced-min/shadow accounting, structural or bracket exits |
-| \`scripts/xmi-amd-export-bars.py\` | Converts the existing audited private HistData M1 ZIPs to complete M5 bid OHLC with source manifest |
-| \`scripts/xmi-amd-retest-runner.mjs\` | CLI runs the 192-factorial per-symbol, per-fold research matrix with optional private ledgers |
-| \`scripts/xmi-amd-baseline-compare.mjs\` | Read-only comparison to the untouched saved 24 leader baselines |
-| \`tests/xmi-amd-retest.test.mjs\` | 11 synthetic deterministic regression cases |
+| `docs/xmi-amd-retest-stp-20261107.catalog.json` | Frozen modes, symbols, risk settings, verified-vs-modeled fields, holdout guard |
+| `scripts/xmi-amd-retest-core.mjs` | Causal session / rolling range, sweep, displacement, retest signal detector |
+| `scripts/xmi-amd-retest-execution.mjs` | Zero-commission bid/ask cash replay, risk-budget/forced-min/shadow accounting, structural or bracket exits |
+| `scripts/xmi-amd-export-bars.py` | Converts the existing audited private HistData M1 ZIPs to complete M5 bid OHLC with source manifest |
+| `scripts/xmi-amd-retest-runner.mjs` | CLI runs the 192-factorial per-symbol, per-fold research matrix with optional private ledgers |
+| `scripts/xmi-amd-baseline-compare.mjs` | Read-only comparison to the untouched saved 24 leader baselines |
+| `tests/xmi-amd-retest.test.mjs` | 11 synthetic deterministic regression cases |
 
 The 11 JavaScript scenarios passed in a synthetic in-memory test harness on 2026-11-07, including causal entries, complete Asian sessions, holdout rejection, 0.25% lot affordability, force-min over-budget labeling, bid/ask friction, shadow-only P/L exclusion, unfilled margin, unresolved positions and reproducibility. This is **not** evidence of historical profitability. For reproducible local Node verification, run:
 
-\`\`\`bash
+```bash
 node --test tests/xmi-amd-retest.test.mjs
-\`\`\`
+```
 
 ## How to launch the real historical replay from the original private cache
 
-The following reads the original historical ZIPs locally and emits only private CSV/results, not vendor price rows to Git. Keep \`$research_dir\` outside the repository.
+The following reads the original historical ZIPs locally and emits only private CSV/results, not vendor price rows to Git. Keep `$research_dir` outside the repository.
 
-\`\`\`bash
+```bash
 # 1. Convert the already-audited history. The source reader covers 2022–24 ONLY.
 python scripts/xmi-amd-export-bars.py \\
   --cache "$research_dir/histdata" --symbol XAUUSD --years 2022 2023 2024 \\
@@ -72,13 +72,13 @@ node scripts/xmi-amd-retest-runner.mjs \\
 node scripts/xmi-amd-baseline-compare.mjs \\
   --amd "$research_dir/private/xauusd-amd-training-2022.json" \\
   --output "$research_dir/private/xauusd-amd-baseline-2022.json"
-\`\`\`
+```
 
-The same commands apply to EURUSD, GBPUSD, USDJPY, USDCHF, AUDUSD, USDCAD and NZDUSD; omit \`--gold-wide\` for FX. Run 2024 halves only after freezing candidate parameters on 2022–2023, preserving them as **previously examined development**, not new independent out-of-sample evidence. The 2025 holdout must not be inspected.
+The same commands apply to EURUSD, GBPUSD, USDJPY, USDCHF, AUDUSD, USDCAD and NZDUSD; omit `--gold-wide` for FX. Run 2024 halves only after freezing candidate parameters on 2022–2023, preserving them as **previously examined development**, not new independent out-of-sample evidence. The 2025 holdout must not be inspected.
 
 ### Actual account details
 
-For a sanitized per-symbol file, include only allowed fields such as \`lotSize\`, \`minLot\`, \`lotStep\`, \`symbolLeverage\`, \`spreadPrice\`, \`slippagePriceEachSide\`, \`swapLongUsdPerLotPerNight\`, \`swapShortUsdPerLotPerNight\`, and \`specStatus\`. The runner accepts \`--symbol-spec /private/XAUUSD.json\`. Do not provide credentials, balances, account IDs, or unverified values marked as verified.
+For a sanitized per-symbol file, include only allowed fields such as `lotSize`, `minLot`, `lotStep`, `symbolLeverage`, `spreadPrice`, `slippagePriceEachSide`, `swapLongUsdPerLotPerNight`, `swapShortUsdPerLotPerNight`, and `specStatus`. The runner accepts `--symbol-spec /private/XAUUSD.json`. Do not provide credentials, balances, account IDs, or unverified values marked as verified.
 
 ## Research caveats before a profitability conclusion
 
