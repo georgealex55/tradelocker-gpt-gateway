@@ -6,7 +6,7 @@
 
 Two distinct, already-registered cohorts are analyzed separately; their overlapping market years and tests cannot be pooled into an independent portfolio or live return.
 
-1. **24 calendar-filtered development leaders (2024):** 3,999 matched completed simulated trades in 24 independently funded accounts/half-year folds, gross `USD +1019.30`, modeled friction `USD +1718.92`, and net `USD -699.63`. 22 of 24 have positive gross P/L, 20 flip from gross-positive to non-positive net, and 2 remain net positive. The 2022–2023 training cases instead show gross `USD +134.79`, friction `USD +2084.61`, net `USD -1949.82`, and **0 net-positive leaders**.
+1. **24 calendar-filtered development leaders (2024):** 3,999 completed simulated trades across 24 leader strategies and 48 independently initialized 2024 half-year account folds, gross `USD +1019.30`, modeled friction `USD +1718.92`, and net `USD -699.63`. 22 of 24 have positive gross P/L, 20 flip from gross-positive to non-positive net, and 2 remain net positive. The 2022–2023 training cases instead show gross `USD +134.79`, friction `USD +2084.61`, net `USD -1949.82`, and **0 net-positive leaders**.
 2. **Latest 27 fixed-0.01-lot, zero-commission diagnostics (2024):** 651 completed simulated trades, gross `USD -12.27`, spread-plus-slippage `USD +317.91`, and net `USD -330.18`. 9 of 27 had positive gross results yet **all 27 had negative net results**. 18 were already gross-negative. 6 of 27 have nonnegative, accounting-only break-even spreads at unchanged slippage (none passes the strategy qualification gates).
 3. **Not merely commission:** the 27-case replay intentionally sets commission to zero; the cost loss persists.
 4. **Exit and capital diagnostics:** among latest 27 cases, 390/651 (59.9%) close by time cap and 1,741 minimum-size skips appear. These are descriptive counts; P/L by exit reason and causal skip opportunity cost require trade-level ledgers.
@@ -20,8 +20,8 @@ Two distinct, already-registered cohorts are analyzed separately; their overlapp
 
 ## A. 24 calendar-filtered leaders — matched fold-accounting comparison
 
-| Market | Trades (2024) | Gross USD | Friction USD | Net USD | Break-even all-in friction as % of current | Training net USD (2022+23) |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Symbol | Lane | Trades (2024) | Gross USD | Friction USD | Net USD | Break-even all-in friction as % of current | Training net USD (2022+23) |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | AUDUSD | open | 200 | +23.97 | +66.33 | -42.36 | 36.14% | -50.84 |
 | AUDUSD | close | 162 | +11.84 | +58.08 | -46.24 | 20.38% | -50.30 |
 | AUDUSD | intraday | 173 | +7.23 | +57.75 | -50.52 | 12.52% | -41.82 |
@@ -47,7 +47,7 @@ Two distinct, already-registered cohorts are analyzed separately; their overlapp
 | XAUUSD | close | 182 | +150.49 | +136.62 | +13.87 | 110.16% | -182.47 |
 | XAUUSD | intraday | 175 | +199.36 | +126.72 | +72.64 | 157.33% | -68.48 |
 
-The sixth column is gross divided by the original modeled friction; 100% means the **same frozen fills** are exactly break-even before changing execution paths. Negative percentages indicate gross loss before friction, so nonnegative friction cannot make the case profitable. It is **not** a pure-spread threshold because commissioned fills and foreign-exchange conversions are not separated in these public aggregates.
+The seventh column is gross divided by the original modeled friction; 100% means the **same frozen fills** are exactly break-even before changing execution paths. Negative percentages indicate gross loss before friction, so nonnegative friction cannot make the case profitable. It is **not** a pure-spread threshold because commissioned fills and foreign-exchange conversions are not separated in these public aggregates.
 
 ### Aggregated 24-leader diagnostics (NOT portfolio results)
 
