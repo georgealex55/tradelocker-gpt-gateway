@@ -1,0 +1,196 @@
+#!/usr/bin/env python3
+"""Read-only public FXCM M1 bid/ask fetch, strict M5 conversion, frozen AMD run.
+Research folds: 2022, 2023 only. Never requests 2024/2025 or broker APIs.
+No credentials or live order operations. Source costs are NOT GatesFX STP fills.
+"""
+import argparse, csv, gzip, hashlib, json, math, os, statistics, subprocess, sys, time
+import urllib.error, urllib.request
+from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timezone
+from pathlib import Path
+
+PAIRS=("EURUSD","GBPUSD","USDJPY","USDCHF","AUDUSD","USDCAD","NZDUSD")
+YEARS=(2022,2023)
+BASE="https://candledata.fxcorporate.com/m1/{pair}/{year}/{week}.csv.gz"
+UTC=timezone.utc
+
+def sha(x):
+    return hashlib.sha256(x).hexdigest()
+
+def fetch_one(pair,year,week):
+    url=BASE.format(pair=pair,year=year,week=week)
+    error=None
+    for retry in range(3):
+        try:
+            req=urllib.request.Request(url,headers={"User-Agent":"XMI-Research-Historical-Replay/1.0"})
+            with urllib.request.urlopen(req,timeout=25) as response:
+                payload=response.read(5_000_000)
+                if response.read(1): raise ValueError("Abnormally large weekly gzip")
+            data=gzip.decompress(payload)
+            if len(data)<100: raise ValueError("Empty weekly data")
+            return week,payload,data
+        except (OSError,ValueError,urllib.error.URLError) as exc:
+            error=str(exc)
+            if retry<2: time.sleep(1.5*(retry+1))
+    raise RuntimeError(f"{pair} {year} week {week}: {error}")
+
+def timestamp(s):
+    s=s.strip().removesuffix("Z")
+    if len(s)==16: s+=":00"
+    try: dt=datetime.fromisoformat(s.replace(" ","T"))
+    except ValueError: raise ValueError(f"Bad UTC timestamp {s!r}")
+    if dt.tzinfo is None: dt=dt.replace(tzinfo=UTC)
+    return int(dt.timestamp())
+
+def parse_minute(text,year,week):
+    rows=csv.DictReader(text.decode("utf-8-sig").splitlines())
+    if not rows.fieldnames: raise ValueError("Missing CSV header")
+    norm={name.strip().lower():name for name in rows.fieldnames}
+    def pick(*names):
+        for name in names:
+            if name in norm:return norm[name]
+        raise ValueError("Missing column "+"/".join(names)+"; got "+repr(rows.fieldnames))
+    date=pick("datetime","date","timestamp","time")
+    op=pick("bidopen","bid_open","openbid")
+    hi=pick("bidhigh","bid_high","highbid")
+    lo=pick("bidlow","bid_low","lowbid")
+    cl=pick("bidclose","bid_close","closebid")
+    ask=norm.get("askopen") or norm.get("ask_open")
+    n=0
+    for rec in rows:
+        t=timestamp(rec[date])
+        if datetime.fromtimestamp(t,UTC).year not in YEARS: continue
+        if t%60:raise ValueError("Non-minute timestamp")
+        o,h,l,c=(*(float(rec[x]) for x in (op,hi,lo,cl)),)
+        if not all(math.isfinite(x) and x>0 for x in (o,h,l,c)):
+            raise ValueError("Invalid bid price")
+        if h<max(o,c)-1e-10 or l>min(o,c)+1e-10:
+            raise ValueError("Invalid bid high/low")
+        a=float(rec[ask]) if ask and rec[ask] else None
+        if a is not None and (not math.isfinite(a) or a<o-.000001):
+            raise ValueError("Bad ask open")
+        n+=1
+        yield t,(o,h,l,c,a)
+
+def run(pair,outdir):
+    outdir.mkdir(parents=True,exist_ok=True)
+    if pair not in PAIRS:raise ValueError("Unregistered pair")
+    allstats={}
+    raw_all={}
+    for year in YEARS:
+        by_minute={}
+        week_hashes={}
+        duplicates=0
+        print(f"{pair} {year}: fetching 52 FXCM UTC M1 weeks",flush=True)
+        with ThreadPoolExecutor(max_workers=12) as pool:
+            jobs={pool.submit(fetch_one,pair,year,w):w for w in range(1,53)}
+            results=[]
+            for job in as_completed(jobs):
+                results.append(job.result())
+        for week,payload,raw in sorted(results):
+            week_hashes[str(week)]=sha(payload)
+            for t,values in parse_minute(raw,year,week):
+                if datetime.fromtimestamp(t,UTC).year!=year:continue
+                old=by_minute.get(t)
+                if old is not None:
+                    if old!=values:raise ValueError(f"Conflicting duplicate minute {pair} {t}")
+                    duplicates+=1
+                else:by_minute[t]=values
+        groups=defaultdict(list)
+        for t,row in by_minute.items():
+            groups[t-(t%300)].append((t,row))
+        bars=[]
+        missing_groups=0
+        spreads=[]
+        for base,items in sorted(groups.items()):
+            items.sort()
+            if [t-base for t,_ in items]!=[0,60,120,180,240]:
+                missing_groups+=1;continue
+            vals=[rec for _,rec in items]
+            bars.append((base,vals[0][0],max(v[1] for v in vals),
+                         min(v[2] for v in vals),vals[-1][3]))
+            for v in vals:
+                if v[4] is not None:spreads.append(v[4]-v[0])
+        monthly=defaultdict(int)
+        for bar in bars:
+            monthly[datetime.fromtimestamp(bar[0],UTC).strftime("%Y-%m")]+=1
+        # Decline incomplete or truncated yearly feeds. Do not label partial-year returns as full years.
+        if len(bars)<45000 or len(monthly)!=12 or min(monthly.values())<2000:
+            raise ValueError(f"Insufficient {pair} {year} coverage: {len(bars)} M5 bars, monthly {dict(monthly)}")
+        csv_path=outdir/f"{pair}-{year}-bid-m5.csv"
+        with csv_path.open("x",newline="") as f:
+            writer=csv.writer(f);writer.writerow(("t","o","h","l","c"))
+            for t,o,h,l,c in bars:
+                writer.writerow((datetime.fromtimestamp(t,UTC).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                                 f"{o:.12g}",f"{h:.12g}",f"{l:.12g}",f"{c:.12g}"))
+        stats={"pair":pair,"year":year,"source_url_template":BASE,
+               "minute_rows":len(by_minute),"duplicate_minutes":duplicates,
+               "valid_m5_bars":len(bars),"incomplete_m5_groups":missing_groups,
+               "monthly_m5":dict(monthly),"weekly_gzip_sha256":week_hashes,
+               "raw_source_timezone":"UTC reported by FXCM",
+               "first":datetime.fromtimestamp(bars[0][0],UTC).isoformat(),
+               "last":datetime.fromtimestamp(bars[-1][0],UTC).isoformat(),
+               "sample_bid_ask_spread_median":statistics.median(spreads) if spreads else None,
+               "sample_bid_ask_spread_p95":sorted(spreads)[int(.95*(len(spreads)-1))] if spreads else None,
+               "broker_execution_verified":False,"holdout_2025_read":False}
+        allstats[year]=stats
+        raw_all[year]=csv_path
+        print(f"{pair} {year}: {len(by_minute):,} M1 rows -> {len(bars):,} complete M5 bars",flush=True)
+    by_year={}
+    for year in YEARS:
+        path=outdir/f"{pair}-amd-{year}.json"
+        cmd=["node","scripts/xmi-amd-retest-runner.mjs",
+             "--input",str(raw_all[year]),"--symbol",pair,
+             "--fold",f"training_{year}","--output",str(path)]
+        completed=subprocess.run(cmd,capture_output=True,text=True,check=True)
+        print(completed.stdout.strip(),flush=True)
+        by_year[year]=json.loads(path.read_text())
+    def k(row):
+        return tuple(row[x] for x in ("profile","rangeModel","entryModel","exitModel","carry","sizing","lane"))
+    yrmaps={year:{k(row):row for row in by_year[year]["rows"]} for year in YEARS}
+    pairs=[]
+    for config,x in yrmaps[2022].items():
+        if x["lane"]!="risk_fit" or x["carry"]!="session_flat":continue
+        y=yrmaps[2023].get(config)
+        if y is None:continue
+        n1=x["settledFunded"];n2=y["settledFunded"]
+        if n1>=20 and n2>=20:
+            pairs.append({"config":dict(zip(("profile","rangeModel","entryModel","exitModel","carry","sizing","lane"),config)),
+              "trades2022":n1,"trades2023":n2,"net2022":x["netFundedUSD"],
+              "net2023":y["netFundedUSD"],"combined_net_diagnostic":x["netFundedUSD"]+y["netFundedUSD"],
+              "positive_both":x["netFundedUSD"]>0 and y["netFundedUSD"]>0})
+    pairs.sort(key=lambda x:x["combined_net_diagnostic"],reverse=True)
+    result={"symbol":pair,"source":"FXCM public M1 indicative bid/ask, not GatesFX",
+      "folds":[2022,2023],"starting_equity_per_scenario":1000,
+      "m5_count_by_year":{str(y):allstats[y]["valid_m5_bars"] for y in YEARS},
+      "tested_scenarios_by_year":{str(y):len(by_year[y]["rows"]) for y in YEARS},
+      "matched_risk_fit_session_flat_both_years_n20":len(pairs),
+      "positive_both_years_n20":sum(p["positive_both"] for p in pairs),
+      "best_matched":pairs[:5],
+      "annual_data":allstats,"2025_holdout_read":False,
+      "broker_standard_stp_spread_verified":False,"production_changed":False,
+      "notes":["Separate independent $1,000 accounts for each scenario/year",
+               "Zero-commission fixed 2.0-pip spread plus 0.3-pip per-side slippage from frozen catalog",
+               "FXCM indicative historical quotes are not GatesFX historical fills",
+               "Overnight unknown-swap outcomes excluded from funded cash return",
+               "Only same-day funded risk-fit accounts ranked; no scenario selected for live trading"]}
+    (outdir/f"{pair}-summary.json").write_text(json.dumps(result,indent=2)+"\n")
+    print("SUMMARY "+json.dumps({k:v for k,v in result.items() if k in
+      ("symbol","m5_count_by_year","matched_risk_fit_session_flat_both_years_n20",
+       "positive_both_years_n20","best_matched")}),flush=True)
+    return result
+
+if __name__=="__main__":
+    p=argparse.ArgumentParser()
+    p.add_argument("--symbol",choices=PAIRS,required=True)
+    p.add_argument("--out",type=Path,required=True)
+    a=p.parse_args()
+    try:run(a.symbol,a.out)
+    except Exception as exc:
+        a.out.mkdir(parents=True,exist_ok=True)
+        (a.out/f"{a.symbol}-BLOCKED.json").write_text(json.dumps(
+          {"symbol":a.symbol,"status":"BLOCKED","reason":str(exc),"replay_completed":False,
+           "holdout_2025_read":False},indent=2))
+        print("BLOCKED "+str(exc),file=sys.stderr)
+        sys.exit(2)
