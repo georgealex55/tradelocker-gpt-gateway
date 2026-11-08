@@ -48,9 +48,10 @@
     "stopBeforeTargetOnAmbiguousBars": true,
     "orderExecution": "next fully closed 5m bar open",
     "noArbitraryMinutesHoldingCap": true,
-    "sessionFlatExitNY": "16:40",
+    "sessionFlatExitNY": "16:40 by closing the 16:35 bar",
     "forcedMinimumRiskExcessLabeled": true,
-    "simultaneousSignalsAlwaysLogged": true
+    "simultaneousSignalsAlwaysLogged": true,
+    "sessionFlatNewEntryCutoffNY": "16:35"
   },
   "amd": {
     "sessionAccumulationZone": "Europe/London",
@@ -62,7 +63,7 @@
       "07:00",
       "16:00"
     ],
-    "minSessionRangeBars": 6,
+    "minSessionRangeBars": 72,
     "rollingPriorBars": 12,
     "rangeMaxATRSession": 10,
     "rangeMaxATRRolling": 5,
@@ -231,6 +232,7 @@
     "Overnight swap charges not established: carried positions must be marked swap_unknown until supplied",
     "No-overnight mode closes by New York session end; not an arbitrary elapsed-hold cap",
     "No forced/unfundable shadow fills count toward executable account P/L",
-    "Historical minute-bar private cache is not committed to repo; no valid 2022–2024 AMD results can be asserted until local runner reads it"
+    "Historical minute-bar private cache is not committed to repo; no valid 2022–2024 AMD results can be asserted until local runner reads it",
+    "Session-based AMD requires all 72 contiguous London 00:00–05:55 five-minute bars; incomplete Asian sessions are rejected."
   ]
 }
