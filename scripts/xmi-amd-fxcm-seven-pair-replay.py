@@ -77,6 +77,55 @@ def parse_minute(text,year,week):
         n+=1
         yield t,(o,h,l,c,a)
 
+
+def dukascopy_missing_2023_w27(pair,outdir):
+    """Use only actual independent Dukascopy M5 bids in blank FXCM week 27."""
+    dest=outdir/"duka-week27"
+    dest.mkdir(parents=True,exist_ok=True)
+    cmd=["npx","--yes","dukascopy-node@1.51.1","-i",pair.lower(),
+         "-from","2023-07-02","-to","2023-07-10","-t","m5","-f","csv",
+         "-dir",str(dest),"--retries","2","--batch-size","10","--batch-pause","200","-s"]
+    proc=subprocess.run(cmd,text=True,capture_output=True,timeout=240)
+    if proc.returncode:
+        raise ValueError(f"Dukascopy 2023 W27 failed {pair}: {(proc.stderr or proc.stdout)[-500:]}")
+    candidates=list(dest.glob("*.csv"))
+    if len(candidates)!=1:raise ValueError(f"Dukascopy segment count {len(candidates)}")
+    raw=candidates[0].read_bytes()
+    records=[]
+    start=int(datetime(2023,7,2,tzinfo=UTC).timestamp())
+    end=int(datetime(2023,7,9,tzinfo=UTC).timestamp())
+    seen=set()
+    with candidates[0].open(newline="") as stream:
+        reader=csv.DictReader(stream)
+        if reader.fieldnames!=["timestamp","open","high","low","close"]:
+            raise ValueError(f"Dukascopy schema mismatch: {reader.fieldnames!r}")
+        for row in reader:
+            ms=int(row["timestamp"])
+            if ms%300000:raise ValueError("Dukascopy timestamp not UTC 5m-aligned")
+            t=ms//1000
+            if not start<=t<end:continue
+            dt=datetime.fromtimestamp(t,UTC)
+            if dt.weekday()==5 or (dt.weekday()==6 and dt.hour<21) or (dt.weekday()==4 and dt.hour>=21):
+                continue
+            if t in seen:raise ValueError("Dukascopy duplicate timestamp")
+            seen.add(t)
+            o,h,l,c=[float(row[x]) for x in ("open","high","low","close")]
+            if not all(math.isfinite(x) and x>0 for x in (o,h,l,c)) or h<max(o,c)-1e-8 or l>min(o,c)+1e-8:
+                raise ValueError(f"Invalid Dukascopy OHLC at {t}")
+            records.append((t,o,h,l,c))
+    if len(records)<1200:raise ValueError(f"Incomplete Dukascopy M5 week27: {len(records)} bars")
+    daycounts=defaultdict(int)
+    for t,*_ in records:daycounts[datetime.fromtimestamp(t,UTC).strftime("%Y-%m-%d")]+=1
+    for day in ("2023-07-03","2023-07-04","2023-07-05","2023-07-06","2023-07-07"):
+        if daycounts[day]<180:
+            raise ValueError(f"Missing Dukascopy {day}: {daycounts[day]} bars")
+    records.sort()
+    print(f"{pair} 2023 week27: {len(records):,} observed Dukascopy M5 bids (separate provider)",flush=True)
+    return records,{"provider":"Dukascopy indicative M5 bid, not FXCM or GatesFX",
+                    "source_sha256":sha(raw),"replacement_week":27,"replacement_m5_bars":len(records),
+                    "day_counts":dict(daycounts),"mixed_provider":True,
+                    "historical_gatesfx_quote_verified":False}
+
 def run(pair,outdir):
     outdir.mkdir(parents=True,exist_ok=True)
     if pair not in PAIRS:raise ValueError("Unregistered pair")
@@ -110,6 +159,7 @@ def run(pair,outdir):
         for t,row in by_minute.items():
             groups[t-(t%300)].append((t,row))
         bars=[]
+        replacement_meta=None
         missing_groups=0
         spreads=[]
         for base,items in sorted(groups.items()):
@@ -121,6 +171,18 @@ def run(pair,outdir):
                          min(v[2] for v in vals),vals[-1][3]))
             for v in vals:
                 if v[4] is not None:spreads.append(v[4]-v[0])
+        if missing_weeks:
+            if year==2023 and missing_weeks==[27]:
+                replacement,replacement_meta=dukascopy_missing_2023_w27(pair,outdir)
+                existing={b[0] for b in bars}
+                if any(b[0] in existing for b in replacement):
+                    raise ValueError("Overlapping provider M5 bars")
+                bars=sorted(bars+replacement,key=lambda x:x[0])
+                if len({b[0] for b in bars})!=len(bars):
+                    raise ValueError("Duplicate combined M5")
+                missing_weeks=[]
+            else:
+                raise ValueError(f"Unresolved FXCM weeks: {missing_weeks}")
         monthly=defaultdict(int)
         for bar in bars:
             monthly[datetime.fromtimestamp(bar[0],UTC).strftime("%Y-%m")]+=1
@@ -136,7 +198,8 @@ def run(pair,outdir):
         stats={"pair":pair,"year":year,"source_url_template":BASE,
                "minute_rows":len(by_minute),"duplicate_minutes":duplicates,
                "valid_m5_bars":len(bars),"incomplete_m5_groups":missing_groups,
-               "monthly_m5":dict(monthly),"missing_weeks":missing_weeks,
+               "monthly_m5":dict(monthly),"missing_weeks_after_replacement":missing_weeks,
+               "2023_week27_independent_source":replacement_meta,
                "weekly_gzip_sha256":week_hashes,
                "raw_source_timezone":"UTC reported by FXCM",
                "first":datetime.fromtimestamp(bars[0][0],UTC).isoformat(),
@@ -144,7 +207,8 @@ def run(pair,outdir):
                "crossed_bid_ask_minute_quotes":sum(x<0 for x in spreads),
                "sample_bid_ask_spread_median":statistics.median(spreads) if spreads else None,
                "sample_bid_ask_spread_p95":sorted(spreads)[int(.95*(len(spreads)-1))] if spreads else None,
-               "broker_execution_verified":False,"holdout_2025_read":False}
+               "broker_execution_verified":False,"holdout_2025_read":False,
+               "homogeneous_provider_year":replacement_meta is None}
         allstats[year]=stats
         raw_all[year]=csv_path
         print(f"{pair} {year}: {len(by_minute):,} M1 rows -> {len(bars):,} complete M5 bars",flush=True)
@@ -178,6 +242,7 @@ def run(pair,outdir):
     pairs.sort(key=lambda x:x["combined_net_diagnostic"],reverse=True)
     result={"symbol":pair,"source":"FXCM public M1 indicative bid/ask, not GatesFX",
       "folds":[2022,2023],"starting_equity_per_scenario":1000,
+      "2023_fxcm_week27_replaced_by_independent_dukascopy_m5":True,
       "m5_count_by_year":{str(y):allstats[y]["valid_m5_bars"] for y in YEARS},
       "tested_scenarios_by_year":{str(y):len(by_year[y]["rows"]) for y in YEARS},
       "matched_risk_fit_session_flat_both_years_n20":len(pairs),
@@ -187,7 +252,8 @@ def run(pair,outdir):
       "broker_standard_stp_spread_verified":False,"production_changed":False,
       "notes":["Separate independent $1,000 accounts for each scenario/year",
                "Zero-commission fixed 2.0-pip spread plus 0.3-pip per-side slippage from frozen catalog",
-               "FXCM indicative historical quotes are not GatesFX historical fills",
+               "2023 FXCM week27 is blank; observed independent Dukascopy M5 bid candles were used only for that week, changing the source",
+                "FXCM and Dukascopy indicative quotes are not historical GatesFX fills",
                "Overnight unknown-swap outcomes excluded from funded cash return",
                "Only same-day funded risk-fit accounts ranked; no scenario selected for live trading"]}
     (outdir/f"{pair}-summary.json").write_text(json.dumps(result,indent=2)+"\n")
