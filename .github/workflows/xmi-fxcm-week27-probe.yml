@@ -29,3 +29,9 @@ jobs:
                   print("SECOND",repr(f.readline()[:220]),flush=True)
             except Exception as e:print("BLOCKED",url,repr(e),flush=True)
           PY
+      - name: Probe original Dukascopy 2023 week 27 M5 bid candles
+        timeout-minutes: 8
+        run: |
+          mkdir -p "$RUNNER_TEMP/duka-probe"
+          npx --yes dukascopy-node@1.51.1 -i eurusd -from 2023-07-02 -to 2023-07-10 -t m5 -f csv -dir "$RUNNER_TEMP/duka-probe" --retries 2 --batch-size 10 --batch-pause 200 -s
+          find "$RUNNER_TEMP/duka-probe" -type f -name '*.csv' -exec sh -c 'for f; do echo FILE "$f"; wc -l "$f"; head -n 3 "$f"; tail -n 3 "$f"; done' sh {} +
