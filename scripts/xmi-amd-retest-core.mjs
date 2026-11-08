@@ -5,8 +5,14 @@
  */
 export const SYMBOLS=["EURUSD","GBPUSD","USDJPY","USDCHF","AUDUSD","USDCAD","NZDUSD","XAUUSD"];
 export const STEP_MS=300000;
+const cachedFormatters=new Map();
 export function localTime(t,zone="Europe/London"){
-  const parts=new Intl.DateTimeFormat("en-GB",{timeZone:zone,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(t);
+  let formatter=cachedFormatters.get(zone);
+  if(!formatter){
+    formatter=new Intl.DateTimeFormat("en-GB",{timeZone:zone,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"});
+    cachedFormatters.set(zone,formatter);
+  }
+  const parts=formatter.formatToParts(t);
   const p=Object.fromEntries(parts.map(x=>[x.type,x.value]));
   return {day:p.year+"-"+p.month+"-"+p.day,hour:Number(p.hour),minute:Number(p.minute)};
 }
