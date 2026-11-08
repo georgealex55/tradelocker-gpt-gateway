@@ -48,7 +48,8 @@ function plan(symbol,instrument,bars,signal,equity,sizing,lane){
   }else throw Error("Unknown no-skip lane");
   const riskExceeded=budget!==null&&lots*perLotRisk>budget+1e-9;
   return {symbol,signal,lots,status,riskExceeded,entryBid:bid,entryFill,stopBid,
-    initialRiskUSD:lots*perLotRisk,marginUSD:lots*perLotMargin,affordableLots,
+    initialRiskUSD:lots*perLotRisk,minimumRiskUSD:instrument.minLot*perLotRisk,
+    marginUSD:lots*perLotMargin,minimumMarginUSD:instrument.minLot*perLotMargin,affordableLots,
     spread:S,slippage:Q,riskBudgetUSD:budget};
 }
 function evaluate(bars,instrument,p,exitModel,carry){
@@ -127,7 +128,7 @@ export function replayAMDRetest(raw,signals,instrument,settings){
     const p=plan(symbol,instrument,bars,s,equity,sizing,lane);
     if(p.status.startsWith("unfundable")){
       decisions.push({...base,status:p.status,riskBudgetUSD:p.riskBudgetUSD,
-        minimumRiskUSD:p.initialRiskUSD,minimumMarginUSD:instrument.minLot*p.marginUSD/p.lots,
+        minimumRiskUSD:p.minimumRiskUSD,minimumMarginUSD:p.minimumMarginUSD,
         shadowOutcome:"not_claimed_as_funded"});
       continue;
     }
