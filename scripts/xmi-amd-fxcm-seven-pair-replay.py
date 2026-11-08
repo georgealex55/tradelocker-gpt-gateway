@@ -38,7 +38,11 @@ def fetch_one(pair,year,week):
 def timestamp(s):
     s=s.strip().removesuffix("Z")
     if len(s)==16: s+=":00"
-    try: dt=datetime.fromisoformat(s.replace(" ","T"))
+    try:
+        if "/" in s.split(" ")[0]:
+            dt=datetime.strptime(s,"%m/%d/%Y %H:%M:%S.%f" if "." in s else "%m/%d/%Y %H:%M:%S")
+        else:
+            dt=datetime.fromisoformat(s.replace(" ","T"))
     except ValueError: raise ValueError(f"Bad UTC timestamp {s!r}")
     if dt.tzinfo is None: dt=dt.replace(tzinfo=UTC)
     return int(dt.timestamp())
