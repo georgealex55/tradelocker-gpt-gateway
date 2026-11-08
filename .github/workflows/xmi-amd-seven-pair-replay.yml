@@ -11,7 +11,7 @@ permissions:
   contents: read
 jobs:
   seven-pair-2022-2023:
-    name: ${{ matrix.symbol } frozen AMD replay
+    name: ${{ matrix.symbol }} frozen AMD replay
     runs-on: ubuntu-latest
     timeout-minutes: 55
     strategy:
@@ -34,23 +34,23 @@ jobs:
       - name: Download and validate FXCM 2022-23 UTC minute bars, replay frozen AMD
         run: |
           python3 scripts/xmi-amd-fxcm-seven-pair-replay.py \
-            --symbol '${{ matrix.symbol }' \
-            --out "$RUNNER_TEMP/amd-${{ matrix.symbol }"
+            --symbol '${{ matrix.symbol }}' \
+            --out "$RUNNER_TEMP/amd-${{ matrix.symbol }}"
       - name: Print completion summary or explicit blocker
         if: always()
         run: |
-          find "$RUNNER_TEMP/amd-${{ matrix.symbol }" -maxdepth 1 -type f \
+          find "$RUNNER_TEMP/amd-${{ matrix.symbol }}" -maxdepth 1 -type f \
             \( -name '*-summary.json' -o -name '*-BLOCKED.json' \) \
             -exec sh -c 'for f do cat "$f"; done' sh {} + || true
       - name: Preserve per-pair audit and report without raw vendor price redistribution
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: xmi-amd-${{ matrix.symbol }-research-2022-2023
+          name: xmi-amd-${{ matrix.symbol }}-research-2022-2023
           path: |
-            ${{ runner.temp }/amd-${{ matrix.symbol }/*-summary.json
-            ${{ runner.temp }/amd-${{ matrix.symbol }/*-BLOCKED.json
-            ${{ runner.temp }/amd-${{ matrix.symbol }/*-amd-2022.json
-            ${{ runner.temp }/amd-${{ matrix.symbol }/*-amd-2023.json
+            ${{ runner.temp }}/amd-${{ matrix.symbol }}/*-summary.json
+            ${{ runner.temp }}/amd-${{ matrix.symbol }}/*-BLOCKED.json
+            ${{ runner.temp }}/amd-${{ matrix.symbol }}/*-amd-2022.json
+            ${{ runner.temp }}/amd-${{ matrix.symbol }}/*-amd-2023.json
           if-no-files-found: warn
           retention-days: 30
