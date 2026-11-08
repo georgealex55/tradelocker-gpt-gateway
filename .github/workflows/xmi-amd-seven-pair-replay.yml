@@ -1,5 +1,11 @@
 name: XMI AMD seven-pair research replay (2022-2023 only)
 on:
+  push:
+    branches:
+      - research/xmi-amd-seven-pair-fxcm-replay-20261107
+    paths:
+      - 'scripts/xmi-amd-fxcm-seven-pair-replay.py'
+      - '.github/workflows/xmi-amd-seven-pair-replay.yml'
   pull_request:
     branches:
       - research/xmi-amd-retest-stp-20261107
