@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "as_of_date": "2026-11-07",
+  "project": "XMI 2.0 AMD + retest",
+  "branch": "research/xmi-amd-retest-stp-20261107",
+  "run_type": "SYNTHETIC REGRESSION + FULL FACTORIAL ENGINE TEST ONLY",
+  "result": "PASS_SOFTWARE_TESTS_HISTORICAL_PERFORMANCE_NOT_RUN",
+  "harness": "In-memory JavaScript test harness evaluating committed source; no native Node test runner invocation",
+  "regression": {
+    "passed": 11,
+    "total": 11,
+    "failed": 0,
+    "tests": [
+      "causal rolling AMD and two confirmed retest entry interpretations",
+      "session AMD complete 72-bar London Asian range guard",
+      "2025 sealed holdout rejection and timestamp validation",
+      "0.25% funded risk affordability and logged unfundable signal",
+      "force-minimum lane records funded over-risk",
+      "fixed 0.01 lot and risk sizing separate",
+      "zero-commission bid/ask costs accounted for",
+      "shadow-only fills not counted as funded P/L",
+      "forced minimum rejects unavailable margin",
+      "no holding timeout: unresolved end not a realized gain",
+      "deterministic same-input output"
+    ]
+  },
+  "matrix": {
+    "scenariosExpected": 1536,
+    "scenariosExecuted": 1536,
+    "scenariosPassed": 1536,
+    "failed": 0,
+    "symbols": [
+      "EURUSD",
+      "GBPUSD",
+      "USDJPY",
+      "USDCHF",
+      "AUDUSD",
+      "USDCAD",
+      "NZDUSD",
+      "XAUUSD"
+    ],
+    "scenariosPerSymbol": 192,
+    "syntheticSignalDecisions": 1536,
+    "shadowOnlyDecisions": 512,
+    "unfundableDecisions": 32,
+    "forcedMinimumOverriskDecisions": 64,
+    "settledFundedSynthetic": 992,
+    "unresolved": 0,
+    "source": "programmatically generated synthetic candle shapes; artificially inserted accumulation, sweep, displacement, retest sequence; these are not observed historic prices",
+    "syntheticTestYear": 2023
+  },
+  "historical": {
+    "executed": false,
+    "trainingYears": [
+      2022,
+      2023
+    ],
+    "development2024Executed": false,
+    "heldout2025Read": false,
+    "sourceArchivesAvailableInCurrentRuntime": false,
+    "privateLibraryHistoricalArchiveAvailable": false,
+    "profitFactor": null,
+    "realisticWinRate": null,
+    "netReturnOn1000": null,
+    "maxDrawdown": null,
+    "qualifiedStrategies": 0,
+    "reason": "No actual 2022–2024 normalized five-minute price bars or original HistData ZIPs mounted for research code execution. External sources discovered but not ingested/validated in the current runtime."
+  },
+  "broker": {
+    "type": "GatesFX Standard STP",
+    "commissionUSD": 0,
+    "accountHeadlineMaxLeverage": 500,
+    "accountSpecificXAUUSDMarginVerified": false,
+    "instrumentMinLotVerified": false,
+    "historicalSTPBidAskVerified": false,
+    "usedPricedModelOnly": true
+  },
+  "production": {
+    "changed": false,
+    "liveOrders": 0,
+    "mainBranchChanged": false
+  },
+  "next": "Ingest actual audited 2022–2023 5m bid/ask bars and TradeLocker instrument specifications into isolated runtime; run same matrix and evaluate executable settled trades only, with shadow and excess-risk lanes separate."
+}
