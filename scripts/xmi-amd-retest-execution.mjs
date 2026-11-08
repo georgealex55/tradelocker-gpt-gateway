@@ -72,7 +72,7 @@ function evaluate(bars,instrument,p,exitModel,carry){
     if(goodGap||goal){reason="target";exitBid=targetBid;exitIndex=i;break;}
     if(carry==="session_flat"){
       const clock=localTime(b.t,"America/New_York");
-      if(clock.hour>16||(clock.hour===16&&clock.minute>=40)){
+      if(clock.hour>16||(clock.hour===16&&clock.minute>=35)){
         reason="session_flat";exitBid=b.c;exitIndex=i;break;
       }
     }
@@ -115,6 +115,12 @@ export function replayAMDRetest(raw,signals,instrument,settings){
       exitModel,carry,direction:s.direction,rangeModel:s.rangeModel,entryModel:s.entryModel};
     if(lane!=="shadow_every_signal"&&halted){decisions.push({...base,status:"drawdown_halt"});continue;}
     if(lane!=="shadow_every_signal"&&unpricedSwap){decisions.push({...base,status:"unpriced_swap_halt"});continue;}
+    if(lane!=="shadow_every_signal"&&carry==="session_flat"){
+      const clock=localTime(bars[s.entryIndex].t,"America/New_York");
+      if(clock.hour>16||(clock.hour===16&&clock.minute>=35)){
+        decisions.push({...base,status:"session_cutoff_observed"});continue;
+      }
+    }
     if(lane!=="shadow_every_signal"&&s.entryIndex<=activeUntil){
       decisions.push({...base,status:"occupied_signal_logged"});continue;
     }
