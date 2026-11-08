@@ -28,7 +28,7 @@ def fetch_one(pair,year,week):
                 payload=response.read(5_000_000)
                 if response.read(1): raise ValueError("Abnormally large weekly gzip")
             data=gzip.decompress(payload)
-            if len(data)<100: raise ValueError("Empty weekly data")
+            if len(data)<100: return week,payload,None
             return week,payload,data
         except (OSError,ValueError,urllib.error.URLError) as exc:
             error=str(exc)
@@ -82,9 +82,11 @@ def run(pair,outdir):
     if pair not in PAIRS:raise ValueError("Unregistered pair")
     allstats={}
     raw_all={}
+    by_year={}
     for year in YEARS:
         by_minute={}
         week_hashes={}
+        missing_weeks=[]
         duplicates=0
         print(f"{pair} {year}: fetching 52 FXCM UTC M1 weeks",flush=True)
         with ThreadPoolExecutor(max_workers=12) as pool:
@@ -94,6 +96,9 @@ def run(pair,outdir):
                 results.append(job.result())
         for week,payload,raw in sorted(results):
             week_hashes[str(week)]=sha(payload)
+            if raw is None:
+                missing_weeks.append(week)
+                continue
             for t,values in parse_minute(raw,year,week):
                 if datetime.fromtimestamp(t,UTC).year!=year:continue
                 old=by_minute.get(t)
@@ -120,8 +125,8 @@ def run(pair,outdir):
         for bar in bars:
             monthly[datetime.fromtimestamp(bar[0],UTC).strftime("%Y-%m")]+=1
         # Decline incomplete or truncated yearly feeds. Do not label partial-year returns as full years.
-        if len(bars)<45000 or len(monthly)!=12 or min(monthly.values())<2000:
-            raise ValueError(f"Insufficient {pair} {year} coverage: {len(bars)} M5 bars, monthly {dict(monthly)}")
+        if missing_weeks or len(bars)<45000 or len(monthly)!=12 or min(monthly.values())<2000:
+            raise ValueError(f"Insufficient {pair} {year} coverage: missing source weeks {missing_weeks}, {len(bars)} M5 bars, monthly {dict(monthly)}")
         csv_path=outdir/f"{pair}-{year}-bid-m5.csv"
         with csv_path.open("x",newline="") as f:
             writer=csv.writer(f);writer.writerow(("t","o","h","l","c"))
@@ -131,7 +136,8 @@ def run(pair,outdir):
         stats={"pair":pair,"year":year,"source_url_template":BASE,
                "minute_rows":len(by_minute),"duplicate_minutes":duplicates,
                "valid_m5_bars":len(bars),"incomplete_m5_groups":missing_groups,
-               "monthly_m5":dict(monthly),"weekly_gzip_sha256":week_hashes,
+               "monthly_m5":dict(monthly),"missing_weeks":missing_weeks,
+               "weekly_gzip_sha256":week_hashes,
                "raw_source_timezone":"UTC reported by FXCM",
                "first":datetime.fromtimestamp(bars[0][0],UTC).isoformat(),
                "last":datetime.fromtimestamp(bars[-1][0],UTC).isoformat(),
@@ -142,8 +148,6 @@ def run(pair,outdir):
         allstats[year]=stats
         raw_all[year]=csv_path
         print(f"{pair} {year}: {len(by_minute):,} M1 rows -> {len(bars):,} complete M5 bars",flush=True)
-    by_year={}
-    for year in YEARS:
         path=outdir/f"{pair}-amd-{year}.json"
         cmd=["node","scripts/xmi-amd-retest-runner.mjs",
              "--input",str(raw_all[year]),"--symbol",pair,
@@ -151,6 +155,12 @@ def run(pair,outdir):
         completed=subprocess.run(cmd,capture_output=True,text=True,check=True)
         print(completed.stdout.strip(),flush=True)
         by_year[year]=json.loads(path.read_text())
+        one_year=[r for r in by_year[year]["rows"] if r["lane"]=="risk_fit" and r["carry"]=="session_flat" and r["settledFunded"]>=20]
+        one_year.sort(key=lambda r:r["netFundedUSD"],reverse=True)
+        print("ANNUAL "+json.dumps({"symbol":pair,"year":year,"complete_m5_bars":len(bars),
+            "configurations":len(by_year[year]["rows"]),"risk_fit_session_flat_ge20":len(one_year),
+            "positive_net_ge20":sum(r["netFundedUSD"]>0 for r in one_year),
+            "top_2022_or_2023_training_only": [{k:r[k] for k in ("rangeModel","entryModel","exitModel","sizing","settledFunded","netFundedUSD","grossFundedUSD")} for r in one_year[:2]]}),flush=True)
     def k(row):
         return tuple(row[x] for x in ("profile","rangeModel","entryModel","exitModel","carry","sizing","lane"))
     yrmaps={year:{k(row):row for row in by_year[year]["rows"]} for year in YEARS}
@@ -194,8 +204,15 @@ if __name__=="__main__":
     try:run(a.symbol,a.out)
     except Exception as exc:
         a.out.mkdir(parents=True,exist_ok=True)
+        completed={}
+        for year in YEARS:
+            file=a.out/f"{a.symbol}-amd-{year}.json"
+            if file.exists():
+                js=json.loads(file.read_text())
+                completed[str(year)]={"dataRows":js["dataRows"],"variants":js["variants"]}
         (a.out/f"{a.symbol}-BLOCKED.json").write_text(json.dumps(
-          {"symbol":a.symbol,"status":"BLOCKED","reason":str(exc),"replay_completed":False,
+          {"symbol":a.symbol,"status":"PARTIAL_YEAR_DATA_BLOCKER","reason":str(exc),
+           "completed_training_years":completed,"two_year_replay_completed":False,
            "holdout_2025_read":False},indent=2))
         print("BLOCKED "+str(exc),file=sys.stderr)
         sys.exit(2)
