@@ -29,7 +29,7 @@ def convert(source,symbol,year,output):
         names=["time","o","h","l","c","volume"],dtype={"time":"string"})
     if raw.empty or raw[["o","h","l","c"]].isna().any().any():
         raise ValueError("Missing numeric OHLC data")
-    times=pd.to_datetime(raw["time"],format="%Y%m%d %H%M%S",errors="raise",utc=True)+pd.Timedelta(hours=5)
+    times=pd.DatetimeIndex(pd.to_datetime(raw["time"],format="%Y%m%d %H%M%S",errors="raise",utc=True))+pd.Timedelta(hours=5)
     # For HistData this timezone shift is constant EST, including local summer.
     if (times.year!=year).any():
         raise ValueError("Archive contains bars outside selected UTC year")
