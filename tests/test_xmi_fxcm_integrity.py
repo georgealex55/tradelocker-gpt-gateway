@@ -67,7 +67,7 @@ class FXCMIntegrityRegression(unittest.TestCase):
             ("NZDUSD", "0.6500", "0.6499"),
         ):
             # Valid OHLC ranges must be built around each synthetic bid.
-            row = (HEADER + f"2023-01-02 00:00:00,{bid},{float(bid)+0.001:.6f},{float(bid)-0.001:.6f},{bid},{ask}\\n").encode()
+            row = (HEADER + f"2023-01-02 00:00:00,{bid},{float(bid)+0.001:.6f},{float(bid)-0.001:.6f},{bid},{ask}\n").encode()
             with self.subTest(pair=pair), self.assertRaisesRegex(ValueError, "Crossed"):
                 self.parse(row)
 
