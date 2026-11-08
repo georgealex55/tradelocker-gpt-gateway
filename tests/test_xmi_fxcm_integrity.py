@@ -42,6 +42,35 @@ class FXCMIntegrityRegression(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "UTC|offset|timezone"):
             self.parse(sample("2023-01-02T00:00:00+02:00"))
 
+
+    def test_accept_explicit_utc_z(self):
+        rows = self.parse(sample("2023-01-02T00:00:00Z"))
+        self.assertEqual(len(rows), 1)
+
+    def test_accept_explicit_zero_utc_offset(self):
+        rows = self.parse(sample("2023-01-02T00:00:00+00:00"))
+        self.assertEqual(len(rows), 1)
+
+    def test_reject_negative_utc_offset(self):
+        with self.assertRaisesRegex(ValueError, "UTC|offset|timezone"):
+            self.parse(sample("2023-01-02T00:00:00-05:00"))
+
+    def test_reject_crossed_quote_at_all_seven_pair_price_scales(self):
+        # Parser is pair-agnostic. Include JPY and non-JPY quote scales.
+        for pair, bid, ask in (
+            ("EURUSD", "1.1000", "1.0999"),
+            ("GBPUSD", "1.2500", "1.2499"),
+            ("USDJPY", "145.000", "144.999"),
+            ("USDCHF", "0.9000", "0.8999"),
+            ("AUDUSD", "0.7000", "0.6999"),
+            ("USDCAD", "1.3500", "1.3499"),
+            ("NZDUSD", "0.6500", "0.6499"),
+        ):
+            # Valid OHLC ranges must be built around each synthetic bid.
+            row = (HEADER + f"2023-01-02 00:00:00,{bid},{float(bid)+0.001:.6f},{float(bid)-0.001:.6f},{bid},{ask}\\n").encode()
+            with self.subTest(pair=pair), self.assertRaisesRegex(ValueError, "Crossed"):
+                self.parse(row)
+
     def test_no_2025_in_research_folds(self):
         self.assertEqual(module.YEARS, (2022, 2023))
         self.assertEqual(list(module.parse_minute(sample("2025-01-02 00:00:00"), 2023, 1)), [])
