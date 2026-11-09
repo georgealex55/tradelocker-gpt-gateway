@@ -69,7 +69,7 @@ def parse_minute(text,year,week):
     n=0
     for rec in rows:
         t=timestamp(rec[date])
-        if datetime.fromtimestamp(t,UTC).year not in YEARS: continue
+        if datetime.fromtimestamp(t,UTC).year != year: continue
         if t%60:raise ValueError("Non-minute timestamp")
         o,h,l,c=(*(float(rec[x]) for x in (op,hi,lo,cl)),)
         if not all(math.isfinite(x) and x>0 for x in (o,h,l,c)):
