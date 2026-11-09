@@ -29,6 +29,16 @@ class FXCMIntegrityRegression(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "ask|spread|crossed"):
             self.parse(sample("2023-01-02 00:00:00", ask="1.0999"))
 
+    def test_reject_missing_ask_column(self):
+        data = sample("2023-01-02 00:00:00").replace(b",AskOpen", b"")
+        data = data.replace(b",1.1002\\n", b"\\n")
+        with self.assertRaisesRegex(ValueError, "Missing column askopen"):
+            self.parse(data)
+
+    def test_reject_blank_ask_quote(self):
+        with self.assertRaisesRegex(ValueError, "Missing ask open"):
+            self.parse(sample("2023-01-02 00:00:00", ask=""))
+
     def test_reject_nonminute_timestamp(self):
         with self.assertRaisesRegex(ValueError, "Non-minute"):
             self.parse(sample("2023-01-02 00:00:01"))
