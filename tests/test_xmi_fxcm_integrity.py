@@ -81,6 +81,14 @@ class FXCMIntegrityRegression(unittest.TestCase):
             with self.subTest(pair=pair), self.assertRaisesRegex(ValueError, "Crossed"):
                 self.parse(row)
 
+    def test_requested_year_is_enforced_at_parser_boundary(self):
+        # Week files can contain neighboring-year minutes. They must not enter
+        # the wrong training fold, even when both years are allowed globally.
+        self.assertEqual(self.parse(sample("2022-12-30 23:59:00")), [])
+        self.assertEqual(len(self.parse(sample("2023-01-02 00:00:00"))), 1)
+        self.assertEqual(list(module.parse_minute(sample("2023-12-29 23:59:00"), 2022, 52)), [])
+        self.assertEqual(list(module.parse_minute(sample("2024-01-01 00:00:00"), 2023, 52)), [])
+
     def test_no_2025_in_research_folds(self):
         self.assertEqual(module.YEARS, (2022, 2023))
         self.assertEqual(list(module.parse_minute(sample("2025-01-02 00:00:00"), 2023, 1)), [])
