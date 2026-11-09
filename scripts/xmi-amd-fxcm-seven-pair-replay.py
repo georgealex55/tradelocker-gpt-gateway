@@ -65,7 +65,7 @@ def parse_minute(text,year,week):
     hi=pick("bidhigh","bid_high","highbid")
     lo=pick("bidlow","bid_low","lowbid")
     cl=pick("bidclose","bid_close","closebid")
-    ask=norm.get("askopen") or norm.get("ask_open")
+    ask=pick("askopen","ask_open")
     n=0
     for rec in rows:
         t=timestamp(rec[date])
@@ -76,7 +76,9 @@ def parse_minute(text,year,week):
             raise ValueError("Invalid bid price")
         if h<max(o,c)-1e-10 or l>min(o,c)+1e-10:
             raise ValueError("Invalid bid high/low")
-        a=float(rec[ask]) if ask and rec[ask] else None
+        if rec[ask] is None or not rec[ask].strip():
+            raise ValueError(f"Missing ask open at {t}; cannot establish bid/ask source integrity")
+        a=float(rec[ask])
         if a is not None and (not math.isfinite(a) or a<=0):
             raise ValueError(f"Nonpositive or invalid ask at {t}")
         if a is not None and a < o:
