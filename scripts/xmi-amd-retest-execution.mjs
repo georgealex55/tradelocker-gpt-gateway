@@ -28,7 +28,7 @@ function plan(symbol,instrument,bars,signal,equity,sizing,lane){
     ?instrument.lotSize:instrument.lotSize*(bid+S))/instrument.symbolLeverage;
   if(!(perLotRisk>0&&perLotMargin>0))throw Error("Invalid stop/risk or margin");
   const fixed=sizing==="fixed_0.01";
-  if(!fixed&&!/^risk_0\.(0025|005|01)$/.test(sizing))throw Error("Unknown risk sizing option");
+  if(!fixed&&!/^risk_0\.(0025|005|01|02)$/.test(sizing))throw Error("Unknown risk sizing option");
   const budget=fixed?null:equity*Number(sizing.slice(5));
   const affordableLots=snapped(Math.max(0,equity*.9)/perLotMargin,instrument.lotStep);
   const riskLots=fixed?.01:snapped(budget/perLotRisk,instrument.lotStep);
