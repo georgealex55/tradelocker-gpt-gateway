@@ -31,7 +31,7 @@ class FXCMIntegrityRegression(unittest.TestCase):
 
     def test_reject_missing_ask_column(self):
         data = sample("2023-01-02 00:00:00").replace(b",AskOpen", b"")
-        data = data.replace(b",1.1002\\n", b"\\n")
+        data = data.replace(b",1.1002\n", b"\n")
         with self.assertRaisesRegex(ValueError, "Missing column askopen"):
             self.parse(data)
 
