@@ -52,7 +52,9 @@ def timestamp(s):
         dt=dt.replace(tzinfo=UTC)
     return int(dt.timestamp())
 
-def parse_minute(text,year,week):
+def parse_minute(text,year,week,crossed_policy="reject",quote_audit=None):
+    if crossed_policy not in ("reject","quarantine"):
+        raise ValueError("Unregistered crossed quote policy")
     rows=csv.DictReader(text.decode("utf-8-sig").splitlines())
     if not rows.fieldnames: raise ValueError("Missing CSV header")
     norm={name.strip().lower():name for name in rows.fieldnames}
@@ -82,6 +84,10 @@ def parse_minute(text,year,week):
         if a is not None and (not math.isfinite(a) or a<=0):
             raise ValueError(f"Nonpositive or invalid ask at {t}")
         if a is not None and a < o:
+            if crossed_policy=="quarantine":
+                if quote_audit is not None:
+                    quote_audit["crossed_open_quotes_quarantined"]+=1
+                continue  # Never invent/reprice invalid quote; incompletely formed M5 bar is discarded.
             raise ValueError(f"Crossed bid/ask open at {t}: ask {a} < bid {o}")
         n+=1
         yield t,(o,h,l,c,a)
@@ -135,7 +141,9 @@ def dukascopy_missing_2023_w27(pair,outdir):
                     "day_counts":dict(daycounts),"mixed_provider":True,
                     "historical_gatesfx_quote_verified":False}
 
-def run(pair,outdir):
+def run(pair,outdir,crossed_policy="reject"):
+    if crossed_policy not in ("reject","quarantine"):
+        raise ValueError("Unsupported crossed quote policy")
     outdir.mkdir(parents=True,exist_ok=True)
     if pair not in PAIRS:raise ValueError("Unregistered pair")
     allstats={}
@@ -146,7 +154,8 @@ def run(pair,outdir):
         week_hashes={}
         missing_weeks=[]
         duplicates=0
-        print(f"{pair} {year}: fetching 52 FXCM UTC M1 weeks",flush=True)
+        quote_audit={"crossed_open_quotes_quarantined":0}
+        print(f"{pair} {year}: fetching 52 FXCM UTC M1 weeks (crossed policy: {crossed_policy})",flush=True)
         with ThreadPoolExecutor(max_workers=12) as pool:
             jobs={pool.submit(fetch_one,pair,year,w):w for w in range(1,53)}
             results=[]
@@ -157,13 +166,18 @@ def run(pair,outdir):
             if raw is None:
                 missing_weeks.append(week)
                 continue
-            for t,values in parse_minute(raw,year,week):
+            for t,values in parse_minute(raw,year,week,crossed_policy,quote_audit):
                 if datetime.fromtimestamp(t,UTC).year!=year:continue
                 old=by_minute.get(t)
                 if old is not None:
                     if old!=values:raise ValueError(f"Conflicting duplicate minute {pair} {t}")
                     duplicates+=1
                 else:by_minute[t]=values
+        # Cap excluded provider-quote anomalies; refuse to silently pass poor-quality years.
+        quarantined=quote_audit["crossed_open_quotes_quarantined"]
+        if quarantined>max(100,int(len(by_minute)*0.005)):
+            raise ValueError(f"Too many crossed quote minutes quarantined: {quarantined} of {len(by_minute)+quarantined}; source must be reviewed")
+        print(f"{pair} {year}: quarantined {quarantined} crossed bid/ask M1 observations",flush=True)
         groups=defaultdict(list)
         for t,row in by_minute.items():
             groups[t-(t%300)].append((t,row))
@@ -214,6 +228,9 @@ def run(pair,outdir):
                "first":datetime.fromtimestamp(bars[0][0],UTC).isoformat(),
                "last":datetime.fromtimestamp(bars[-1][0],UTC).isoformat(),
                "crossed_bid_ask_minute_quotes":sum(x<0 for x in spreads),
+               "crossed_quote_policy":crossed_policy,
+               "crossed_open_quotes_quarantined":quote_audit["crossed_open_quotes_quarantined"],
+               "crossed_quote_quarantine_max_fraction_of_valid_minutes":0.005,
                "sample_bid_ask_spread_median":statistics.median(spreads) if spreads else None,
                "sample_bid_ask_spread_p95":sorted(spreads)[int(.95*(len(spreads)-1))] if spreads else None,
                "broker_execution_verified":False,"holdout_2025_read":False,
@@ -261,6 +278,7 @@ def run(pair,outdir):
       "broker_standard_stp_spread_verified":False,"production_changed":False,
       "notes":["Separate independent $1,000 accounts for each scenario/year",
                "Zero-commission fixed 2.0-pip spread plus 0.3-pip per-side slippage from frozen catalog",
+               "When crossed_policy is quarantine, crossed bid/ask minutes are excluded, incomplete M5 groups dropped, no prices fabricated",
                "2023 FXCM week27 is blank; observed independent Dukascopy M5 bid candles were used only for that week, changing the source",
                 "FXCM and Dukascopy indicative quotes are not historical GatesFX fills",
                "Overnight unknown-swap outcomes excluded from funded cash return",
@@ -275,8 +293,9 @@ if __name__=="__main__":
     p=argparse.ArgumentParser()
     p.add_argument("--symbol",choices=PAIRS,required=True)
     p.add_argument("--out",type=Path,required=True)
+    p.add_argument("--crossed-open-quote-policy",choices=("reject","quarantine"),default="reject")
     a=p.parse_args()
-    try:run(a.symbol,a.out)
+    try:run(a.symbol,a.out,a.crossed_open_quote_policy)
     except Exception as exc:
         a.out.mkdir(parents=True,exist_ok=True)
         completed={}
