@@ -1,0 +1,34 @@
+name: XMI research regression (isolated)
+on:
+  push:
+    branches:
+      - research/xmi-amd-seven-pair-fxcm-replay-20261107
+    paths:
+      - '.github/workflows/xmi-research-regression.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run four committed regression suites (no vendor data)
+        run: |
+          set -o pipefail
+          python -m unittest discover -s tests -p 'test_xmi_fxcm_integrity.py' -v 2>&1 | tee fxcm-integrity.log
+          python -m unittest discover -s tests -p 'test_xmi_m5_continuity.py' -v 2>&1 | tee m5-continuity.log
+          python -m unittest discover -s tests -p 'test_xmi_fx_session_dst.py' -v 2>&1 | tee dst.log
+          python -m unittest discover -s tests -p 'test_xmi_fx_session_dst_exact.py' -v 2>&1 | tee dst-exact.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: xmi-regression-logs
+          path: '*.log'
+          retention-days: 14
