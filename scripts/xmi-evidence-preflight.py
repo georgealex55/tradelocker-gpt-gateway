@@ -92,7 +92,7 @@ def check(ledger, snapshots, results, root=ROOT):
             expected.get("gatesfx_snapshot_fixed_spread") == observed.get("screenshot_spread") and
             expected.get("separate_experimental_2pct") == observed.get("experimental_2pct"),
             "Replay component counts disagree with saved completed results")
-    require(completed.get("total_scenario_years") == sum(observed.values()) == 6048,
+    require(completed.get("total_scenario_years") == observed.get("total") ==\n            sum(observed.get(k, 0) for k in ("refreshed_baseline", "screenshot_spread", "experimental_2pct")) == 6048,
             "Completed replay tally disagrees with saved research evidence")
     require(set(x.get("symbol") for x in results.get("pair_results", [])) == set(PAIRS) and
             len(results.get("pair_results", [])) == 7,
