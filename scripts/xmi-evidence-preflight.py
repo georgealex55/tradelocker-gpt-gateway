@@ -116,6 +116,29 @@ def check(ledger, snapshots, results, root=ROOT):
             "Outstanding-only broker data questions must have distinct identifiers")
     require(not any("resend" in str(x).lower() or "complete screenshot bundle" in str(x).lower()
                     for x in open_fields), "Outstanding list must not ask to repeat prior bundle")
+    # Verified USER PREFERENCES: never infer these from old broker snapshots.
+    decisions = ledger.get("user_confirmed_research_preferences", {})
+    require(decisions.get("questionnaire") == "1C 2C 3A 4A 5A 6A",
+            "Current six approved research choices are missing or changed")
+    platforms = decisions.get("platform_access_user_reported", {})
+    require(platforms.get("TradeLocker") is True and platforms.get("MetaTrader5") is True,
+            "Do not ask the user again whether TradeLocker or MT5 is available")
+    require(platforms.get("authenticated_platform_or_server_export_verified") is False,
+            "Platform access alone is NOT authenticated broker server export")
+    currency = decisions.get("broker_account_base_currency", {})
+    require(currency.get("value") == "USD" and
+            currency.get("broker_statement_verified") is False,
+            "User-confirmed USD must not be ignored or described as broker-verified")
+    require(decisions.get("funding_model", "").startswith("One independent USD 1000") and
+            "DO NOT run shared-capital" in decisions.get("funding_model", ""),
+            "User selected independent $1000 scenarios only; no shared-capital portfolio")
+    require(decisions.get("historical_replay_trigger", "").startswith("Only after newly verified data"),
+            "Do not resume automatic or identical historical replays")
+    require("PROVISIONAL_UNRANKED" in decisions.get("when_historical_gatesfx_records_unavailable", ""),
+            "Unavailable GatesFX historical records must keep backtests provisional")
+    require("account_currency_and_closeout" not in open_keys and
+            "account_margin_closeout" in open_keys,
+            "Do not request USD account currency again; only missing broker closeout rules")
     return errors
 
 
@@ -137,6 +160,10 @@ def status(root=ROOT):
             {"key": x["key"], "request": x["request"]}
             for x in ledger["outstanding_only"]
         ],
+        "user_confirmed_currency": "USD",
+        "platforms_accessible_user_reported": ["TradeLocker", "MetaTrader5"],
+        "capital_allocation": "INDEPENDENT_USD_1000_ONLY",
+        "replay_policy": "NEW_EVIDENCE_OR_PREDECLARED_HYPOTHESIS_ONLY",
         "broker_history_verification_gate": "BLOCKED",
         "historical_profitability_rankings": "PROVISIONAL_UNRANKED",
         "holdout_2025_read": False
