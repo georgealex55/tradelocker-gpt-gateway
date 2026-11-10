@@ -89,9 +89,9 @@
       "reason": "UTC+2 one-off screen is insufficient for historic hours"
     },
     {
-      "key": "account_currency_and_closeout",
-      "request": "Search saved/account evidence FIRST; request only the specific missing currency or closeout applicability if still unavailable.",
-      "reason": "USD $1,000 is a research setup, not independently authenticated account statement"
+      "key": "account_margin_closeout",
+      "request": "Verify applicable Standard STP margin call, stop-out thresholds and tier rules from broker/platform for the user's account; USD base currency already user-confirmed and must not be re-requested.",
+      "reason": "Broker historical/account-specific margin closeout terms remain unverified even though currency is user-confirmed USD"
     }
   ],
   "future_research_protocol": [
@@ -100,6 +100,31 @@
     "Never repeat the existing 6048 scenario-year replays without a preregistered distinct comparison, data/code change, or reproducibility requirement with clear input hashes.",
     "Keep 2022/23 training, 2024 previously examined development, and sealed/unread 2025 distinct.",
     "Distinguish snapshot evidence from actual historical GatesFX quotes and fills; profitability rankings remain provisional/unranked until broker conditions verified.",
-    "No live trading, production deploy, 2025 reads, branch merge, broker credential handling or claims of qualified strategies."
-  ]
+    "No live trading, production deploy, 2025 reads, branch merge, broker credential handling or claims of qualified strategies.",
+    "Apply user confirmed 1C 2C 3A 4A 5A 6A research preferences; only send missing-data request when an evidence check says the field is unavailable.",
+    "Do not ask account currency again; user explicitly confirmed USD. Treat as user-reported, distinct from an authenticated account export.",
+    "The user has both TradeLocker and MT5 access; use MT5 broker-server history/export and broker-issued TradeLocker reports when available; never assume TradeLocker has native CSV history export.",
+    "Never run a shared-capital simulation; separate $1,000 USD starts are required for each tested independent scenario.",
+    "If no historical GatesFX source exists, allow public-price models with stress ranges but prohibit definitive broker rankings or actual-fill claims."
+  ],
+  "user_confirmed_research_preferences": {
+    "confirmed_on": "2026-11-10",
+    "questionnaire": "1C 2C 3A 4A 5A 6A",
+    "data_recovery": "Investigate available TradeLocker and MT5 exports and prepare targeted GatesFX support request; do not re-request already captured screenshots",
+    "platform_access_user_reported": {
+      "TradeLocker": true,
+      "MetaTrader5": true,
+      "authenticated_platform_or_server_export_verified": false
+    },
+    "broker_account_base_currency": {
+      "value": "USD",
+      "evidence": "user-confirmed questionnaire",
+      "broker_statement_verified": false
+    },
+    "when_historical_gatesfx_records_unavailable": "Continue historical public-price and modeled-cost research, conspicuously PROVISIONAL_UNRANKED; maintain stress bands; never fabricate authentic GatesFX fills",
+    "historical_replay_trigger": "Only after newly verified data, a code correction with changed results, or a preregistered distinct hypothesis; no recurring automatic rerun or duplicate old scenarios",
+    "funding_model": "One independent USD 1000 starting account per scenario/pair/year; DO NOT run shared-capital portfolio simulation",
+    "research_priority": "Seven major Forex pairs equally, 2pct experimental risk separate, maximize feasible NET USD profits after modeled costs, with no winner label until GatesFX historical verification",
+    "safe_training": "2022 and 2023 training; 2024 already-exposed development; 2025 sealed holdout unread"
+  }
 }
