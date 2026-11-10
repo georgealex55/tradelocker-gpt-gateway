@@ -56,6 +56,38 @@ class EvidencePreflightTests(unittest.TestCase):
         data["seven_majors"]["USDJPY"]["lotStep_verified"] = 0.01
         self.assertTrue(any("lot step" in x for x in self.check(snapshots=data)))
 
+    def test_confirmed_usd_and_both_platforms_reused(self):
+        decisions = self.ledger["user_confirmed_research_preferences"]
+        self.assertEqual(decisions["broker_account_base_currency"]["value"], "USD")
+        self.assertTrue(decisions["platform_access_user_reported"]["TradeLocker"])
+        self.assertTrue(decisions["platform_access_user_reported"]["MetaTrader5"])
+        self.assertEqual(self.check(), [])
+
+    def test_falsely_marking_mt5_export_verified_fails(self):
+        data = copy.deepcopy(self.ledger)
+        data["user_confirmed_research_preferences"]["platform_access_user_reported"]["authenticated_platform_or_server_export_verified"] = True
+        self.assertTrue(any("authenticated broker server export" in err for err in self.check(ledger=data)))
+
+    def test_shared_capital_request_is_rejected(self):
+        data = copy.deepcopy(self.ledger)
+        data["user_confirmed_research_preferences"]["funding_model"] = "Shared-capital USD1000 across seven pairs"
+        self.assertTrue(any("independent $1000" in err for err in self.check(ledger=data)))
+
+    def test_user_confirmed_usd_cannot_be_ignored(self):
+        data = copy.deepcopy(self.ledger)
+        data["user_confirmed_research_preferences"]["broker_account_base_currency"]["value"] = "CAD"
+        self.assertTrue(any("User-confirmed USD" in err for err in self.check(ledger=data)))
+
+    def test_old_account_currency_question_cannot_return(self):
+        data = copy.deepcopy(self.ledger)
+        data["outstanding_only"].append({"key": "account_currency_and_closeout", "request": "Tell me account currency"})
+        self.assertTrue(any("Do not request USD account currency again" in err for err in self.check(ledger=data)))
+
+    def test_unsupported_rerun_policy_is_rejected(self):
+        data = copy.deepcopy(self.ledger)
+        data["user_confirmed_research_preferences"]["historical_replay_trigger"] = "Every day, redo previous scenarios"
+        self.assertTrue(any("automatic or identical historical replays" in err for err in self.check(ledger=data)))
+
     def test_unverified_broker_fills_stay_unverified(self):
         data = copy.deepcopy(self.ledger)
         data["verified_gatesfx_history"]["actual_execution_slippage_and_fills"] = True
