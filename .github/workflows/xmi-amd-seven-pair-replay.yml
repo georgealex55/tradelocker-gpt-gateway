@@ -1,18 +1,13 @@
 name: XMI AMD seven-pair research replay (2022-2023 only)
+# Historical 7-pair replay runs are intentionally MANUAL, with a documented new research question.
+# Old PR triggers launched duplicate seven-pair failures on unrelated branch edits.
 on:
-  push:
-    branches:
-      - research/xmi-amd-seven-pair-fxcm-replay-20261107
-    paths:
-      - 'scripts/xmi-amd-fxcm-seven-pair-replay.py'
-      - '.github/workflows/xmi-amd-seven-pair-replay.yml'
-  pull_request:
-    branches:
-      - research/xmi-amd-retest-stp-20261107
-    paths:
-      - 'scripts/xmi-amd-fxcm-seven-pair-replay.py'
-      - '.github/workflows/xmi-amd-seven-pair-replay.yml'
   workflow_dispatch:
+    inputs:
+      research_question:
+        description: 'What new hypothesis, code or data change justifies this historical replay?'
+        required: true
+        type: string
 permissions:
   contents: read
 jobs:
@@ -37,10 +32,15 @@ jobs:
         run: python3 --version
       - name: Verify historical replay regression tests
         run: node --test tests/xmi-amd-retest.test.mjs
+      - name: Validate evidence registry and deliberate research reason
+        run: |
+          python3 scripts/xmi-evidence-preflight.py
+          test -n '${{ inputs.research_question }}'
       - name: Download and validate FXCM 2022-23 UTC minute bars, replay frozen AMD
         run: |
           python3 scripts/xmi-amd-fxcm-seven-pair-replay.py \
             --symbol '${{ matrix.symbol }}' \
+            --crossed-open-quote-policy quarantine \
             --out "$RUNNER_TEMP/amd-${{ matrix.symbol }}"
       - name: Print completion summary or explicit blocker
         if: always()
