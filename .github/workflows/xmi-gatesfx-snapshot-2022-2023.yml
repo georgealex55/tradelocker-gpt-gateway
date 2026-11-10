@@ -1,0 +1,73 @@
+name: XMI GatesFX screenshot sensitivity 2022-2023 (research only)
+on:
+  push:
+    branches: [research/xmi-amd-seven-pair-fxcm-replay-20261107]
+    paths: ['.github/workflows/xmi-gatesfx-snapshot-2022-2023.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fx-pair-2022-2023:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    strategy:
+      fail-fast: false
+      matrix:
+        symbol: [EURUSD, GBPUSD, USDJPY, USDCHF, AUDUSD, USDCAD, NZDUSD]
+    steps:
+      - name: Checkout isolated research branch without stored credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify existing AMD + isolated 2-percent regression
+        run: node --test tests/xmi-amd-retest.test.mjs tests/xmi-gatesfx-2pct.test.mjs
+      - name: Verify crossed quote quarantine regression
+        run: python3 -m unittest discover -s tests -p 'test_xmi_fxcm_crossed_quarantine.py' -v
+      - name: Obtain 2022-2023 FXCM bid/ask M1 and explicit Dukascopy 2023 week27 fallback
+        run: |
+          python3 scripts/xmi-amd-fxcm-seven-pair-replay.py --crossed-open-quote-policy quarantine --symbol ${{ matrix.symbol }} --out "$RUNNER_TEMP/amd-${{ matrix.symbol }}"
+      - name: Generate screenshot cost scenario and replay separately funded normal/high-risk tiers
+        run: |
+          set -euo pipefail
+          SYMBOL=${{ matrix.symbol }}
+          DIR="$RUNNER_TEMP/amd-$SYMBOL"
+          python3 scripts/xmi-gatesfx-snapshot-spec.py --symbol "$SYMBOL" --out "$RUNNER_TEMP/$SYMBOL-gatesfx-snapshot-spec.json"
+          for year in 2022 2023; do
+            node scripts/xmi-amd-retest-runner.mjs --input "$DIR/$SYMBOL-$year-bid-m5.csv" \
+              --symbol "$SYMBOL" --fold "training_$year" \
+              --symbol-spec "$RUNNER_TEMP/$SYMBOL-gatesfx-snapshot-spec.json" \
+              --output "$DIR/$SYMBOL-snapshot-$year.json"
+            node scripts/xmi-amd-retest-runner.mjs --input "$DIR/$SYMBOL-$year-bid-m5.csv" \
+              --symbol "$SYMBOL" --fold "training_$year" \
+              --symbol-spec "$RUNNER_TEMP/$SYMBOL-gatesfx-snapshot-spec.json" \
+              --sizing-only risk_0.02 \
+              --output "$DIR/$SYMBOL-experimental2pct-$year.json"
+          done
+          python3 scripts/xmi-gatesfx-snapshot-compare.py --symbol "$SYMBOL" --out-dir "$DIR"
+      - name: Print final comparison or blocker
+        if: always()
+        run: |
+          find "$RUNNER_TEMP/amd-${{ matrix.symbol }}" -maxdepth 1 -type f \
+            \( -name '*-gatesfx-snapshot-comparison.json' -o -name '*-BLOCKED.json' \) \
+            -exec sh -c 'for f do cat "$f"; done' sh {} + || true
+      - name: Preserve replay evidence only (never raw quote archives)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gatesfx-${{ matrix.symbol }}-snapshot-2022-2023
+          path: |
+            ${{ runner.temp }}/amd-${{ matrix.symbol }}/*-summary.json
+            ${{ runner.temp }}/amd-${{ matrix.symbol }}/*-BLOCKED.json
+            ${{ runner.temp }}/amd-${{ matrix.symbol }}/*-amd-2022.json
+            ${{ runner.temp }}/amd-${{ matrix.symbol }}/*-amd-2023.json
+            ${{ runner.temp }}/amd-${{ matrix.symbol }}/*-snapshot-2022.json
+            ${{ runner.temp }}/amd-${{ matrix.symbol }}/*-snapshot-2023.json
+            ${{ runner.temp }}/amd-${{ matrix.symbol }}/*-experimental2pct-2022.json
+            ${{ runner.temp }}/amd-${{ matrix.symbol }}/*-experimental2pct-2023.json
+            ${{ runner.temp }}/amd-${{ matrix.symbol }}/*-gatesfx-snapshot-comparison.json
+          if-no-files-found: warn
+          retention-days: 30

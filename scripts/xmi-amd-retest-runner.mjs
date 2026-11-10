@@ -61,7 +61,8 @@ async function run(){
   }
   const models=catalog.rangeModels,entries=catalog.entryModels,
     exits=catalog.exitModels,carries=catalog.carryModels,
-    sizings=catalog.sizingModels,lanes=catalog.noSkipLanes;
+    sizings=a["sizing-only"]==="risk_0.02" ? ["risk_0.02"] : catalog.sizingModels,lanes=catalog.noSkipLanes;
+  if(a["sizing-only"] && a["sizing-only"]!=="risk_0.02")throw Error("Only isolated experimental risk_0.02 sizing-only mode is supported");
   const profiles=[{id:"modeled_base_stp",...spec}];
   if(a.symbol==="XAUUSD"&&a["gold-wide"]==="true")
     profiles.push({id:"modeled_wide_gold_sensitivity",...spec,
@@ -96,6 +97,7 @@ async function run(){
     brokerCommissionUSD:0,noTimeLimit:true,holdoutRead:false,productionChanged:false,
     variants:rows.length,qualifiers:0,qualifierEvaluation:"NOT_ELIGIBLE_WITHOUT_VERIFIED_ACCOUNT_COSTS_AND_UNTOUCHED_OOS",
     comparability:"Separate standalone $1,000 runs. Shadow-only outcomes are not funded P/L.",
+    experimentalHighRiskOnly:a["sizing-only"]==="risk_0.02",
     rows};
   await mkdir(dirname(resolve(a.output)),{recursive:true});
   await writeFile(resolve(a.output),JSON.stringify(output,null,2)+"\n",{flag:"wx"});

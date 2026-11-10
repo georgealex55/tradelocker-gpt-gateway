@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "purpose": "Reusable GatesFX snapshot evidence and outstanding-only verification ledger. Consult before requesting user input or repeating replays.",
+  "updated_utc": "2026-11-10",
+  "branch": "research/xmi-amd-seven-pair-fxcm-replay-20261107",
+  "status": "PARTIAL_BROKER_VERIFICATION_PROVISIONAL_UNRANKED",
+  "provenance": {
+    "screen_capture": "User-supplied TradeLocker/GatesFX screenshots dated 2026-11-08, audited 2026-11-09; quote event timestamps absent",
+    "spec_matrix": "docs/research/XMI_GATESFX_EIGHT_INSTRUMENT_SPECS_2026-11-09.md",
+    "scenario_inputs": "docs/research/xmi-gatesfx-snapshot-scenarios-20261109.json",
+    "completed_sensitivity_report": "docs/research/XMI_GATESFX_RERUN_REPORT_2026-11-09.md",
+    "completed_sensitivity_results": "docs/research/XMI_GATESFX_RERUN_RESULTS_2026-11-09.json",
+    "sensitivity_github_actions": "https://github.com/georgealex55/tradelocker-gpt-gateway/actions/runs/42562466758",
+    "regression_github_actions": "https://github.com/georgealex55/tradelocker-gpt-gateway/actions/runs/42873049006",
+    "prior_research_report": "docs/research/XMI_AUDIT_FINAL_12_RUNS_2026-11-09.md",
+    "note": "Prior final audit predates screenshot replay and newer CI; do not reuse its old verification status or replay count as current."
+  },
+  "user_evidence_present": {
+    "seven_fx_pairs": [
+      "EURUSD",
+      "GBPUSD",
+      "USDJPY",
+      "USDCHF",
+      "AUDUSD",
+      "USDCAD",
+      "NZDUSD"
+    ],
+    "gold_separately": [
+      "XAUUSD"
+    ],
+    "observed_fields_for_seven_fx": [
+      "lotSize",
+      "minLot",
+      "symbolLeverage",
+      "marginPercent",
+      "snapshotSpreadPoints",
+      "openingFeePerLotUSD"
+    ],
+    "status": "CAPTURED_PLATFORM_SNAPSHOT_NOT_HISTORICAL_EXECUTION",
+    "request_existing_screenshots_again": false
+  },
+  "replays": {
+    "folds": [
+      2022,
+      2023
+    ],
+    "status": "COMPLETED_PROVISIONAL_UNRANKED",
+    "total_scenario_years": 6048,
+    "breakdown": {
+      "cleaned_fixed_2pip_baseline": 2688,
+      "gatesfx_snapshot_fixed_spread": 2688,
+      "separate_experimental_2pct": 672
+    },
+    "price_source": "2022-23 FXCM M1, explicit independent Dukascopy M5 substitution in 2023 week 27; 2045 crossed FXCM M1 observations excluded",
+    "development_2024_policy": "PREVIOUSLY_EXAMINED_DEVELOPMENT_ONLY",
+    "holdout_2025_read": false,
+    "avoid_identical_unjustified_reruns": true
+  },
+  "verified_gatesfx_history": {
+    "historical_stp_bid_ask": false,
+    "actual_execution_slippage_and_fills": false,
+    "historical_swap_fee_schedule": false,
+    "account_specific_stopout_margin_tiers_step_max_lots": false
+  },
+  "outstanding_only": [
+    {
+      "key": "lot_step_max_and_margin_tiers",
+      "request": "Written broker or platform export of volume step, max lot and account-specific margin/stop-out tiers; REUSE the documented 0.01 minimum.",
+      "reason": "0.01 minimum shown; step and tiers not shown"
+    },
+    {
+      "key": "historical_standard_stp_bid_ask",
+      "request": "2022–2023 Standard STP timestamped bid/ask or dated pair/session spread distribution, with source/timezone; record if unavailable.",
+      "reason": "Observed live spread screenshots are not historic distributions"
+    },
+    {
+      "key": "historical_execution_slippage",
+      "request": "Dated fill/execution reports or broker's historical slippage/execution methodology and any closing charges.",
+      "reason": "0.3 pip/side slippage is currently a model"
+    },
+    {
+      "key": "swap_terms_and_asterisk",
+      "request": "Meaning of $0.00* screenshot swap fields, and long/short financing and triple-swap schedules.",
+      "reason": "Historical swap unpriced"
+    },
+    {
+      "key": "server_timezone_market_hours",
+      "request": "Dated broker server timezone and DST/market-hours changes in 2022–2023.",
+      "reason": "UTC+2 one-off screen is insufficient for historic hours"
+    },
+    {
+      "key": "account_margin_closeout",
+      "request": "Verify applicable Standard STP margin call, stop-out thresholds and tier rules from broker/platform for the user's account; USD base currency already user-confirmed and must not be re-requested.",
+      "reason": "Broker historical/account-specific margin closeout terms remain unverified even though currency is user-confirmed USD"
+    }
+  ],
+  "future_research_protocol": [
+    "Read this ledger, screenshot evidence matrix, scenario inputs, completed replay report and newest checkpoints FIRST.",
+    "Check previous captures before asking questions; request only an outstanding precise field. Never ask for the same complete screenshot bundle again.",
+    "Never repeat the existing 6048 scenario-year replays without a preregistered distinct comparison, data/code change, or reproducibility requirement with clear input hashes.",
+    "Keep 2022/23 training, 2024 previously examined development, and sealed/unread 2025 distinct.",
+    "Distinguish snapshot evidence from actual historical GatesFX quotes and fills; profitability rankings remain provisional/unranked until broker conditions verified.",
+    "No live trading, production deploy, 2025 reads, branch merge, broker credential handling or claims of qualified strategies.",
+    "Apply user confirmed 1C 2C 3A 4A 5A 6A research preferences; only send missing-data request when an evidence check says the field is unavailable.",
+    "Do not ask account currency again; user explicitly confirmed USD. Treat as user-reported, distinct from an authenticated account export.",
+    "The user has both TradeLocker and MT5 access; use MT5 broker-server history/export and broker-issued TradeLocker reports when available; never assume TradeLocker has native CSV history export.",
+    "Never run a shared-capital simulation; separate $1,000 USD starts are required for each tested independent scenario.",
+    "If no historical GatesFX source exists, allow public-price models with stress ranges but prohibit definitive broker rankings or actual-fill claims."
+  ],
+  "user_confirmed_research_preferences": {
+    "confirmed_on": "2026-11-10",
+    "questionnaire": "1C 2C 3A 4A 5A 6A",
+    "data_recovery": "Investigate available TradeLocker and MT5 exports and prepare targeted GatesFX support request; do not re-request already captured screenshots",
+    "platform_access_user_reported": {
+      "TradeLocker": true,
+      "MetaTrader5": true,
+      "authenticated_platform_or_server_export_verified": false
+    },
+    "broker_account_base_currency": {
+      "value": "USD",
+      "evidence": "user-confirmed questionnaire",
+      "broker_statement_verified": false
+    },
+    "when_historical_gatesfx_records_unavailable": "Continue historical public-price and modeled-cost research, conspicuously PROVISIONAL_UNRANKED; maintain stress bands; never fabricate authentic GatesFX fills",
+    "historical_replay_trigger": "Only after newly verified data, a code correction with changed results, or a preregistered distinct hypothesis; no recurring automatic rerun or duplicate old scenarios",
+    "funding_model": "One independent USD 1000 starting account per scenario/pair/year; DO NOT run shared-capital portfolio simulation",
+    "research_priority": "Seven major Forex pairs equally, 2pct experimental risk separate, maximize feasible NET USD profits after modeled costs, with no winner label until GatesFX historical verification",
+    "safe_training": "2022 and 2023 training; 2024 already-exposed development; 2025 sealed holdout unread"
+  }
+}

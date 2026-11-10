@@ -1,0 +1,37 @@
+name: XMI public 2023 week-27 data-source probe
+on:
+  push:
+    branches: [research/xmi-amd-seven-pair-fxcm-replay-20261107]
+    paths: ['.github/workflows/xmi-fxcm-week27-probe.yml']
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe FXCM candle and tick compressed public history without downloading full archive
+        run: |
+          python3 - <<'PY'
+          import urllib.request,gzip
+          urls=[
+            "https://candledata.fxcorporate.com/m1/EURUSD/2023/26.csv.gz",
+            "https://candledata.fxcorporate.com/m1/EURUSD/2023/27.csv.gz",
+            "https://candledata.fxcorporate.com/m1/EURUSD/2023/28.csv.gz",
+            "https://tickdata.fxcorporate.com/EURUSD/2023/27.csv.gz"
+          ]
+          for url in urls:
+            try:
+              with urllib.request.urlopen(urllib.request.Request(url,headers={"User-Agent":"XMI-Research/1.0"}),timeout=20) as r:
+                print("URL",url,"STATUS",r.status,"LENGTH",r.headers.get("Content-Length"),flush=True)
+                with gzip.GzipFile(fileobj=r) as f:
+                  print("FIRST",repr(f.readline()[:220]),flush=True)
+                  print("SECOND",repr(f.readline()[:220]),flush=True)
+            except Exception as e:print("BLOCKED",url,repr(e),flush=True)
+          PY
+      - name: Probe original Dukascopy 2023 week 27 M5 bid candles
+        timeout-minutes: 8
+        run: |
+          mkdir -p "$RUNNER_TEMP/duka-probe"
+          npx --yes dukascopy-node@1.51.1 -i eurusd -from 2023-07-02 -to 2023-07-10 -t m5 -f csv -dir "$RUNNER_TEMP/duka-probe" --retries 2 --batch-size 10 --batch-pause 200 -s
+          find "$RUNNER_TEMP/duka-probe" -type f -name '*.csv' -exec sh -c 'for f; do echo FILE "$f"; wc -l "$f"; head -n 3 "$f"; tail -n 3 "$f"; done' sh {} +

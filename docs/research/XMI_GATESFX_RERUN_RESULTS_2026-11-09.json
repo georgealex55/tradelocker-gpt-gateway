@@ -1,0 +1,143 @@
+{
+  "date_utc": "2026-11-09",
+  "branch": "research/xmi-amd-seven-pair-fxcm-replay-20261107",
+  "github_actions": "https://github.com/georgealex55/tradelocker-gpt-gateway/actions/runs/42562466758",
+  "status": "PROVISIONAL_UNRANKED",
+  "historical_gatesfx_spreads_verified": false,
+  "holdout_2025_read": false,
+  "folds": [
+    2022,
+    2023
+  ],
+  "prior_baseline_m5": 1017924,
+  "rerun_m5": 1016144,
+  "m5_decline": 1780,
+  "crossed_M1_quarantined": 2045,
+  "year_2022_m5": 506128,
+  "year_2023_m5": 510016,
+  "replays": {
+    "refreshed_baseline": 2688,
+    "screenshot_spread": 2688,
+    "experimental_2pct": 672,
+    "total": 6048
+  },
+  "data_sources": "FXCM 2022/2023 M1 public bid/ask; 2023 week27 independent Dukascopy bid M5 replacement; crossed bid/ask M1 quarantined no synthetic repair",
+  "quotes": "Screenshot spread treated as constant historical scenario only; 0.3 pip adverse slippage per side inherited, unverified",
+  "margin": "User TradeLocker 0.20% margin, leverage 1:500, 100k units per lot, 0.01 minimum for all seven; 0.01 lot step assumed not verified",
+  "costs": "USD zero modeled opening commission, no verified closing fee or historical swap",
+  "pair_results": [
+    {
+      "symbol": "EURUSD",
+      "m5_2022": 72193,
+      "m5_2023": 73130,
+      "crossed_m1_quarantined_2022": 1223,
+      "crossed_m1_quarantined_2023": 4,
+      "matched_positive_1pct_both_years": 0,
+      "matched_positive_2pct_both_years": 0,
+      "spread_pips_snapshot": 1.9
+    },
+    {
+      "symbol": "GBPUSD",
+      "m5_2022": 72640,
+      "m5_2023": 73017,
+      "crossed_m1_quarantined_2022": 28,
+      "crossed_m1_quarantined_2023": 0,
+      "matched_positive_1pct_both_years": 0,
+      "matched_positive_2pct_both_years": 0,
+      "spread_pips_snapshot": 2
+    },
+    {
+      "symbol": "USDJPY",
+      "m5_2022": 72781,
+      "m5_2023": 73153,
+      "crossed_m1_quarantined_2022": 215,
+      "crossed_m1_quarantined_2023": 0,
+      "matched_positive_1pct_both_years": 1,
+      "matched_positive_2pct_both_years": 1,
+      "spread_pips_snapshot": 1.9
+    },
+    {
+      "symbol": "USDCHF",
+      "m5_2022": 71567,
+      "m5_2023": 72616,
+      "crossed_m1_quarantined_2022": 214,
+      "crossed_m1_quarantined_2023": 171,
+      "matched_positive_1pct_both_years": 0,
+      "matched_positive_2pct_both_years": 0,
+      "spread_pips_snapshot": 1.7
+    },
+    {
+      "symbol": "AUDUSD",
+      "m5_2022": 72478,
+      "m5_2023": 72853,
+      "crossed_m1_quarantined_2022": 108,
+      "crossed_m1_quarantined_2023": 0,
+      "matched_positive_1pct_both_years": 0,
+      "matched_positive_2pct_both_years": 0,
+      "spread_pips_snapshot": 1.7
+    },
+    {
+      "symbol": "USDCAD",
+      "m5_2022": 72278,
+      "m5_2023": 72553,
+      "crossed_m1_quarantined_2022": 53,
+      "crossed_m1_quarantined_2023": 0,
+      "matched_positive_1pct_both_years": 0,
+      "matched_positive_2pct_both_years": 0,
+      "spread_pips_snapshot": 2.4
+    },
+    {
+      "symbol": "NZDUSD",
+      "m5_2022": 72191,
+      "m5_2023": 72694,
+      "crossed_m1_quarantined_2022": 19,
+      "crossed_m1_quarantined_2023": 10,
+      "matched_positive_1pct_both_years": 0,
+      "matched_positive_2pct_both_years": 0,
+      "spread_pips_snapshot": 1.8
+    }
+  ],
+  "matched_strategy": "session_asia_london / range_reclaim_retest / bracket_2r / session_flat / risk_fit",
+  "matched_usdjpy_illustrative": {
+    "original_2022": {
+      "net": 61.58,
+      "trades": 26
+    },
+    "original_2023": {
+      "net": 63.09,
+      "trades": 46
+    },
+    "quarantined_baseline_2022": {
+      "net": 9.8072410559,
+      "trades": 23
+    },
+    "quarantined_baseline_2023": {
+      "net": 63.093147063,
+      "trades": 46
+    },
+    "screenshot_1pct_2022": {
+      "net": 10.3721021466,
+      "trades": 23
+    },
+    "screenshot_1pct_2023": {
+      "net": 64.5000905837,
+      "trades": 46
+    },
+    "screenshot_experimental_2pct_2022": {
+      "net": 37.3224546351,
+      "trades": 23
+    },
+    "screenshot_experimental_2pct_2023": {
+      "net": 124.9468303005,
+      "trades": 46
+    }
+  },
+  "limitations": [
+    "profit factor, true drawdown including intrabar and full forced liquidation are not recalculated by the summary output",
+    "no correlated capital contention across pairs",
+    "zero observed opening fee is not verified historical all-in cost",
+    "fixed screenshot spreads are not historical time series",
+    "risk experiments are training-only and not independent OOS",
+    "gold kept separate, not rerun under seven-major FX pipeline"
+  ]
+}
