@@ -33,9 +33,11 @@ jobs:
       - name: Verify historical replay regression tests
         run: node --test tests/xmi-amd-retest.test.mjs
       - name: Validate evidence registry and deliberate research reason
+        env:
+          RESEARCH_QUESTION: ${{ inputs.research_question }}
         run: |
           python3 scripts/xmi-evidence-preflight.py
-          test -n '${{ inputs.research_question }}'
+          test -n "$RESEARCH_QUESTION"
       - name: Download and validate FXCM 2022-23 UTC minute bars, replay frozen AMD
         run: |
           python3 scripts/xmi-amd-fxcm-seven-pair-replay.py \
