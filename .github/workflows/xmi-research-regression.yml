@@ -5,6 +5,10 @@ on:
       - research/xmi-amd-seven-pair-fxcm-replay-20261107
     paths:
       - '.github/workflows/xmi-research-regression.yml'
+      - 'tests/test_xmi_fxcm*.py'
+      - 'tests/test_xmi_m5_continuity.py'
+      - 'tests/test_xmi_fx_session_dst*.py'
+      - 'scripts/xmi-*.py'
   workflow_dispatch:
 permissions:
   contents: read
@@ -19,10 +23,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Run four committed regression suites (no vendor data)
+      - name: Compile historical importer
+        run: python -m py_compile scripts/xmi-amd-fxcm-seven-pair-replay.py
+      - name: Run five isolated offline regression suites (no vendor downloads)
         run: |
           set -o pipefail
           python -m unittest discover -s tests -p 'test_xmi_fxcm_integrity.py' -v 2>&1 | tee fxcm-integrity.log
+          python -m unittest discover -s tests -p 'test_xmi_fxcm_crossed_quarantine.py' -v 2>&1 | tee fxcm-quarantine.log
           python -m unittest discover -s tests -p 'test_xmi_m5_continuity.py' -v 2>&1 | tee m5-continuity.log
           python -m unittest discover -s tests -p 'test_xmi_fx_session_dst.py' -v 2>&1 | tee dst.log
           python -m unittest discover -s tests -p 'test_xmi_fx_session_dst_exact.py' -v 2>&1 | tee dst-exact.log
