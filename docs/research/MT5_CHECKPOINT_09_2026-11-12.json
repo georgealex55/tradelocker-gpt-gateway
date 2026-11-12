@@ -1,0 +1,35 @@
+{
+  "milestone": 9,
+  "branch": "research/xmi-mt5-adapter-20261112",
+  "implemented": [
+    "offline MT5 JSON export-to-descriptive-replay bridge",
+    "original and derived SHA-256 provenance",
+    "UTC seconds conversion",
+    "pre-parse 2025 window rejection",
+    "synthetic regression tests"
+  ],
+  "commits": {
+    "bridge": "bf4e45cd110c394f3ab4ba2be6de4e665c3a5761",
+    "tests": "b6c9b1044b3eedec634b4f729bc224a438085c34",
+    "matrix": "ba0edcdf4bc6d80e1ff5c9673f650e0ac5b80ed6",
+    "checkpoint_md": "44db3cc18f3bb92782c03021e80765b9280ec6d0"
+  },
+  "tests": {
+    "committed": true,
+    "executed": false,
+    "ci_verified": false
+  },
+  "terminal_connected": false,
+  "real_exports": false,
+  "backtests_performed": false,
+  "execution_enabled": false,
+  "production_changed": false,
+  "holdout_2025_read": false,
+  "limitations": [
+    "400 bar limit; no auto chunking",
+    "no real account historical fills",
+    "descriptive replay not $1000 capital simulation",
+    "full repo tests not run"
+  ],
+  "next": 10
+}
