@@ -3,7 +3,7 @@
   "project": "XMI 2.0 MT5 Full Platform Capability Matrix",
   "created_utc": "2026-11-12",
   "branch": "research/xmi-mt5-adapter-20261112",
-  "phase": "run-11-offline-seven-pair-regression-ci-added-not-yet-verified",
+  "phase": "run-12-final-gap-audit-committed-ci-unverified",
   "feature_scope": "Audit full usable MetaTrader 5 feature surface, not necessarily fully implemented within 12 hourly runs",
   "prior_account_user_settings": {
     "mt5_access_reported": true,
@@ -508,5 +508,18 @@
       "NZDUSD"
     ],
     "gold_separate": true
+  },
+  "final_audit": {
+    "feature_count": 34,
+    "verified": 0,
+    "implemented_unverified": 18,
+    "not_implemented": 16,
+    "terminal_connected": false,
+    "authentic_gatesfx_export_verified": false,
+    "exact_repository_ci_verified": false,
+    "execution_enabled": false,
+    "source_file": "scripts/mt5_capability_audit.mjs",
+    "synthetic_tests": "tests/mt5-capability-audit.test.mjs",
+    "note": "Automated ledger validator committed; test execution and native MT5 integration remain unverified."
   }
 }
