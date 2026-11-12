@@ -1,0 +1,29 @@
+{
+  "milestone": 7,
+  "date_utc": "2026-11-12",
+  "branch": "research/xmi-mt5-adapter-20261112",
+  "status": "committed_not_runtime_verified",
+  "commits": {
+    "structured_array_fix": "23ace0f23aa8027c8c3e71f2a1fbe8ee1a2b3132",
+    "spec_reconciliation": "a671912c0ad8a14479bab70b01fb68ddaf1875fa",
+    "synthetic_tests": "09209404d286d7d431a76425c81cb28af58383a8",
+    "capability_matrix": "1344f286a3efd329ea2af54128d3febd92a25d8a",
+    "checkpoint": "d50637a9411e5d5d4ed74ada8c0f0d05366444ab"
+  },
+  "tests": {
+    "committed": true,
+    "executed": false,
+    "ci_verified": false
+  },
+  "mt5_terminal_connected": false,
+  "broker_spec_authenticated": false,
+  "holdout_2025_read": false,
+  "production_changed": false,
+  "trade_execution": false,
+  "next_milestone": 8,
+  "limitations": [
+    "Real NumPy/MT5 terminal validation not performed",
+    "Broker historical spreads/slippage/swaps/stopout remain unverified",
+    "Export-to-JS importer integration not yet exercised"
+  ]
+}
