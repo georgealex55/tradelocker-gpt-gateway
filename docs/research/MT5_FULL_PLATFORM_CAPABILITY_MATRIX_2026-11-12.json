@@ -3,7 +3,7 @@
   "project": "XMI 2.0 MT5 Full Platform Capability Matrix",
   "created_utc": "2026-11-12",
   "branch": "research/xmi-mt5-adapter-20261112",
-  "phase": "run-01-contract-audit",
+  "phase": "run-02-opt-in-offline-bars-adapter",
   "feature_scope": "Audit full usable MetaTrader 5 feature surface, not necessarily fully implemented within 12 hourly runs",
   "prior_account_user_settings": {
     "mt5_access_reported": true,
@@ -82,10 +82,14 @@
       "name": "M1 to monthly bar history, volumes, spread fields and incomplete-candle protection",
       "interface_type": "python",
       "priority": "P0",
-      "status": "not_implemented",
+      "status": "implemented_unverified",
       "note": "No lookahead; never silently interpolate missing quotes",
-      "acceptance_evidence": [],
-      "limitations": []
+      "acceptance_evidence": [
+        "lib/mt5/offlineBars.mjs; tests/mt5-offline-bars.test.mjs (source committed; tests not executed)"
+      ],
+      "limitations": [
+        "Only bounded offline 1m–1D bar import; no local terminal, MT5 source API, MT5 native higher timeframes or quote spread parity"
+      ]
     },
     {
       "id": "market_depth",
@@ -322,10 +326,14 @@
       "name": "Preserve TradeLocker and Alpaca/Twelve Data adapters alongside opt-in MT5 source",
       "interface_type": "xmi",
       "priority": "P0",
-      "status": "not_implemented",
+      "status": "implemented_unverified",
       "note": "No production route changes",
-      "acceptance_evidence": [],
-      "limitations": []
+      "acceptance_evidence": [
+        "lib/mt5/offlineBars.mjs selectMt5ResearchSource explicit opt-in, existing lib/xmiMultiProvider.mjs unchanged; no production routing"
+      ],
+      "limitations": [
+        "Not yet wired to user-facing provider selection or XMI chart route"
+      ]
     },
     {
       "id": "local_bridge",
@@ -346,10 +354,14 @@
       "name": "CI, stale ticks, missing history, UTC, idempotent exports, privacy, licensing, versions",
       "interface_type": "offline",
       "priority": "P0",
-      "status": "not_implemented",
+      "status": "implemented_unverified",
       "note": "Fail closed and verify exact SHA",
-      "acceptance_evidence": [],
-      "limitations": []
+      "acceptance_evidence": [
+        "lib/mt5/offlineBars.mjs verifies SHA-256 of exact UTF-8 bytes and rejects duplicates, invalid UTC, out-of-window and malformed OHLC; synthetic tests committed but not run"
+      ],
+      "limitations": [
+        "No automated CI execution or local full repository test evidence yet"
+      ]
     },
     {
       "id": "holdout_guard",
@@ -359,7 +371,8 @@
       "status": "implemented_unverified",
       "note": "Do not inspect 2025 source records",
       "acceptance_evidence": [
-        "lib/mt5/contract.mjs assertMt5ResearchWindow rejects any 2025 overlap before ingestion; tests/mt5-contract.test.mjs synthetic tests (not executed)"
+        "lib/mt5/contract.mjs assertMt5ResearchWindow rejects any 2025 overlap before ingestion; tests/mt5-contract.test.mjs synthetic tests (not executed)",
+        "lib/mt5/offlineBars.mjs invokes validateMt5Manifest before JSON parsing; tests/mt5-offline-bars.test.mjs (not executed)"
       ],
       "limitations": [
         "Guard applies only to future MT5 adapter call sites; other existing XMI imports have not yet been wired to this guard"
@@ -382,6 +395,6 @@
     "https://www.metatrader5.com/en/terminal/help/algotrading/autotrading"
   ],
   "reporting": "Every run update exact statuses with code paths, CI and screenshots/terminal limitations. Do not promote status to verified without evidence.",
-  "last_checkpoint": "docs/research/MT5_CHECKPOINT_01_2026-11-12.json",
+  "last_checkpoint": "docs/research/MT5_CHECKPOINT_02_2026-11-12.json",
   "last_updated_utc": "2026-11-12"
 }
