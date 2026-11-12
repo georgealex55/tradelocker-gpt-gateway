@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "milestone": 11,
+  "branch": "research/xmi-mt5-adapter-20261112",
+  "status": "code_committed_tests_not_executed",
+  "commits": {
+    "utc_regex_fix": "b51453ef302f256294189ec508af24116a04155d",
+    "seven_pair_tests": "e7b3f38f58e9b8fc106bf0c1cd9e12594342a599",
+    "workflow": "179e0ca71fc85cb6845e10052cc96c93d72d4e39",
+    "matrix": "00493147a702c852de2efa90a797e816fe637f28"
+  },
+  "test_cases_added": 5,
+  "exact_repository_tests_executed": false,
+  "ci_verified": false,
+  "ci_observed_status": "no PR-triggered runs returned; Vercel pending only",
+  "blocker": "local git ls-remote failed: Could not resolve host github.com",
+  "terminal_connected": false,
+  "broker_exported": false,
+  "backtest_executed": false,
+  "production_changed": false,
+  "holdout_2025_accessed": false,
+  "trade_orders_sent": false,
+  "next_milestone": 12
+}
