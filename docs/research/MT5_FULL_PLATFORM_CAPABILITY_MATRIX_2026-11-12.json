@@ -3,7 +3,7 @@
   "project": "XMI 2.0 MT5 Full Platform Capability Matrix",
   "created_utc": "2026-11-12",
   "branch": "research/xmi-mt5-adapter-20261112",
-  "phase": "12-run-adapter-foundation",
+  "phase": "run-01-contract-audit",
   "feature_scope": "Audit full usable MetaTrader 5 feature surface, not necessarily fully implemented within 12 hourly runs",
   "prior_account_user_settings": {
     "mt5_access_reported": true,
@@ -332,10 +332,14 @@
       "name": "Windows-local read-only MT5 exporter, mockable CI, local auth and schema/version handling",
       "interface_type": "python+offline",
       "priority": "P0",
-      "status": "not_implemented",
+      "status": "implemented_unverified",
       "note": "No inbound public port or production credentials",
-      "acceptance_evidence": [],
-      "limitations": []
+      "acceptance_evidence": [
+        "lib/mt5/contract.mjs offline contract; tests/mt5-contract.test.mjs synthetic tests (not executed in this run)"
+      ],
+      "limitations": [
+        "This is a contract-only foundation; no Windows MT5 terminal bridge, transport, exporter, or terminal connection exists yet"
+      ]
     },
     {
       "id": "quality_security",
@@ -352,10 +356,14 @@
       "name": "Exclude 2025 completely, including prior mixed-year uploaded CSV",
       "interface_type": "offline",
       "priority": "P0",
-      "status": "not_implemented",
+      "status": "implemented_unverified",
       "note": "Do not inspect 2025 source records",
-      "acceptance_evidence": [],
-      "limitations": []
+      "acceptance_evidence": [
+        "lib/mt5/contract.mjs assertMt5ResearchWindow rejects any 2025 overlap before ingestion; tests/mt5-contract.test.mjs synthetic tests (not executed)"
+      ],
+      "limitations": [
+        "Guard applies only to future MT5 adapter call sites; other existing XMI imports have not yet been wired to this guard"
+      ]
     },
     {
       "id": "broker_gate",
@@ -373,5 +381,7 @@
     "https://www.metatrader5.com/en/terminal/help/algotrading/strategy_optimization",
     "https://www.metatrader5.com/en/terminal/help/algotrading/autotrading"
   ],
-  "reporting": "Every run update exact statuses with code paths, CI and screenshots/terminal limitations. Do not promote status to verified without evidence."
+  "reporting": "Every run update exact statuses with code paths, CI and screenshots/terminal limitations. Do not promote status to verified without evidence.",
+  "last_checkpoint": "docs/research/MT5_CHECKPOINT_01_2026-11-12.json",
+  "last_updated_utc": "2026-11-12"
 }
