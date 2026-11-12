@@ -3,7 +3,7 @@
   "project": "XMI 2.0 MT5 Full Platform Capability Matrix",
   "created_utc": "2026-11-12",
   "branch": "research/xmi-mt5-adapter-20261112",
-  "phase": "run-02-opt-in-offline-bars-adapter",
+  "phase": "run-03-offline-bid-ask-ticks",
   "feature_scope": "Audit full usable MetaTrader 5 feature surface, not necessarily fully implemented within 12 hourly runs",
   "prior_account_user_settings": {
     "mt5_access_reported": true,
@@ -72,10 +72,16 @@
       "name": "Tick history by symbol/date, UTC validation and spread provenance",
       "interface_type": "python",
       "priority": "P0",
-      "status": "not_implemented",
+      "status": "implemented_unverified",
       "note": "Bounded, hashed, read-only",
-      "acceptance_evidence": [],
-      "limitations": []
+      "acceptance_evidence": [
+        "lib/mt5/offlineTicks.mjs commit c2222dd9edb23ec67f402bb395eedf26b8f08f95; tests/mt5-offline-ticks.test.mjs commit cb67b1092706eeda4e3186d29e9bb9f553e443ed; representative local Node 22 tests 4/4 passed with stubbed contract, exact repo suite not executed"
+      ],
+      "limitations": [
+        "Offline JSON only; no real MT5 terminal, broker historical ticks or symbol-specific point conversion verified",
+        "Identical millisecond ticks retained; exact duplicate events not independently deduplicated",
+        "No CI evidence for committed repository suite"
+      ]
     },
     {
       "id": "candles",
