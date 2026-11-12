@@ -3,7 +3,7 @@
   "project": "XMI 2.0 MT5 Full Platform Capability Matrix",
   "created_utc": "2026-11-12",
   "branch": "research/xmi-mt5-adapter-20261112",
-  "phase": "run-08-sanitized-2026-deal-accounting",
+  "phase": "run-09-mt5-offline-export-to-descriptive-replay",
   "feature_scope": "Audit full usable MetaTrader 5 feature surface, not necessarily fully implemented within 12 hourly runs",
   "prior_account_user_settings": {
     "mt5_access_reported": true,
@@ -115,12 +115,14 @@
         "lib/mt5/offlineBars.mjs; tests/mt5-offline-bars.test.mjs (source committed; tests not executed)",
         "lib/mt5/barSession.mjs commit 529b9fcc; tests/mt5-bar-session.test.mjs commit 526a5fe7; representative local Node.js synthetic suite 5/5 passed; exact GitHub branch suite/CI pending",
         "scripts/mt5_readonly_terminal.py commit 084d2499691cda47219146bb020939a3128a8297; tests/test_mt5_readonly_terminal.py commit 2e701f0198a4b7cef1710e0e4cd795632e3874a0; tests NOT executed; real terminal NOT connected",
-        "run07 scripts/mt5_readonly_terminal.py structured-array fix commit 23ace0f23aa8027c8c3e71f2a1fbe8ee1a2b3132; synthetic tests committed, execution unverified"
+        "run07 scripts/mt5_readonly_terminal.py structured-array fix commit 23ace0f23aa8027c8c3e71f2a1fbe8ee1a2b3132; synthetic tests committed, execution unverified",
+        "run09 lib/mt5/replayBridge.mjs commit bf4e45cd110c394f3ab4ba2be6de4e665c3a5761; tests/mt5-replay-bridge.test.mjs commit b6c9b1044b3eedec634b4f729bc224a438085c34; exact repository tests not executed"
       ],
       "limitations": [
         "Only bounded offline 1m–1D bar import; no local terminal, MT5 source API, MT5 native higher timeframes or quote spread parity",
         "M1/M5 audit separate from existing offlineBars import; not yet wired end-to-end",
-        "Only injected local Python SDK reader; no real Windows MT5 terminal, SDK version, broker export, integration with XMI chart, or full repository CI verified"
+        "Only injected local Python SDK reader; no real Windows MT5 terminal, SDK version, broker export, integration with XMI chart, or full repository CI verified",
+        "Offline Python JSON bar export only; existing replay descriptive states, no trade fills, no $1k execution simulation; live terminal and full CI not verified"
       ]
     },
     {
@@ -391,10 +393,12 @@
       "status": "implemented_unverified",
       "note": "No production route changes",
       "acceptance_evidence": [
-        "lib/mt5/offlineBars.mjs selectMt5ResearchSource explicit opt-in, existing lib/xmiMultiProvider.mjs unchanged; no production routing"
+        "lib/mt5/offlineBars.mjs selectMt5ResearchSource explicit opt-in, existing lib/xmiMultiProvider.mjs unchanged; no production routing",
+        "run09 lib/mt5/replayBridge.mjs commit bf4e45cd110c394f3ab4ba2be6de4e665c3a5761; tests/mt5-replay-bridge.test.mjs commit b6c9b1044b3eedec634b4f729bc224a438085c34; exact repository tests not executed"
       ],
       "limitations": [
-        "Not yet wired to user-facing provider selection or XMI chart route"
+        "Not yet wired to user-facing provider selection or XMI chart route",
+        "Offline Python JSON bar export only; existing replay descriptive states, no trade fills, no $1k execution simulation; live terminal and full CI not verified"
       ]
     },
     {
@@ -427,13 +431,15 @@
         "lib/mt5/offlineBars.mjs verifies SHA-256 of exact UTF-8 bytes and rejects duplicates, invalid UTC, out-of-window and malformed OHLC; synthetic tests committed but not run",
         "lib/mt5/barSession.mjs commit 529b9fcc; tests/mt5-bar-session.test.mjs commit 526a5fe7; representative local Node.js synthetic suite 5/5 passed; exact GitHub branch suite/CI pending",
         "scripts/mt5_export_cli.py commit be516b58e8fd7fc587fdadfd8e8dc4a8b84c9b86; tests/test_mt5_export_cli.py commit 003fcdf980b54c02811f8bdbf0c67166e16c5116; tests not yet executed against exact repository",
-        "run07 scripts/mt5_symbol_reconciliation.py commit a671912c0ad8a14479bab70b01fb68ddaf1875fa; tests/test_mt5_symbol_reconciliation.py commit 09209404d286d7d431a76425c81cb28af58383a8; tests not executed; no authenticated MT5 broker session"
+        "run07 scripts/mt5_symbol_reconciliation.py commit a671912c0ad8a14479bab70b01fb68ddaf1875fa; tests/test_mt5_symbol_reconciliation.py commit 09209404d286d7d431a76425c81cb28af58383a8; tests not executed; no authenticated MT5 broker session",
+        "run09 lib/mt5/replayBridge.mjs commit bf4e45cd110c394f3ab4ba2be6de4e665c3a5761; tests/mt5-replay-bridge.test.mjs commit b6c9b1044b3eedec634b4f729bc224a438085c34; exact repository tests not executed"
       ],
       "limitations": [
         "No automated CI execution or local full repository test evidence yet",
         "Local isolated module tested; repository-wide CI not executed",
         "Offline private JSON export only; real MT5 terminal/export and full CI not verified; Python SDK structured NumPy record conversion needs end-to-end validation",
-        "Snapshot comparison is offline only; actual symbol_info and account margin/stopout fields require connected Windows MT5 broker terminal"
+        "Snapshot comparison is offline only; actual symbol_info and account margin/stopout fields require connected Windows MT5 broker terminal",
+        "Offline Python JSON bar export only; existing replay descriptive states, no trade fills, no $1k execution simulation; live terminal and full CI not verified"
       ]
     },
     {
