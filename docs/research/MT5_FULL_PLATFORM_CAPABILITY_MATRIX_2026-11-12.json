@@ -1,0 +1,377 @@
+{
+  "schema_version": 1,
+  "project": "XMI 2.0 MT5 Full Platform Capability Matrix",
+  "created_utc": "2026-11-12",
+  "branch": "research/xmi-mt5-adapter-20261112",
+  "phase": "12-run-adapter-foundation",
+  "feature_scope": "Audit full usable MetaTrader 5 feature surface, not necessarily fully implemented within 12 hourly runs",
+  "prior_account_user_settings": {
+    "mt5_access_reported": true,
+    "tradelocker_access_reported": true,
+    "account_currency": "USD",
+    "funding_model": "independent USD 1000 only"
+  },
+  "safeguards": {
+    "execution_enabled": false,
+    "order_send_allowed": false,
+    "trade_action_calls_allowed": false,
+    "production_changed": false,
+    "holdout_2025_access_allowed": false,
+    "commit_raw_vendor_data": false
+  },
+  "status_legend": {
+    "not_implemented": "No implementation evidence yet",
+    "implemented_unverified": "Code exists but test/evidence missing",
+    "verified": "Tests and source evidence recorded",
+    "blocked_external": "Requires Windows MT5 terminal, broker access, or permission",
+    "deferred": "Documented post-12-run work"
+  },
+  "capabilities": [
+    {
+      "id": "terminal_status",
+      "name": "Terminal initialization, versions, errors, connectivity, trading permissions",
+      "interface_type": "python",
+      "priority": "P0",
+      "status": "not_implemented",
+      "note": "Read-only; no login credential storage",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "account_snapshot",
+      "name": "Account currency, leverage, hedging/netting, balance, margin/equity, stopout",
+      "interface_type": "python",
+      "priority": "P0",
+      "status": "not_implemented",
+      "note": "Read-only; privacy-sensitive fields redacted",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "symbol_catalog",
+      "name": "All symbols/groups, suffixes, visibility, contract sizes, trade modes, point/digits, currency, lots",
+      "interface_type": "python",
+      "priority": "P0",
+      "status": "not_implemented",
+      "note": "Broker-specific; verify against prior screenshots",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "quotes",
+      "name": "Streaming/polled bid ask last flags and stale-quote protection",
+      "interface_type": "python",
+      "priority": "P0",
+      "status": "not_implemented",
+      "note": "Local terminal; no fabricated history",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "ticks",
+      "name": "Tick history by symbol/date, UTC validation and spread provenance",
+      "interface_type": "python",
+      "priority": "P0",
+      "status": "not_implemented",
+      "note": "Bounded, hashed, read-only",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "candles",
+      "name": "M1 to monthly bar history, volumes, spread fields and incomplete-candle protection",
+      "interface_type": "python",
+      "priority": "P0",
+      "status": "not_implemented",
+      "note": "No lookahead; never silently interpolate missing quotes",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "market_depth",
+      "name": "Market book subscription and current bid/ask levels where broker supports it",
+      "interface_type": "python",
+      "priority": "P1",
+      "status": "not_implemented",
+      "note": "May be unavailable on FX symbols; report capability absent",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "market_sessions",
+      "name": "Trading/quote sessions, broker timezone, rollover and DST",
+      "interface_type": "python+mql5",
+      "priority": "P0",
+      "status": "not_implemented",
+      "note": "Historic changes may require broker notices",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "order_book_read",
+      "name": "Active/pending order snapshots and statuses",
+      "interface_type": "python",
+      "priority": "P0",
+      "status": "not_implemented",
+      "note": "Read-only",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "positions_read",
+      "name": "Open position P&L, risk, stops, hedged/netted state",
+      "interface_type": "python",
+      "priority": "P0",
+      "status": "not_implemented",
+      "note": "Read-only",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "deals_history",
+      "name": "Historical orders/deals/positions, commissions swaps fees and closed-trade ledgers",
+      "interface_type": "python",
+      "priority": "P0",
+      "status": "not_implemented",
+      "note": "Exclude all 2025 holdout data",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "profit_margin_calcs",
+      "name": "order_calc_margin and order_calc_profit using current broker semantics",
+      "interface_type": "python",
+      "priority": "P0",
+      "status": "not_implemented",
+      "note": "Read-only calculator, not proof of historic fill costs",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "volume_margin_rules",
+      "name": "Lot min/step/max, filling/order modes, stops freeze levels, margin tiers, stop-out",
+      "interface_type": "python",
+      "priority": "P0",
+      "status": "not_implemented",
+      "note": "Account-specific broker verification",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "trade_action_schema",
+      "name": "Market/limit/stop/stop-limit, SL/TP, partial fills, modify/close/cancel lifecycle",
+      "interface_type": "design-only",
+      "priority": "P1",
+      "status": "not_implemented",
+      "note": "Build design/tests only; no order_send execution",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "execution_preflight",
+      "name": "Order validation dry-run, margin and permission gates",
+      "interface_type": "design-only",
+      "priority": "P1",
+      "status": "not_implemented",
+      "note": "No order_check or order_send invocation without separate consent; synthetic tests first",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "risk_engine",
+      "name": "Independent USD1000 scenarios, fixed 0.01 lot, 0.25/0.5/1 and 2pct experimental, 10pct DD halt",
+      "interface_type": "offline",
+      "priority": "P0",
+      "status": "not_implemented",
+      "note": "Never shared-capital allocation",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "reconciliation",
+      "name": "Account/order/deal linkage, consistency, idempotency, realized/unrealized accounting",
+      "interface_type": "python",
+      "priority": "P1",
+      "status": "not_implemented",
+      "note": "Data reads only",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "indicators_builtin",
+      "name": "Normalize equivalent built-in indicator calculations and MT5 timeframe semantics",
+      "interface_type": "xmi+mql5",
+      "priority": "P1",
+      "status": "not_implemented",
+      "note": "Source/parity tests required",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "indicators_custom",
+      "name": "MQL5 custom indicator metadata/buffer adapter and provenance",
+      "interface_type": "mql5",
+      "priority": "P2",
+      "status": "not_implemented",
+      "note": "Requires compiled local indicator; do not promise Python direct iCustom",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "charting",
+      "name": "MT5 chart layouts/timeframes/symbol navigation and XMI chart parity",
+      "interface_type": "mql5+frontend",
+      "priority": "P2",
+      "status": "not_implemented",
+      "note": "Desktop chart UI not equal to API; scope by supported bridge",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "drawing_objects",
+      "name": "Chart objects, drawings and annotations parity where bridge supports it",
+      "interface_type": "mql5",
+      "priority": "P2",
+      "status": "not_implemented",
+      "note": "No production chart changes",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "signals_alerts",
+      "name": "Strategy signals, signal provenance, notifications and read-only alert parity",
+      "interface_type": "xmi+mql5",
+      "priority": "P1",
+      "status": "not_implemented",
+      "note": "Signals only; no automated orders",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "expert_advisors",
+      "name": "MQL5 EA skeleton/parity adapter, lifecycle and event handlers",
+      "interface_type": "mql5",
+      "priority": "P1",
+      "status": "not_implemented",
+      "note": "Offline/tester-only and no live trading",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "strategy_tester",
+      "name": "MT5 Strategy Tester EA harness, tick modeling, single/multi-currency and visual-test reports",
+      "interface_type": "mql5+terminal",
+      "priority": "P1",
+      "status": "not_implemented",
+      "note": "Not exposed as all-in-one Python API; Windows terminal and MQL5 necessary",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "optimization",
+      "name": "MT5 parameter search, genetic/complete optimization, forward-validation, separate training folds",
+      "interface_type": "mql5+terminal",
+      "priority": "P2",
+      "status": "not_implemented",
+      "note": "No 2025 holdout; don't call training OOS",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "custom_symbols",
+      "name": "Import/export symbol metadata and rates where terminal broker permits",
+      "interface_type": "mql5+terminal",
+      "priority": "P2",
+      "status": "not_implemented",
+      "note": "No modifying broker symbols/server",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "economic_calendar",
+      "name": "MT5 economic calendar access where available and session risk flags",
+      "interface_type": "mql5",
+      "priority": "P2",
+      "status": "not_implemented",
+      "note": "Do not assume Python MT5 package offers calendar API",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "trade_journal",
+      "name": "Trade history journal/report exports, costs, fees and source snapshots",
+      "interface_type": "python+offline",
+      "priority": "P1",
+      "status": "not_implemented",
+      "note": "Never publish private records",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "multi_account",
+      "name": "Local switch/account mapping and source labels",
+      "interface_type": "design-only",
+      "priority": "P2",
+      "status": "not_implemented",
+      "note": "No account switching/logins without user approval",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "multi_broker",
+      "name": "Preserve TradeLocker and Alpaca/Twelve Data adapters alongside opt-in MT5 source",
+      "interface_type": "xmi",
+      "priority": "P0",
+      "status": "not_implemented",
+      "note": "No production route changes",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "local_bridge",
+      "name": "Windows-local read-only MT5 exporter, mockable CI, local auth and schema/version handling",
+      "interface_type": "python+offline",
+      "priority": "P0",
+      "status": "not_implemented",
+      "note": "No inbound public port or production credentials",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "quality_security",
+      "name": "CI, stale ticks, missing history, UTC, idempotent exports, privacy, licensing, versions",
+      "interface_type": "offline",
+      "priority": "P0",
+      "status": "not_implemented",
+      "note": "Fail closed and verify exact SHA",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "holdout_guard",
+      "name": "Exclude 2025 completely, including prior mixed-year uploaded CSV",
+      "interface_type": "offline",
+      "priority": "P0",
+      "status": "not_implemented",
+      "note": "Do not inspect 2025 source records",
+      "acceptance_evidence": [],
+      "limitations": []
+    },
+    {
+      "id": "broker_gate",
+      "name": "GatesFX effective conditions: historic spread/slippage, lot and rollover, server",
+      "interface_type": "broker-documentary",
+      "priority": "P0",
+      "status": "not_implemented",
+      "note": "Unverified fields remain provisional/unranked",
+      "acceptance_evidence": [],
+      "limitations": []
+    }
+  ],
+  "references": [
+    "https://www.mql5.com/en/docs/python_metatrader5",
+    "https://www.metatrader5.com/en/terminal/help/algotrading/strategy_optimization",
+    "https://www.metatrader5.com/en/terminal/help/algotrading/autotrading"
+  ],
+  "reporting": "Every run update exact statuses with code paths, CI and screenshots/terminal limitations. Do not promote status to verified without evidence."
+}
