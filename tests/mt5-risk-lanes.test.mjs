@@ -1,0 +1,14 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {calculateMt5RiskLanes,evaluateMt5Drawdown} from "../lib/mt5/riskLanes.mjs";
+const sha="a".repeat(64);
+const spec={volume_min:0.01,volume_step:0.01,volume_max:10,trade_tick_size:0.00001,trade_tick_value:1,margin_per_lot_usd:200};
+const input={spec,stopDistancePrice:0.002,spreadPrice:0.0001,slippagePrice:0.00005,startingCapitalUsd:1000,source:"MT5_LOCAL_EXPORT",sourceSha256:sha,asOfUtc:"2023-06-01T00:00:00Z"};
+test("five independent lanes, no fills or execution",()=>{const r=calculateMt5RiskLanes(input);assert.equal(r.lanes.length,5);assert.deepEqual(r.lanes.map(x=>x.lane),["risk_025","risk_050","risk_100","fixed_001","experimental_200"]);assert.equal(r.executionEnabled,false);assert.equal(r.fillAssumed,false);assert.equal(r.lanes[4].experimental,true);assert.ok(r.lanes.every(x=>x.startingCapitalUsd===1000));});
+test("lot step rounds down and never overstates risk budget",()=>{const r=calculateMt5RiskLanes(input);assert.equal(r.lanes[2].lots,0.04);assert.ok(r.lanes[2].estimatedStopLossUsd<=10);assert.equal(r.lanes[3].lots,0.01);});
+test("unknown broker margin and cost fail closed",()=>{assert.throws(()=>calculateMt5RiskLanes({...input,spec:{...spec,margin_per_lot_usd:undefined}}),/MT5_RISK_INVALID_MARGIN_PER_LOT/);assert.throws(()=>calculateMt5RiskLanes({...input,slippagePrice:undefined}),/MT5_RISK_INVALID_SLIPPAGE/);});
+test("unfundable margin and risk lanes are labeled, not skipped",()=>{const r=calculateMt5RiskLanes({...input,spec:{...spec,margin_per_lot_usd:100000}});assert.ok(r.lanes.some(x=>x.reasons?.includes("INSUFFICIENT_INITIAL_MARGIN")));});
+test("below-minimum volume remains unfundable",()=>{const r=calculateMt5RiskLanes({...input,stopDistancePrice:1});assert.equal(r.lanes[0].status,"unfundable");assert.equal(r.lanes[0].reason,"BELOW_MIN_VOLUME");});
+test("source and independent $1000 enforced",()=>{assert.throws(()=>calculateMt5RiskLanes({...input,startingCapitalUsd:2000}),/MT5_RISK_INDEPENDENT_1000_ONLY/);assert.throws(()=>calculateMt5RiskLanes({...input,source:"FXCM"}),/MT5_RISK_SOURCE_REQUIRED/);});
+test("10% peak equity drawdown halts",()=>{assert.equal(evaluateMt5Drawdown({currentEquityUsd:900}).halted,true);assert.equal(evaluateMt5Drawdown({currentEquityUsd:901}).halted,false);assert.equal(evaluateMt5Drawdown({currentEquityUsd:1080,peakEquityUsd:1200}).halted,true);});
+test("explicit costs increase loss, cannot claim fill",()=>{const a=calculateMt5RiskLanes({...input,spreadPrice:0,slippagePrice:0});const b=calculateMt5RiskLanes(input);assert.ok(b.lanes[3].estimatedStopLossUsd>a.lanes[3].estimatedStopLossUsd);assert.equal(b.model,"OFFLINE_PRETRADE_FEASIBILITY_ONLY");});
