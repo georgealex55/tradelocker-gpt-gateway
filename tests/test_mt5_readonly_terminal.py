@@ -48,7 +48,6 @@ class Tests(unittest.TestCase):
             self.assertEqual(reader.symbol_snapshot("EURUSD")["volume_min"],0.01)
             self.assertEqual(len(reader.rates("EURUSD","M1",d(2024),d(2024,1,2))),1)
             self.assertEqual(len(reader.ticks("EURUSD",d(2024),d(2024,1,2))),1)
-            self.assertFalse(reader.connect if False else False)
         self.assertEqual(sdk.calls[-1],"shutdown")
         self.assertFalse(hasattr(reader,"order_send"))
     def test_utc_and_window_limits(self):
