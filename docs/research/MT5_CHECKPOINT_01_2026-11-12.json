@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "milestone": 1,
+  "status": "IMPLEMENTED_UNVERIFIED",
+  "date_utc": "2026-11-12",
+  "branch": "research/xmi-mt5-adapter-20261112",
+  "code_commit": "66c54f924384ebcec4899eb917fbe2a402402d71",
+  "matrix_commit": "61944f4552047ac3e88b897659ce2ca2573e3742",
+  "audited_files": {
+    "lib/xmiMultiProvider.mjs": "1e3f6be7a00706636e086626edb80ef8e52f6260",
+    "lib/xmiHistoricalFile.mjs": "6e315ac5ef945b0e730b4e9d5c12873ad17d87ac",
+    "lib/xmiLiveMath.mjs": "fc5e56e3aa9a243b8a11b4dd399ee6e068ac4eea",
+    "lib/xmiResearchHoldout.mjs": "cf50ddf465ba49be0bfbb4f5f0ca9a3dcb294c59",
+    "lib/xmiDataQuality.mjs": "a7539a7c9a1566a5ac9652ec5723a247353d9b6f",
+    "lib/risk.js": "6587aab76b3ec4c0a2f67af4b593e11791e708d1",
+    "lib/tradeGuard.js": "b23548c37a3c5d62968c4394e21a44482c1acad7",
+    "docs/research/xmi-gatesfx-evidence-ledger-20261110.json": "5b657b9fbacad68341acb7812e39fa824d0e005d"
+  },
+  "implemented": [
+    "lib/mt5/contract.mjs pure offline read-only manifest and provider guard",
+    "tests/mt5-contract.test.mjs synthetic source/UTC/2025 overlap/execution rejection cases",
+    "capability matrix updated with implemented_unverified statuses"
+  ],
+  "tests": {
+    "executed": false,
+    "reason": "No GitHub Actions invocation or local checkout was performed; test file committed only",
+    "command": "node --test tests/mt5-contract.test.mjs",
+    "result": "NOT_RUN"
+  },
+  "architecture_findings": [
+    "Existing xmiMultiProvider maps FX to Twelve Data, stocks/crypto to Alpaca; MT5 must be explicitly opt-in and cannot silently override routes",
+    "xmiLiveMath normalizeBars validates time alignment and OHLC but silently overwrites duplicate timestamps, requiring pre-validation in MT5 adapter",
+    "xmiHistoricalFile currently accepts bounded 2–400 OHLC JSON bars, not MT5 ticks/account/contract data",
+    "xmiResearchHoldout is retrospective analytics and is NOT equivalent to the sealed calendar-year 2025 guard",
+    "lib/risk.js and lib/tradeGuard.js import TradeLocker; MT5 risk should be pure/offline, not reuse TradeLocker network execution pathways",
+    "No Windows MT5 terminal connection has been verified; official Python SDK is terminal-local"
+  ],
+  "limitations": [
+    "No tests executed",
+    "No MT5 terminal connected",
+    "No production routes or existing provider code changed",
+    "No actual historical GatesFX Bid/Ask verified",
+    "2025 guard currently only applies to future MT5 code paths",
+    "2022/23 historical data replay not repeated"
+  ],
+  "next_milestone": "Implement source-isolated opt-in MT5 normalized bars/ticks/spec adapter with manifest/hash verification and tests; wire strict holdout guard before any import. Run node tests via CI or local executor.",
+  "holdout_2025_read": false,
+  "production_changed": false,
+  "orders_sent": false,
+  "broker_data_committed": false
+}
