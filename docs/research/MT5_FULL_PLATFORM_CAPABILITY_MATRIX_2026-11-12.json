@@ -3,7 +3,7 @@
   "project": "XMI 2.0 MT5 Full Platform Capability Matrix",
   "created_utc": "2026-11-12",
   "branch": "research/xmi-mt5-adapter-20261112",
-  "phase": "run-10-offline-independent-risk-lanes",
+  "phase": "run-11-offline-seven-pair-regression-ci-added-not-yet-verified",
   "feature_scope": "Audit full usable MetaTrader 5 feature surface, not necessarily fully implemented within 12 hourly runs",
   "prior_account_user_settings": {
     "mt5_access_reported": true,
@@ -116,7 +116,8 @@
         "lib/mt5/barSession.mjs commit 529b9fcc; tests/mt5-bar-session.test.mjs commit 526a5fe7; representative local Node.js synthetic suite 5/5 passed; exact GitHub branch suite/CI pending",
         "scripts/mt5_readonly_terminal.py commit 084d2499691cda47219146bb020939a3128a8297; tests/test_mt5_readonly_terminal.py commit 2e701f0198a4b7cef1710e0e4cd795632e3874a0; tests NOT executed; real terminal NOT connected",
         "run07 scripts/mt5_readonly_terminal.py structured-array fix commit 23ace0f23aa8027c8c3e71f2a1fbe8ee1a2b3132; synthetic tests committed, execution unverified",
-        "run09 lib/mt5/replayBridge.mjs commit bf4e45cd110c394f3ab4ba2be6de4e665c3a5761; tests/mt5-replay-bridge.test.mjs commit b6c9b1044b3eedec634b4f729bc224a438085c34; exact repository tests not executed"
+        "run09 lib/mt5/replayBridge.mjs commit bf4e45cd110c394f3ab4ba2be6de4e665c3a5761; tests/mt5-replay-bridge.test.mjs commit b6c9b1044b3eedec634b4f729bc224a438085c34; exact repository tests not executed",
+        "run11: tests/mt5-seven-pair-cross-provider.test.mjs commit e7b3f38f58e9b8fc106bf0c1cd9e12594342a599; .github/workflows/mt5-offline-regression.yml commit 179e0ca71fc85cb6845e10052cc96c93d72d4e39; exact tests/CI not yet observed"
       ],
       "limitations": [
         "Only bounded offline 1m–1D bar import; no local terminal, MT5 source API, MT5 native higher timeframes or quote spread parity",
@@ -214,7 +215,8 @@
       "note": "Account-specific broker verification",
       "acceptance_evidence": [
         "run07 scripts/mt5_symbol_reconciliation.py commit a671912c0ad8a14479bab70b01fb68ddaf1875fa; tests/test_mt5_symbol_reconciliation.py commit 09209404d286d7d431a76425c81cb28af58383a8; tests not executed; no authenticated MT5 broker session",
-        "Run 10 riskLanes.mjs explicitly quantizes min + k*step and rejects unknown volume and margin inputs; synthetic tests committed but not executed"
+        "Run 10 riskLanes.mjs explicitly quantizes min + k*step and rejects unknown volume and margin inputs; synthetic tests committed but not executed",
+        "run11: tests/mt5-seven-pair-cross-provider.test.mjs commit e7b3f38f58e9b8fc106bf0c1cd9e12594342a599; .github/workflows/mt5-offline-regression.yml commit 179e0ca71fc85cb6845e10052cc96c93d72d4e39; exact tests/CI not yet observed"
       ],
       "limitations": [
         "Snapshot comparison is offline only; actual symbol_info and account margin/stopout fields require connected Windows MT5 broker terminal"
@@ -248,7 +250,9 @@
       "status": "implemented_unverified",
       "note": "Never shared-capital allocation",
       "acceptance_evidence": [
-        "lib/mt5/riskLanes.mjs commit b0722f8b44d933c765917e97923d3703f8a94fb4; tests/mt5-risk-lanes.test.mjs commit dfa6a573479270ffa0b8ca644931a9cd3a138126; exact repo tests NOT executed"
+        "lib/mt5/riskLanes.mjs commit b0722f8b44d933c765917e97923d3703f8a94fb4; tests/mt5-risk-lanes.test.mjs commit dfa6a573479270ffa0b8ca644931a9cd3a138126; exact repo tests NOT executed",
+        "run11: tests/mt5-seven-pair-cross-provider.test.mjs commit e7b3f38f58e9b8fc106bf0c1cd9e12594342a599; .github/workflows/mt5-offline-regression.yml commit 179e0ca71fc85cb6845e10052cc96c93d72d4e39; exact tests/CI not yet observed",
+        "run11: UTC regex defect corrected lib/mt5/riskLanes.mjs commit b51453ef302f256294189ec508af24116a04155d; prior risk tests were committed but not executed"
       ],
       "limitations": [
         "Offline pretrade feasibility only; no live account margin/order_calc_margin verification, historical fills, swaps, funded backtest, or live MT5 terminal; stop distances and spread/slippage must be explicitly provided"
@@ -482,5 +486,27 @@
   ],
   "reporting": "Every run update exact statuses with code paths, CI and screenshots/terminal limitations. Do not promote status to verified without evidence.",
   "last_checkpoint": "docs/research/MT5_CHECKPOINT_05_2026-11-12.json",
-  "last_updated_utc": "2026-11-12"
+  "last_updated_utc": "2026-11-12",
+  "run11": {
+    "status": "committed_unverified",
+    "fix_sha": "b51453ef302f256294189ec508af24116a04155d",
+    "synthetic_test_sha": "e7b3f38f58e9b8fc106bf0c1cd9e12594342a599",
+    "ci_workflow_sha": "179e0ca71fc85cb6845e10052cc96c93d72d4e39",
+    "exact_tests_executed": false,
+    "ci_verified": false,
+    "terminal_connected": false,
+    "broker_data_exported": false,
+    "production_changed": false,
+    "holdout_accessed": false,
+    "seven_pairs": [
+      "EURUSD",
+      "GBPUSD",
+      "USDJPY",
+      "USDCHF",
+      "AUDUSD",
+      "USDCAD",
+      "NZDUSD"
+    ],
+    "gold_separate": true
+  }
 }
