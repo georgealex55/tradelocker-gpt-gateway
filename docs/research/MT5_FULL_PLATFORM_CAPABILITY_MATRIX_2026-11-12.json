@@ -3,7 +3,7 @@
   "project": "XMI 2.0 MT5 Full Platform Capability Matrix",
   "created_utc": "2026-11-12",
   "branch": "research/xmi-mt5-adapter-20261112",
-  "phase": "run-05-local-read-only-sdk-wrapper",
+  "phase": "run-06-private-bounded-export-cli",
   "feature_scope": "Audit full usable MetaTrader 5 feature surface, not necessarily fully implemented within 12 hourly runs",
   "prior_account_user_settings": {
     "mt5_access_reported": true,
@@ -388,11 +388,13 @@
       "note": "No inbound public port or production credentials",
       "acceptance_evidence": [
         "lib/mt5/contract.mjs offline contract; tests/mt5-contract.test.mjs synthetic tests (not executed in this run)",
-        "scripts/mt5_readonly_terminal.py commit 084d2499691cda47219146bb020939a3128a8297; tests/test_mt5_readonly_terminal.py commit 2e701f0198a4b7cef1710e0e4cd795632e3874a0; tests NOT executed; real terminal NOT connected"
+        "scripts/mt5_readonly_terminal.py commit 084d2499691cda47219146bb020939a3128a8297; tests/test_mt5_readonly_terminal.py commit 2e701f0198a4b7cef1710e0e4cd795632e3874a0; tests NOT executed; real terminal NOT connected",
+        "scripts/mt5_export_cli.py commit be516b58e8fd7fc587fdadfd8e8dc4a8b84c9b86; tests/test_mt5_export_cli.py commit 003fcdf980b54c02811f8bdbf0c67166e16c5116; tests not yet executed against exact repository"
       ],
       "limitations": [
         "This is a contract-only foundation; no Windows MT5 terminal bridge, transport, exporter, or terminal connection exists yet",
-        "Only injected local Python SDK reader; no real Windows MT5 terminal, SDK version, broker export, integration with XMI chart, or full repository CI verified"
+        "Only injected local Python SDK reader; no real Windows MT5 terminal, SDK version, broker export, integration with XMI chart, or full repository CI verified",
+        "Offline private JSON export only; real MT5 terminal/export and full CI not verified; Python SDK structured NumPy record conversion needs end-to-end validation"
       ]
     },
     {
@@ -404,11 +406,13 @@
       "note": "Fail closed and verify exact SHA",
       "acceptance_evidence": [
         "lib/mt5/offlineBars.mjs verifies SHA-256 of exact UTF-8 bytes and rejects duplicates, invalid UTC, out-of-window and malformed OHLC; synthetic tests committed but not run",
-        "lib/mt5/barSession.mjs commit 529b9fcc; tests/mt5-bar-session.test.mjs commit 526a5fe7; representative local Node.js synthetic suite 5/5 passed; exact GitHub branch suite/CI pending"
+        "lib/mt5/barSession.mjs commit 529b9fcc; tests/mt5-bar-session.test.mjs commit 526a5fe7; representative local Node.js synthetic suite 5/5 passed; exact GitHub branch suite/CI pending",
+        "scripts/mt5_export_cli.py commit be516b58e8fd7fc587fdadfd8e8dc4a8b84c9b86; tests/test_mt5_export_cli.py commit 003fcdf980b54c02811f8bdbf0c67166e16c5116; tests not yet executed against exact repository"
       ],
       "limitations": [
         "No automated CI execution or local full repository test evidence yet",
-        "Local isolated module tested; repository-wide CI not executed"
+        "Local isolated module tested; repository-wide CI not executed",
+        "Offline private JSON export only; real MT5 terminal/export and full CI not verified; Python SDK structured NumPy record conversion needs end-to-end validation"
       ]
     },
     {
