@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "milestone": 10,
+  "branch": "research/xmi-mt5-adapter-20261112",
+  "previous_head": "0b02785ca2425a58cd23e9cde63a05b6781a4821",
+  "status": "code_committed_tests_not_executed",
+  "commits": {
+    "source": "b0722f8b44d933c765917e97923d3703f8a94fb4",
+    "tests": "dfa6a573479270ffa0b8ca644931a9cd3a138126",
+    "capability_matrix": "5cc1b62c4d3bf6020e8be98e6fc5d3885e57a8ec"
+  },
+  "files": [
+    "lib/mt5/riskLanes.mjs",
+    "tests/mt5-risk-lanes.test.mjs"
+  ],
+  "test_cases_committed": 8,
+  "exact_repository_tests_executed": false,
+  "ci_verified": false,
+  "terminal_connected": false,
+  "broker_exported": false,
+  "backtest_executed": false,
+  "live_or_paper_orders": false,
+  "production_changed": false,
+  "holdout_2025_accessed": false,
+  "capabilities_updated": [
+    "risk_engine",
+    "profit_margin_calcs",
+    "volume_margin_rules"
+  ],
+  "limitations": [
+    "risk calculator not integrated with replayBridge",
+    "broker USD tick value/margin per lot and historic costs unverified",
+    "no real MT5 terminal",
+    "no repository tests executed"
+  ],
+  "next_milestone": 11
+}
