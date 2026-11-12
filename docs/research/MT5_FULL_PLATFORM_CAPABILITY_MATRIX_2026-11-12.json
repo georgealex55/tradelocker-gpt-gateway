@@ -3,7 +3,7 @@
   "project": "XMI 2.0 MT5 Full Platform Capability Matrix",
   "created_utc": "2026-11-12",
   "branch": "research/xmi-mt5-adapter-20261112",
-  "phase": "run-06-private-bounded-export-cli",
+  "phase": "run-07-symbol-reconciliation-and-structured-array-fix",
   "feature_scope": "Audit full usable MetaTrader 5 feature surface, not necessarily fully implemented within 12 hourly runs",
   "prior_account_user_settings": {
     "mt5_access_reported": true,
@@ -63,10 +63,12 @@
       "status": "implemented_unverified",
       "note": "Broker-specific; verify against prior screenshots",
       "acceptance_evidence": [
-        "scripts/mt5_readonly_terminal.py commit 084d2499691cda47219146bb020939a3128a8297; tests/test_mt5_readonly_terminal.py commit 2e701f0198a4b7cef1710e0e4cd795632e3874a0; tests NOT executed; real terminal NOT connected"
+        "scripts/mt5_readonly_terminal.py commit 084d2499691cda47219146bb020939a3128a8297; tests/test_mt5_readonly_terminal.py commit 2e701f0198a4b7cef1710e0e4cd795632e3874a0; tests NOT executed; real terminal NOT connected",
+        "run07 scripts/mt5_symbol_reconciliation.py commit a671912c0ad8a14479bab70b01fb68ddaf1875fa; tests/test_mt5_symbol_reconciliation.py commit 09209404d286d7d431a76425c81cb28af58383a8; tests not executed; no authenticated MT5 broker session"
       ],
       "limitations": [
-        "Only injected local Python SDK reader; no real Windows MT5 terminal, SDK version, broker export, integration with XMI chart, or full repository CI verified"
+        "Only injected local Python SDK reader; no real Windows MT5 terminal, SDK version, broker export, integration with XMI chart, or full repository CI verified",
+        "Snapshot comparison is offline only; actual symbol_info and account margin/stopout fields require connected Windows MT5 broker terminal"
       ]
     },
     {
@@ -92,7 +94,8 @@
       "note": "Bounded, hashed, read-only",
       "acceptance_evidence": [
         "lib/mt5/offlineTicks.mjs commit c2222dd9edb23ec67f402bb395eedf26b8f08f95; tests/mt5-offline-ticks.test.mjs commit cb67b1092706eeda4e3186d29e9bb9f553e443ed; representative local Node 22 tests 4/4 passed with stubbed contract, exact repo suite not executed",
-        "scripts/mt5_readonly_terminal.py commit 084d2499691cda47219146bb020939a3128a8297; tests/test_mt5_readonly_terminal.py commit 2e701f0198a4b7cef1710e0e4cd795632e3874a0; tests NOT executed; real terminal NOT connected"
+        "scripts/mt5_readonly_terminal.py commit 084d2499691cda47219146bb020939a3128a8297; tests/test_mt5_readonly_terminal.py commit 2e701f0198a4b7cef1710e0e4cd795632e3874a0; tests NOT executed; real terminal NOT connected",
+        "run07 scripts/mt5_readonly_terminal.py structured-array fix commit 23ace0f23aa8027c8c3e71f2a1fbe8ee1a2b3132; synthetic tests committed, execution unverified"
       ],
       "limitations": [
         "Offline JSON only; no real MT5 terminal, broker historical ticks or symbol-specific point conversion verified",
@@ -111,7 +114,8 @@
       "acceptance_evidence": [
         "lib/mt5/offlineBars.mjs; tests/mt5-offline-bars.test.mjs (source committed; tests not executed)",
         "lib/mt5/barSession.mjs commit 529b9fcc; tests/mt5-bar-session.test.mjs commit 526a5fe7; representative local Node.js synthetic suite 5/5 passed; exact GitHub branch suite/CI pending",
-        "scripts/mt5_readonly_terminal.py commit 084d2499691cda47219146bb020939a3128a8297; tests/test_mt5_readonly_terminal.py commit 2e701f0198a4b7cef1710e0e4cd795632e3874a0; tests NOT executed; real terminal NOT connected"
+        "scripts/mt5_readonly_terminal.py commit 084d2499691cda47219146bb020939a3128a8297; tests/test_mt5_readonly_terminal.py commit 2e701f0198a4b7cef1710e0e4cd795632e3874a0; tests NOT executed; real terminal NOT connected",
+        "run07 scripts/mt5_readonly_terminal.py structured-array fix commit 23ace0f23aa8027c8c3e71f2a1fbe8ee1a2b3132; synthetic tests committed, execution unverified"
       ],
       "limitations": [
         "Only bounded offline 1m–1D bar import; no local terminal, MT5 source API, MT5 native higher timeframes or quote spread parity",
@@ -200,10 +204,14 @@
       "name": "Lot min/step/max, filling/order modes, stops freeze levels, margin tiers, stop-out",
       "interface_type": "python",
       "priority": "P0",
-      "status": "not_implemented",
+      "status": "implemented_unverified",
       "note": "Account-specific broker verification",
-      "acceptance_evidence": [],
-      "limitations": []
+      "acceptance_evidence": [
+        "run07 scripts/mt5_symbol_reconciliation.py commit a671912c0ad8a14479bab70b01fb68ddaf1875fa; tests/test_mt5_symbol_reconciliation.py commit 09209404d286d7d431a76425c81cb28af58383a8; tests not executed; no authenticated MT5 broker session"
+      ],
+      "limitations": [
+        "Snapshot comparison is offline only; actual symbol_info and account margin/stopout fields require connected Windows MT5 broker terminal"
+      ]
     },
     {
       "id": "trade_action_schema",
@@ -389,7 +397,8 @@
       "acceptance_evidence": [
         "lib/mt5/contract.mjs offline contract; tests/mt5-contract.test.mjs synthetic tests (not executed in this run)",
         "scripts/mt5_readonly_terminal.py commit 084d2499691cda47219146bb020939a3128a8297; tests/test_mt5_readonly_terminal.py commit 2e701f0198a4b7cef1710e0e4cd795632e3874a0; tests NOT executed; real terminal NOT connected",
-        "scripts/mt5_export_cli.py commit be516b58e8fd7fc587fdadfd8e8dc4a8b84c9b86; tests/test_mt5_export_cli.py commit 003fcdf980b54c02811f8bdbf0c67166e16c5116; tests not yet executed against exact repository"
+        "scripts/mt5_export_cli.py commit be516b58e8fd7fc587fdadfd8e8dc4a8b84c9b86; tests/test_mt5_export_cli.py commit 003fcdf980b54c02811f8bdbf0c67166e16c5116; tests not yet executed against exact repository",
+        "run07 scripts/mt5_readonly_terminal.py structured-array fix commit 23ace0f23aa8027c8c3e71f2a1fbe8ee1a2b3132; synthetic tests committed, execution unverified"
       ],
       "limitations": [
         "This is a contract-only foundation; no Windows MT5 terminal bridge, transport, exporter, or terminal connection exists yet",
@@ -407,12 +416,14 @@
       "acceptance_evidence": [
         "lib/mt5/offlineBars.mjs verifies SHA-256 of exact UTF-8 bytes and rejects duplicates, invalid UTC, out-of-window and malformed OHLC; synthetic tests committed but not run",
         "lib/mt5/barSession.mjs commit 529b9fcc; tests/mt5-bar-session.test.mjs commit 526a5fe7; representative local Node.js synthetic suite 5/5 passed; exact GitHub branch suite/CI pending",
-        "scripts/mt5_export_cli.py commit be516b58e8fd7fc587fdadfd8e8dc4a8b84c9b86; tests/test_mt5_export_cli.py commit 003fcdf980b54c02811f8bdbf0c67166e16c5116; tests not yet executed against exact repository"
+        "scripts/mt5_export_cli.py commit be516b58e8fd7fc587fdadfd8e8dc4a8b84c9b86; tests/test_mt5_export_cli.py commit 003fcdf980b54c02811f8bdbf0c67166e16c5116; tests not yet executed against exact repository",
+        "run07 scripts/mt5_symbol_reconciliation.py commit a671912c0ad8a14479bab70b01fb68ddaf1875fa; tests/test_mt5_symbol_reconciliation.py commit 09209404d286d7d431a76425c81cb28af58383a8; tests not executed; no authenticated MT5 broker session"
       ],
       "limitations": [
         "No automated CI execution or local full repository test evidence yet",
         "Local isolated module tested; repository-wide CI not executed",
-        "Offline private JSON export only; real MT5 terminal/export and full CI not verified; Python SDK structured NumPy record conversion needs end-to-end validation"
+        "Offline private JSON export only; real MT5 terminal/export and full CI not verified; Python SDK structured NumPy record conversion needs end-to-end validation",
+        "Snapshot comparison is offline only; actual symbol_info and account margin/stopout fields require connected Windows MT5 broker terminal"
       ]
     },
     {
