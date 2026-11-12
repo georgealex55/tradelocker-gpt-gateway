@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "milestone": 12,
+  "branch": "research/xmi-mt5-adapter-20261112",
+  "counts": {
+    "verified": 0,
+    "implemented_unverified": 18,
+    "not_implemented": 16
+  },
+  "commits": {
+    "audit": "8f688b2ed3935f331e914e1dce157d74991edf55",
+    "tests": "14c3bac31aa621a83dd95304596e3dc9d35fc36a",
+    "matrix": "7f36772263d7d267d8e05d7b231c75afc8485ae3"
+  },
+  "test_execution": "not_observed",
+  "terminal_connected": false,
+  "broker_export_verified": false,
+  "production_changed": false,
+  "execution_enabled": false,
+  "holdout_2025_accessed": false,
+  "feature_statuses": [
+    {
+      "id": "terminal_status",
+      "status": "implemented_unverified"
+    },
+    {
+      "id": "account_snapshot",
+      "status": "implemented_unverified"
+    },
+    {
+      "id": "symbol_catalog",
+      "status": "implemented_unverified"
+    },
+    {
+      "id": "quotes",
+      "status": "implemented_unverified"
+    },
+    {
+      "id": "ticks",
+      "status": "implemented_unverified"
+    },
+    {
+      "id": "candles",
+      "status": "implemented_unverified"
+    },
+    {
+      "id": "market_depth",
+      "status": "not_implemented"
+    },
+    {
+      "id": "market_sessions",
+      "status": "implemented_unverified"
+    },
+    {
+      "id": "order_book_read",
+      "status": "implemented_unverified"
+    },
+    {
+      "id": "positions_read",
+      "status": "implemented_unverified"
+    },
+    {
+      "id": "deals_history",
+      "status": "implemented_unverified"
+    },
+    {
+      "id": "profit_margin_calcs",
+      "status": "not_implemented"
+    },
+    {
+      "id": "volume_margin_rules",
+      "status": "implemented_unverified"
+    },
+    {
+      "id": "trade_action_schema",
+      "status": "not_implemented"
+    },
+    {
+      "id": "execution_preflight",
+      "status": "not_implemented"
+    },
+    {
+      "id": "risk_engine",
+      "status": "implemented_unverified"
+    },
+    {
+      "id": "reconciliation",
+      "status": "implemented_unverified"
+    },
+    {
+      "id": "indicators_builtin",
+      "status": "not_implemented"
+    },
+    {
+      "id": "indicators_custom",
+      "status": "not_implemented"
+    },
+    {
+      "id": "charting",
+      "status": "not_implemented"
+    },
+    {
+      "id": "drawing_objects",
+      "status": "not_implemented"
+    },
+    {
+      "id": "signals_alerts",
+      "status": "not_implemented"
+    },
+    {
+      "id": "expert_advisors",
+      "status": "not_implemented"
+    },
+    {
+      "id": "strategy_tester",
+      "status": "not_implemented"
+    },
+    {
+      "id": "optimization",
+      "status": "not_implemented"
+    },
+    {
+      "id": "custom_symbols",
+      "status": "not_implemented"
+    },
+    {
+      "id": "economic_calendar",
+      "status": "not_implemented"
+    },
+    {
+      "id": "trade_journal",
+      "status": "implemented_unverified"
+    },
+    {
+      "id": "multi_account",
+      "status": "not_implemented"
+    },
+    {
+      "id": "multi_broker",
+      "status": "implemented_unverified"
+    },
+    {
+      "id": "local_bridge",
+      "status": "implemented_unverified"
+    },
+    {
+      "id": "quality_security",
+      "status": "implemented_unverified"
+    },
+    {
+      "id": "holdout_guard",
+      "status": "implemented_unverified"
+    },
+    {
+      "id": "broker_gate",
+      "status": "not_implemented"
+    }
+  ],
+  "next_priority": "execute exact repository CI and reconcile Windows-local broker evidence"
+}
