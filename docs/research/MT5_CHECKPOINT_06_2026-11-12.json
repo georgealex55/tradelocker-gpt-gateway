@@ -1,0 +1,29 @@
+{
+  "milestone": 6,
+  "branch": "research/xmi-mt5-adapter-20261112",
+  "created_utc": "2026-11-12",
+  "status": "committed_unverified",
+  "commits": {
+    "cli": "be516b58e8fd7fc587fdadfd8e8dc4a8b84c9b86",
+    "tests": "003fcdf980b54c02811f8bdbf0c67166e16c5116",
+    "matrix": "3cfc2c450b059b78e00b11adcd4b084174ea30bd"
+  },
+  "tests": {
+    "exact_repo_executed": false,
+    "ci_verified": false,
+    "real_terminal_connected": false,
+    "real_broker_export": false
+  },
+  "safety": {
+    "execution": false,
+    "production_changed": false,
+    "holdout_2025_read": false,
+    "private_raw_data_committed": false
+  },
+  "blockers": [
+    "Existing reader NumPy structured array .tolist() may yield tuples, incompatible with dict(row) in rates/ticks; requires repair and test",
+    "Exact branch tests and CI not executed",
+    "No Windows terminal/GatesFX broker export"
+  ],
+  "next": 7
+}
