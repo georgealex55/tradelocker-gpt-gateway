@@ -3,7 +3,7 @@
   "project": "XMI 2.0 MT5 Full Platform Capability Matrix",
   "created_utc": "2026-11-12",
   "branch": "research/xmi-mt5-adapter-20261112",
-  "phase": "run-09-mt5-offline-export-to-descriptive-replay",
+  "phase": "run-10-offline-independent-risk-lanes",
   "feature_scope": "Audit full usable MetaTrader 5 feature surface, not necessarily fully implemented within 12 hourly runs",
   "prior_account_user_settings": {
     "mt5_access_reported": true,
@@ -201,7 +201,9 @@
       "status": "not_implemented",
       "note": "Read-only calculator, not proof of historic fill costs",
       "acceptance_evidence": [],
-      "limitations": []
+      "limitations": [
+        "Run 10 uses explicit USD tick value and margin-per-lot inputs; does not invoke MT5 order_calc_margin/order_calc_profit and is not verified broker-native calculation"
+      ]
     },
     {
       "id": "volume_margin_rules",
@@ -211,7 +213,8 @@
       "status": "implemented_unverified",
       "note": "Account-specific broker verification",
       "acceptance_evidence": [
-        "run07 scripts/mt5_symbol_reconciliation.py commit a671912c0ad8a14479bab70b01fb68ddaf1875fa; tests/test_mt5_symbol_reconciliation.py commit 09209404d286d7d431a76425c81cb28af58383a8; tests not executed; no authenticated MT5 broker session"
+        "run07 scripts/mt5_symbol_reconciliation.py commit a671912c0ad8a14479bab70b01fb68ddaf1875fa; tests/test_mt5_symbol_reconciliation.py commit 09209404d286d7d431a76425c81cb28af58383a8; tests not executed; no authenticated MT5 broker session",
+        "Run 10 riskLanes.mjs explicitly quantizes min + k*step and rejects unknown volume and margin inputs; synthetic tests committed but not executed"
       ],
       "limitations": [
         "Snapshot comparison is offline only; actual symbol_info and account margin/stopout fields require connected Windows MT5 broker terminal"
@@ -242,10 +245,14 @@
       "name": "Independent USD1000 scenarios, fixed 0.01 lot, 0.25/0.5/1 and 2pct experimental, 10pct DD halt",
       "interface_type": "offline",
       "priority": "P0",
-      "status": "not_implemented",
+      "status": "implemented_unverified",
       "note": "Never shared-capital allocation",
-      "acceptance_evidence": [],
-      "limitations": []
+      "acceptance_evidence": [
+        "lib/mt5/riskLanes.mjs commit b0722f8b44d933c765917e97923d3703f8a94fb4; tests/mt5-risk-lanes.test.mjs commit dfa6a573479270ffa0b8ca644931a9cd3a138126; exact repo tests NOT executed"
+      ],
+      "limitations": [
+        "Offline pretrade feasibility only; no live account margin/order_calc_margin verification, historical fills, swaps, funded backtest, or live MT5 terminal; stop distances and spread/slippage must be explicitly provided"
+      ]
     },
     {
       "id": "reconciliation",
