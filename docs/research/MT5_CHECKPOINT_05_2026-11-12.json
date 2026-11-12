@@ -1,0 +1,43 @@
+{
+  "milestone": 5,
+  "date": "2026-11-12",
+  "branch": "research/xmi-mt5-adapter-20261112",
+  "scope": "Windows-local read-only Python MetaTrader5 SDK wrapper, injected for offline tests",
+  "status": "code_committed_tests_unexecuted",
+  "files": [
+    "scripts/mt5_readonly_terminal.py",
+    "tests/test_mt5_readonly_terminal.py",
+    "docs/research/MT5_FULL_PLATFORM_CAPABILITY_MATRIX_2026-11-12.json"
+  ],
+  "commits": {
+    "source": "084d2499691cda47219146bb020939a3128a8297",
+    "tests": "2e701f0198a4b7cef1710e0e4cd795632e3874a0",
+    "matrix": "b1b118b132874cb6bbd8528522a8265109884d7e"
+  },
+  "implemented": [
+    "SDK injection and lazy optional import",
+    "terminal initialize/shutdown with no login credentials",
+    "account and symbol read-only snapshots",
+    "bounded UTC rates/ticks history with preflight excluding 2025",
+    "current quote and open positions/pending orders read-only",
+    "bounded historical deals read-only",
+    "mock synthetic tests committed"
+  ],
+  "verified": [
+    "GitHub commits returned commit SHAs"
+  ],
+  "not_verified": [
+    "No local or GitHub CI execution of tests",
+    "No Windows terminal/MT5 package connectivity",
+    "No broker quotes or history exported",
+    "No XMI chart integration or backtest"
+  ],
+  "blockers": [
+    "GitHub host not DNS-resolvable from local execution container; GitHub connector file writes work",
+    "MT5 terminal unavailable in runtime"
+  ],
+  "next": "Milestone 6 bounded local export CLI with deterministic manifest SHA-256, local-only output and offline test suite",
+  "production_changed": false,
+  "trades_sent": false,
+  "holdout_2025_read": false
+}
