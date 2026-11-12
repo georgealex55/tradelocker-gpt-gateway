@@ -1,0 +1,29 @@
+{
+  "milestone": 8,
+  "date_utc": "2026-11-12",
+  "branch": "research/xmi-mt5-adapter-20261112",
+  "status": "committed_local_representative_tests_only",
+  "commits": {
+    "importer": "e116f8e4acf99d2126e17f06e146833cc57ab004",
+    "synthetic_tests": "0d027554e70bab069e86a9ae8fee973c3c1426a4",
+    "capability_matrix": "769a631e85eb41f049d709d36e800352d92061fc"
+  },
+  "tests": {
+    "synthetic_local_passed": 8,
+    "synthetic_local_total": 8,
+    "exact_repository_suite_executed": false,
+    "ci_verified": false
+  },
+  "mt5_terminal_connected": false,
+  "authenticated_broker_export": false,
+  "production_changed": false,
+  "trade_execution": false,
+  "holdout_2025_read": false,
+  "next_milestone": 9,
+  "limitations": [
+    "Deals not equivalent to fully closed positions",
+    "No authenticated broker spread, slippage or swap history",
+    "Existing exporter handles bars/ticks, not deals",
+    "Exact committed suite and CI not verified"
+  ]
+}
