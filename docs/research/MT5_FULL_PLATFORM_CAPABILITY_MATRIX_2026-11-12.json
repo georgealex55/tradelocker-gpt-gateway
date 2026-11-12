@@ -3,7 +3,7 @@
   "project": "XMI 2.0 MT5 Full Platform Capability Matrix",
   "created_utc": "2026-11-12",
   "branch": "research/xmi-mt5-adapter-20261112",
-  "phase": "run-07-symbol-reconciliation-and-structured-array-fix",
+  "phase": "run-08-sanitized-2026-deal-accounting",
   "feature_scope": "Audit full usable MetaTrader 5 feature surface, not necessarily fully implemented within 12 hourly runs",
   "prior_account_user_settings": {
     "mt5_access_reported": true,
@@ -183,10 +183,12 @@
       "status": "implemented_unverified",
       "note": "Exclude all 2025 holdout data",
       "acceptance_evidence": [
-        "scripts/mt5_readonly_terminal.py commit 084d2499691cda47219146bb020939a3128a8297; tests/test_mt5_readonly_terminal.py commit 2e701f0198a4b7cef1710e0e4cd795632e3874a0; tests NOT executed; real terminal NOT connected"
+        "scripts/mt5_readonly_terminal.py commit 084d2499691cda47219146bb020939a3128a8297; tests/test_mt5_readonly_terminal.py commit 2e701f0198a4b7cef1710e0e4cd795632e3874a0; tests NOT executed; real terminal NOT connected",
+        "run08 scripts/mt5_closed_deals.py commit e116f8e4acf99d2126e17f06e146833cc57ab004; tests/test_mt5_closed_deals.py commit 0d027554e70bab069e86a9ae8fee973c3c1426a4; local representative synthetic suite passed 8/8, exact repository suite/CI not executed"
       ],
       "limitations": [
-        "Only injected local Python SDK reader; no real Windows MT5 terminal, SDK version, broker export, integration with XMI chart, or full repository CI verified"
+        "Only injected local Python SDK reader; no real Windows MT5 terminal, SDK version, broker export, integration with XMI chart, or full repository CI verified",
+        "Sanitized 2026-only offline deal P&L aggregation; cannot assert positions fully closed or authenticate MT5 terminal/export; no historical spread/slippage inference"
       ]
     },
     {
@@ -248,10 +250,14 @@
       "name": "Account/order/deal linkage, consistency, idempotency, realized/unrealized accounting",
       "interface_type": "python",
       "priority": "P1",
-      "status": "not_implemented",
+      "status": "implemented_unverified",
       "note": "Data reads only",
-      "acceptance_evidence": [],
-      "limitations": []
+      "acceptance_evidence": [
+        "run08 scripts/mt5_closed_deals.py commit e116f8e4acf99d2126e17f06e146833cc57ab004; tests/test_mt5_closed_deals.py commit 0d027554e70bab069e86a9ae8fee973c3c1426a4; local representative synthetic suite passed 8/8, exact repository suite/CI not executed"
+      ],
+      "limitations": [
+        "Sanitized 2026-only offline deal P&L aggregation; cannot assert positions fully closed or authenticate MT5 terminal/export; no historical spread/slippage inference"
+      ]
     },
     {
       "id": "indicators_builtin",
@@ -358,10 +364,14 @@
       "name": "Trade history journal/report exports, costs, fees and source snapshots",
       "interface_type": "python+offline",
       "priority": "P1",
-      "status": "not_implemented",
+      "status": "implemented_unverified",
       "note": "Never publish private records",
-      "acceptance_evidence": [],
-      "limitations": []
+      "acceptance_evidence": [
+        "run08 scripts/mt5_closed_deals.py commit e116f8e4acf99d2126e17f06e146833cc57ab004; tests/test_mt5_closed_deals.py commit 0d027554e70bab069e86a9ae8fee973c3c1426a4; local representative synthetic suite passed 8/8, exact repository suite/CI not executed"
+      ],
+      "limitations": [
+        "Sanitized 2026-only offline deal P&L aggregation; cannot assert positions fully closed or authenticate MT5 terminal/export; no historical spread/slippage inference"
+      ]
     },
     {
       "id": "multi_account",
