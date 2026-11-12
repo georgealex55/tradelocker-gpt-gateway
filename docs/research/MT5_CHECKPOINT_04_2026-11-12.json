@@ -1,0 +1,31 @@
+{
+  "checkpoint": 4,
+  "date_utc": "2026-11-12",
+  "branch": "research/xmi-mt5-adapter-20261112",
+  "scope": "M1/M5 UTC session gap and spread-points audit",
+  "status": "source_committed_local_isolated_tests_passed",
+  "source_commits": [
+    "529b9fcc5cc1167bc2c8516292e2b4f2c069d4f2",
+    "526a5fe74d9cdb8c52dce9c29b9e473cb020e9f1",
+    "a0a9fb665e370ae6f19349f1cb56a4c3010b8526"
+  ],
+  "local_synthetic_tests": {
+    "passed": 5,
+    "failed": 0,
+    "command": "node --test /mnt/data/mt5_m4/mt5-bar-session.test.mjs",
+    "scope": "isolated local copies, not exact committed repo"
+  },
+  "ci": "not_run",
+  "mt5_terminal_connected": false,
+  "real_broker_data": false,
+  "production_changed": false,
+  "execution_enabled": false,
+  "holdout_2025_read": false,
+  "remaining": [
+    "wire offline importer",
+    "exact branch CI",
+    "broker session/DST evidence",
+    "verified point/pip mapping"
+  ],
+  "next": 5
+}
