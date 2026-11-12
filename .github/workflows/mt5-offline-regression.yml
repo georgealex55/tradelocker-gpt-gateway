@@ -1,0 +1,33 @@
+name: MT5 offline synthetic regression
+on:
+  push:
+    branches:
+      - research/xmi-mt5-adapter-20261112
+    paths:
+      - 'lib/mt5/**'
+      - 'tests/mt5-*.test.mjs'
+      - 'scripts/mt5_*.py'
+      - 'tests/test_mt5_*.py'
+      - '.github/workflows/mt5-offline-regression.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  node-offline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run MT5 synthetic tests (no terminal or network data)
+        run: node --test tests/mt5-*.test.mjs
+  python-offline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run mock-only MT5 Python tests
+        run: python -m unittest discover -s tests -p 'test_mt5_*.py' -v
