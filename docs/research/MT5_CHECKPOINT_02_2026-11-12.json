@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "milestone": 2,
+  "status": "IMPLEMENTED_UNVERIFIED",
+  "date_utc": "2026-11-12",
+  "branch": "research/xmi-mt5-adapter-20261112",
+  "code_commits": [
+    "0192ecd3bba9f5ad71a2e09056e56063cf50fbb1",
+    "05ecbe18dab7464b4697a5f0f57863bad30e11ca"
+  ],
+  "matrix_commit": "df375a698ac2dfe2c5de3405c18e70677ddad7c1",
+  "implemented": [
+    "lib/mt5/offlineBars.mjs explicit opt-in MT5_LOCAL_EXPORT selection without touching existing providers",
+    "SHA-256 exact UTF-8 raw bar payload integrity validation before JSON parse",
+    "2025 sealed-window manifest guard before source parsing; strict UTC, alignment, duplicates, out-of-window, OHLC, tick volume, fully closed bars",
+    "tests/mt5-offline-bars.test.mjs synthetic test cases"
+  ],
+  "tests": {
+    "executed": false,
+    "reason": "GitHub connector exposes file writes/reads but no workflow dispatch; container network cannot resolve github.com and no complete local checkout was available",
+    "command": "node --test tests/mt5-contract.test.mjs tests/mt5-offline-bars.test.mjs",
+    "result": "NOT_RUN"
+  },
+  "limitations": [
+    "Not connected to MT5 Windows terminal",
+    "Not wired into live chart or existing provider routes; intentional isolation",
+    "Bars only; ticks, symbol_info, account, deals, market depth and MQL5/tester features remain pending",
+    "No CI result, no broker-data export, no actual GatesFX historical spread evidence",
+    "No production deployment or order transmission"
+  ],
+  "next_milestone": "Implement strict MT5 historical Bid/Ask tick parser with millisecond UTC timestamps, quote integrity checks, tick flags, spread provenance and synthetic tests; run existing test suite once checkout/CI execution available",
+  "holdout_2025_read": false,
+  "production_changed": false,
+  "orders_sent": false,
+  "broker_data_committed": false
+}
