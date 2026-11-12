@@ -56,8 +56,29 @@ def _rows(value: Any) -> list:
         raise MT5ReadError("MT5_NO_DATA")
     if len(value) > MAX_ROWS:
         raise MT5ReadError("MT5_ROW_LIMIT")
-    # Avoid leaking SDK objects; caller explicitly controls local storage.
-    return value.tolist() if hasattr(value, "tolist") else list(value)
+    # NumPy structured arrays expose named dtype fields. .tolist() loses field
+    # names and returns tuples, which cannot be converted with dict(row).
+    # Convert each record by name before returning to the exporter.
+    names = getattr(getattr(value, "dtype", None), "names", None)
+    if names:
+        return [{name: _scalar(row[name]) for name in names} for row in value]
+    records = list(value)
+    result = []
+    for row in records:
+        if isinstance(row, dict):
+            result.append(row)
+        elif hasattr(row, "_asdict"):
+            result.append(row._asdict())
+        else:
+            raise MT5ReadError("MT5_UNSUPPORTED_ROW_FORMAT")
+    return result
+
+
+def _scalar(value: Any) -> Any:
+    # NumPy scalar -> native Python scalar without importing NumPy at runtime.
+    if hasattr(value, "item"):
+        return value.item()
+    return value
 
 
 class ReadOnlyMT5:
