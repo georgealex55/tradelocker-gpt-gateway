@@ -3,7 +3,7 @@
   "project": "XMI 2.0 MT5 Full Platform Capability Matrix",
   "created_utc": "2026-11-12",
   "branch": "research/xmi-mt5-adapter-20261112",
-  "phase": "run-03-offline-bid-ask-ticks",
+  "phase": "run-04-m1-m5-session-audit",
   "feature_scope": "Audit full usable MetaTrader 5 feature surface, not necessarily fully implemented within 12 hourly runs",
   "prior_account_user_settings": {
     "mt5_access_reported": true,
@@ -91,10 +91,12 @@
       "status": "implemented_unverified",
       "note": "No lookahead; never silently interpolate missing quotes",
       "acceptance_evidence": [
-        "lib/mt5/offlineBars.mjs; tests/mt5-offline-bars.test.mjs (source committed; tests not executed)"
+        "lib/mt5/offlineBars.mjs; tests/mt5-offline-bars.test.mjs (source committed; tests not executed)",
+        "lib/mt5/barSession.mjs commit 529b9fcc; tests/mt5-bar-session.test.mjs commit 526a5fe7; representative local Node.js synthetic suite 5/5 passed; exact GitHub branch suite/CI pending"
       ],
       "limitations": [
-        "Only bounded offline 1m–1D bar import; no local terminal, MT5 source API, MT5 native higher timeframes or quote spread parity"
+        "Only bounded offline 1m–1D bar import; no local terminal, MT5 source API, MT5 native higher timeframes or quote spread parity",
+        "M1/M5 audit separate from existing offlineBars import; not yet wired end-to-end"
       ]
     },
     {
@@ -112,10 +114,14 @@
       "name": "Trading/quote sessions, broker timezone, rollover and DST",
       "interface_type": "python+mql5",
       "priority": "P0",
-      "status": "not_implemented",
+      "status": "implemented_unverified",
       "note": "Historic changes may require broker notices",
-      "acceptance_evidence": [],
-      "limitations": []
+      "acceptance_evidence": [
+        "lib/mt5/barSession.mjs commit 529b9fcc; tests/mt5-bar-session.test.mjs commit 526a5fe7; representative local Node.js synthetic suite 5/5 passed; exact GitHub branch suite/CI pending"
+      ],
+      "limitations": [
+        "UTC continuity only; no verified broker trading sessions, rollover or historical DST rules"
+      ]
     },
     {
       "id": "order_book_read",
@@ -363,10 +369,12 @@
       "status": "implemented_unverified",
       "note": "Fail closed and verify exact SHA",
       "acceptance_evidence": [
-        "lib/mt5/offlineBars.mjs verifies SHA-256 of exact UTF-8 bytes and rejects duplicates, invalid UTC, out-of-window and malformed OHLC; synthetic tests committed but not run"
+        "lib/mt5/offlineBars.mjs verifies SHA-256 of exact UTF-8 bytes and rejects duplicates, invalid UTC, out-of-window and malformed OHLC; synthetic tests committed but not run",
+        "lib/mt5/barSession.mjs commit 529b9fcc; tests/mt5-bar-session.test.mjs commit 526a5fe7; representative local Node.js synthetic suite 5/5 passed; exact GitHub branch suite/CI pending"
       ],
       "limitations": [
-        "No automated CI execution or local full repository test evidence yet"
+        "No automated CI execution or local full repository test evidence yet",
+        "Local isolated module tested; repository-wide CI not executed"
       ]
     },
     {
@@ -401,6 +409,6 @@
     "https://www.metatrader5.com/en/terminal/help/algotrading/autotrading"
   ],
   "reporting": "Every run update exact statuses with code paths, CI and screenshots/terminal limitations. Do not promote status to verified without evidence.",
-  "last_checkpoint": "docs/research/MT5_CHECKPOINT_02_2026-11-12.json",
+  "last_checkpoint": "docs/research/MT5_CHECKPOINT_04_2026-11-12.json",
   "last_updated_utc": "2026-11-12"
 }
