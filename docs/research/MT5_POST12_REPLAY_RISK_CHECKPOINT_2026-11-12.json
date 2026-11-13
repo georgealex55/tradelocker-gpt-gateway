@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "phase": "post_12_replay_risk_bridge",
+  "branch": "research/xmi-mt5-adapter-20261112",
+  "commits": {
+    "module": "573ba91a39ac8fa91673b298f3127271b52304df",
+    "tests": "3c17b985236313f65019195faf183ff825bb3c02",
+    "human_checkpoint": "ad8fc4efe657458dffa37f491841aca4cae4befb"
+  },
+  "files": [
+    "lib/mt5/replayRiskResearch.mjs",
+    "tests/mt5-replay-risk-research.test.mjs"
+  ],
+  "test_cases_committed": 3,
+  "exact_repository_tests_executed": false,
+  "ci_success_observed": false,
+  "checkout_blocker": "Could not resolve host: github.com",
+  "ci_commit_status": "statuses empty",
+  "terminal_connected": false,
+  "broker_data_verified": false,
+  "holdout_2025_accessed": false,
+  "orders_enabled": false,
+  "production_changed": false,
+  "model": "descriptive replay plus pretrade risk feasibility; no fills or P&L",
+  "next": "execute exact repo tests and repair failures; validate broker inputs; add causal funded scenario engine"
+}
